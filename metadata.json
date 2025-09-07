@@ -1,0 +1,5 @@
+{
+  "name": "GovPrep AI Assistant",
+  "description": "An AI-powered application to help users prepare for government job exams through generated quizzes, study materials, and mock interviews.",
+  "requestFramePermissions": []
+}
