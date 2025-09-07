@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppView, ExamDetailGroup, ExamByQualification } from './types';
+// Fix: Import EXAM_DATA to resolve reference errors.
 import { LANGUAGES, QUALIFICATION_CATEGORIES, SELECTION_LEVELS, INDIAN_STATES, EXAM_DATA } from './constants';
 import { generateExamsByQualification, getSpecificErrorMessage, generateTopicsForExam, generateExamDetails } from './services/geminiService';
 import { getLastSelection, saveLastSelection } from './utils/tracking';
@@ -343,12 +344,17 @@ const App: React.FC = () => {
       case AppView.HOME:
       default:
         // Helper component for the new card-based selection
-        const SelectionCard: React.FC<{ title: string; onClick: () => void; }> = ({ title, onClick }) => (
+        const SelectionCard: React.FC<{
+          title: string;
+          subtitle?: string;
+          onClick: () => void;
+        }> = ({ title, subtitle, onClick }) => (
           <button
             onClick={onClick}
-            className="w-full h-full p-6 text-center bg-white rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/50 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full h-full p-4 text-center bg-white rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/50 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 flex flex-col justify-center"
           >
-            <h4 className="font-bold text-gray-800">{title}</h4>
+            <h4 className="font-bold text-gray-800 text-base leading-tight">{title}</h4>
+            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
           </button>
         );
 
@@ -459,7 +465,7 @@ const App: React.FC = () => {
                         stepTitle = 'Step 2: Select a State';
                         return (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {INDIAN_STATES.map(state => <SelectionCard key={state} title={state} onClick={() => handleStateChange(state)} />)}
+                                {INDIAN_STATES.map(state => <SelectionCard key={state.name} title={state.name} subtitle={state.capital} onClick={() => handleStateChange(state.name)} />)}
                             </div>
                         );
                     }
