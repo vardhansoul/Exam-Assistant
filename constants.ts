@@ -1090,12 +1090,12 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Other State Departments',
             subCategories: [
-                { name: 'Forest Guard / Forester / RFO' },
+                { name: 'Forest Guard / Forester' },
                 { name: 'Statistical Assistant / DEO' },
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff (Hartron)' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1104,18 +1104,18 @@ export const EXAM_DATA: ExamData = {
     ],
     'Himachal Pradesh': [
         {
-            name: 'HPSC (Himachal Pradesh Public Service Commission)',
+            name: 'HPPSC (Himachal Pradesh Public Service Commission)',
             subCategories: [
-                { name: 'HPAS (Himachal Pradesh Administrative Services) + Allied Services' },
+                { name: 'HPAS (Himachal Pradesh Administrative Services) + Allied' },
                 { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
                 { name: 'Lecturer (in Government Colleges)' },
                 { name: 'Forest Range Officer (FRO) / ACF' },
-                { name: 'Horticulture / Agriculture Development Officer' },
-                { name: 'HPSC Departmental Examinations' },
+                { name: 'Agriculture / Horticulture Development Officer' },
+                { name: 'HPPSC Departmental Examinations' },
             ],
         },
         {
-            name: 'Himachal Pradesh Police Recruitment',
+            name: 'Himachal Pradesh Police & Home Department',
             subCategories: [
                 { name: 'Sub Inspector (SI)' },
                 { name: 'Police Constable (GD & Tradesmen)' },
@@ -1143,7 +1143,7 @@ export const EXAM_DATA: ExamData = {
             ],
         },
         {
-            name: 'HP Power & Engineering Departments (HPSEBL, HPPWD)',
+            name: 'HP Power & Engineering Dept (HPSEBL, HPPWD)',
             subCategories: [
                 { name: 'Assistant Engineer (AE) - Electrical/Civil' },
                 { name: 'Junior Engineer (JE)' },
@@ -1202,7 +1202,7 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1217,6 +1217,7 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
                 { name: 'Lecturer (in Government Colleges)' },
                 { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'Divisional Officer (Various Depts)' },
                 { name: 'JPSC Departmental Examinations' },
             ],
         },
@@ -1307,7 +1308,7 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1318,18 +1319,18 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'KPSC (Karnataka Public Service Commission)',
             subCategories: [
-                { name: 'KAS (Karnataka Administrative Service) + Allied Services Exam' },
-                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical, IT' },
-                { name: 'Lecturer (in Government Colleges / Polytechnics)' },
-                { name: 'Forest Range Officer (FRO) / Assistant Conservator of Forest (ACF)' },
-                { name: 'Horticulture Development Officer / Agriculture Officer' },
+                { name: 'KAS (Karnataka Administrative Service) + Allied' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'Agriculture / Horticulture Development Officer' },
                 { name: 'KPSC Departmental Examinations' },
             ],
         },
         {
-            name: 'Karnataka Police & Home Department',
+            name: 'Karnataka Police Recruitment (KEA)',
             subCategories: [
-                { name: 'Police Sub Inspector (PSI) - Civil & Armed' },
+                { name: 'Police Sub Inspector (PSI)' },
                 { name: 'Police Constable (GD & Tradesmen)' },
                 { name: 'Jail Warder / Fireman' },
                 { name: 'Driver Constable / Wireless Operator' },
@@ -1339,22 +1340,22 @@ export const EXAM_DATA: ExamData = {
             name: 'Teaching (DSERT / KSEEB)',
             subCategories: [
                 { name: 'KARTET (Karnataka Teacher Eligibility Test)' },
-                { name: 'Primary Teacher' },
+                { name: 'Primary Teacher (PRT)' },
                 { name: 'Trained Graduate Teacher (TGT)' },
                 { name: 'Post Graduate Teacher (PGT)' },
-                { name: 'Non-Teaching Staff (Clerk, DEO, Lab Attendant)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
             ],
         },
         {
             name: 'Revenue & Panchayat Raj',
             subCategories: [
-                { name: 'First Division Assistant (FDA) / Second Division Assistant (SDA)' },
+                { name: 'First/Second Division Assistant (FDA/SDA)' },
                 { name: 'Village Accountant (VA) / Patwari' },
-                { name: 'Gram Panchayat Development Officer (GPDO) / Panchayat Secretary' },
+                { name: 'Gram Panchayat Development Officer (GPDO)' },
             ],
         },
         {
-            name: 'Karnataka Power Sector (KPTCL, BESCOM, etc.)',
+            name: 'Karnataka Power Sector (KPTCL, BESCOM)',
             subCategories: [
                 { name: 'Assistant Engineer (AE) - Electrical/Civil' },
                 { name: 'Junior Engineer (JE)' },
@@ -1400,7 +1401,7 @@ export const EXAM_DATA: ExamData = {
             name: 'Welfare Departments (BC, SC, ST, WCD)',
             subCategories: [
                 { name: 'Welfare Officer (BC/SC/ST)' },
-                { name: 'Hostel Superintendent / Manager' },
+                { name: 'Hostel Superintendent' },
                 { name: 'Child Development Project Officer (CDPO)' },
                 { name: 'Anganwadi Supervisor / Worker' },
             ],
@@ -1408,11 +1409,12 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Other State Departments',
             subCategories: [
+                { name: 'Forest Guard / Forester' },
                 { name: 'Statistical Assistant / DEO' },
                 { name: 'Town Planning / Municipal Officer' },
-                { name: 'Food Safety Officer (FSO)' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
-                { name: 'Forest Guard / Forester' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1421,33 +1423,22 @@ export const EXAM_DATA: ExamData = {
     ],
     'Kerala': [
         {
-            name: 'Kerala Public Service Commission (KPSC)',
+            name: 'Kerala PSC (General)',
             subCategories: [
                 { name: 'Secretariat Assistant / Auditor' },
-                { name: 'LDC (Lower Division Clerk)' },
-                { name: 'Police Constable (Civil & Armed)' },
-                { name: 'Sub Inspector (SI)' },
-                { name: 'Assistant Engineer (AE) - PWD, KSEB, etc.' },
-                { name: 'Junior Engineer (JE) - Civil, Mechanical, Electrical' },
-                { name: 'Village Officer / Village Extension Officer (VEO)' },
-                { name: 'Tracer / Overseer (PWD)' },
-                { name: 'Lab Technical Assistant / Instructor' },
-                { name: 'Statistical Assistant / Data Entry Operator' },
-                { name: 'Medical Officer / Pharmacist / Staff Nurse' },
-                { name: 'Lecturer / Polytechnic Lecturer' },
-                { name: 'Forest Guard / Forest Range Officer' },
+                { name: 'Lower Division Clerk (LDC)' },
+                { name: 'Village Officer / VEO' },
+                { name: 'Sales Tax / Treasury Officer' },
                 { name: 'Excise Inspector / Prohibition Officer' },
-                { name: 'Sales Tax Officer / Treasury Officer' },
             ],
         },
         {
-            name: 'Kerala Police Department',
+            name: 'Kerala Police & Home Department',
             subCategories: [
-                { name: 'Sub Inspector (SI) - Civil & Armed Police' },
-                { name: 'Police Constable (GD & Tradesmen)' },
-                { name: 'Women Police Constable' },
-                { name: 'Driver Constable / Wireless Operator' },
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (Civil & Armed)' },
                 { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
             ],
         },
         {
@@ -1456,26 +1447,27 @@ export const EXAM_DATA: ExamData = {
                 { name: 'KTET (Kerala Teacher Eligibility Test)' },
                 { name: 'High School Assistant (HSA) - TGT' },
                 { name: 'Secondary School Teacher (SST) - PGT' },
-                { name: 'Vocational / Physical Education Teacher (PET)' },
-                { name: 'Librarian / Language Teacher' },
+                { name: 'Vocational / Physical Education Teacher' },
                 { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
             ],
         },
         {
-            name: 'Rural Development & Panchayat Raj',
+            name: 'Engineering & Technical (KPSC)',
             subCategories: [
-                { name: 'Village Extension Officer (VEO)' },
-                { name: 'Panchayat Secretary / Junior Assistant' },
-                { name: 'Social Education & Extension Officer (SEEO)' },
+                { name: 'Assistant Engineer (AE) - PWD, KSEB, etc.' },
+                { name: 'Junior Engineer (JE) - Civil, Mechanical, Electrical' },
+                { name: 'Overseer / Tracer' },
+                { name: 'Lab Technical Assistant / Instructor' },
+                { name: 'Polytechnic / College Lecturer' },
             ],
         },
         {
-            name: 'Kerala Power Sector (KSEB)',
+            name: 'Kerala Power & Transport (KSEB, KSRTC)',
             subCategories: [
-                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
-                { name: 'Junior Engineer (JE)' },
-                { name: 'Lineman / Technician' },
-                { name: 'Office Assistant / DEO' },
+                { name: 'KSEB - Lineman / Technician' },
+                { name: 'KSEB - Sub Station Attendant / Store Keeper' },
+                { name: 'KSRTC - Conductor / Driver / Junior Assistant' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
             ],
         },
         {
@@ -1508,7 +1500,7 @@ export const EXAM_DATA: ExamData = {
             subCategories: [
                 { name: 'Agricultural Extension Officer (AEO)' },
                 { name: 'Horticulture Officer' },
-                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Fisheries Inspector / Development Officer' },
                 { name: 'Livestock Inspector / Veterinary Field Assistant' },
             ],
         },
@@ -1516,7 +1508,7 @@ export const EXAM_DATA: ExamData = {
             name: 'Welfare Departments (BC, SC, ST, WCD)',
             subCategories: [
                 { name: 'Welfare Officer (BC/SC/ST)' },
-                { name: 'Hostel Superintendent / Manager' },
+                { name: 'Hostel Superintendent' },
                 { name: 'Child Development Project Officer (CDPO)' },
                 { name: 'Anganwadi Supervisor / Worker' },
             ],
@@ -1524,11 +1516,9 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Other State Departments',
             subCategories: [
+                { name: 'Forest Guard / Forest Range Officer' },
                 { name: 'Statistical Assistant / DEO' },
-                { name: 'Town Planning / Municipal Officer' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Motor Vehicle Inspector (MVI)' },
-                { name: 'KSRTC Conductor / Driver' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1542,12 +1532,13 @@ export const EXAM_DATA: ExamData = {
                 { name: 'MP State Services Exam (Deputy Collector, DSP, etc.)' },
                 { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
                 { name: 'Lecturer (in Government Colleges)' },
-                { name: 'State Accounts Service / State Finance Service' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'State Accounts / Finance Service' },
                 { name: 'MP PSC Departmental Examinations' },
             ],
         },
         {
-            name: 'MP Police & Home Department (MP Vyapam)',
+            name: 'MP Police Recruitment (MP Vyapam)',
             subCategories: [
                 { name: 'Sub Inspector (SI)' },
                 { name: 'Police Constable (GD & Tradesmen)' },
@@ -1559,16 +1550,16 @@ export const EXAM_DATA: ExamData = {
             name: 'Teaching (MPBSE / DSE MP)',
             subCategories: [
                 { name: 'MP TET (Teacher Eligibility Test)' },
-                { name: 'Primary Teacher' },
+                { name: 'Primary Teacher (PRT)' },
                 { name: 'Trained Graduate Teacher (TGT)' },
                 { name: 'Post Graduate Teacher (PGT)' },
-                { name: 'Non-Teaching Staff (Clerk, DEO, Lab Attendant)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
             ],
         },
         {
             name: 'Rural Development & Revenue',
             subCategories: [
-                { name: 'Patwari / Kanungo' },
+                { name: 'Patwari / Kanungo (Land Records)' },
                 { name: 'Gram Panchayat Secretary / Panchayat Sachiv' },
                 { name: 'Social Education & Extension Officer (SEEO)' },
             ],
@@ -1583,14 +1574,14 @@ export const EXAM_DATA: ExamData = {
             ],
         },
         {
-            name: 'MP State Cooperative Banks',
+            name: 'Madhya Pradesh State Cooperative Banks',
             subCategories: [
                 { name: 'Madhya Pradesh State Cooperative Bank (MPSCB) - Clerk/Officer' },
                 { name: 'District Central Cooperative Banks (DCCB)' },
             ],
         },
         {
-            name: 'MP High Court & Judiciary',
+            name: 'Madhya Pradesh High Court & Judiciary',
             subCategories: [
                 { name: 'Civil Judge (Junior Division)' },
                 { name: 'High Court LDC / Stenographer' },
@@ -1620,7 +1611,7 @@ export const EXAM_DATA: ExamData = {
             name: 'Welfare Departments (BC, SC, ST, WCD)',
             subCategories: [
                 { name: 'Welfare Officer (BC/SC/ST)' },
-                { name: 'Hostel Superintendent / Manager' },
+                { name: 'Hostel Superintendent' },
                 { name: 'Child Development Project Officer (CDPO)' },
                 { name: 'Anganwadi Supervisor / Worker' },
             ],
@@ -1628,14 +1619,14 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Other State Departments',
             subCategories: [
-                { name: 'Forest Guard / Forester / RFO' },
+                { name: 'Forest Guard / Forester' },
                 { name: 'Statistical Assistant / DEO' },
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
-                { name: 'IT & e-Governance Staff (MPOnline)' },
+                { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
             ],
         },
@@ -1647,7 +1638,7 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Maharashtra State Services (Rajyaseva) Exam' },
                 { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
                 { name: 'Lecturer (in Government Colleges)' },
-                { name: 'Forest Range Officer (FRO) / Assistant Conservator of Forest (ACF)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
                 { name: 'Agriculture Officer / Horticulture Officer' },
                 { name: 'MPSC Departmental Examinations' },
             ],
@@ -1657,19 +1648,18 @@ export const EXAM_DATA: ExamData = {
             subCategories: [
                 { name: 'Sub Inspector (SI)' },
                 { name: 'Police Constable (GD & Tradesmen)' },
-                { name: 'Driver Constable / Wireless Operator' },
                 { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
             ],
         },
         {
             name: 'Teaching (MSBSHSE / DSE Maharashtra)',
             subCategories: [
-                { name: 'MAHA TET (Maharashtra Teacher Eligibility Test)' },
-                { name: 'Primary Teacher' },
+                { name: 'MAHA TET (Teacher Eligibility Test)' },
+                { name: 'Primary Teacher (PRT)' },
                 { name: 'Trained Graduate Teacher (TGT)' },
                 { name: 'Post Graduate Teacher (PGT)' },
-                { name: 'Headmaster / Headmistress (HM)' },
-                { name: 'Non-Teaching Staff (Clerk, DEO, Lab Attendant)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
             ],
         },
         {
@@ -1681,7 +1671,7 @@ export const EXAM_DATA: ExamData = {
             ],
         },
         {
-            name: 'Maharashtra Power Sector (MAHADISCOM, etc.)',
+            name: 'Maharashtra Power Sector (MAHADISCOM, MAHATRANSCO)',
             subCategories: [
                 { name: 'Assistant Engineer (AE) - Electrical/Civil' },
                 { name: 'Junior Engineer (JE)' },
@@ -1692,7 +1682,7 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Maharashtra State Cooperative Banks',
             subCategories: [
-                { name: 'MSC Bank - Clerk/Officer' },
+                { name: 'Maharashtra State Cooperative Bank (MSC Bank) - Clerk/Officer' },
                 { name: 'District Central Cooperative Banks (DCCB)' },
             ],
         },
@@ -1727,7 +1717,7 @@ export const EXAM_DATA: ExamData = {
             name: 'Welfare Departments (BC, SC, ST, WCD)',
             subCategories: [
                 { name: 'Welfare Officer (BC/SC/ST)' },
-                { name: 'Hostel Superintendent / Manager' },
+                { name: 'Hostel Superintendent' },
                 { name: 'Child Development Project Officer (CDPO)' },
                 { name: 'Anganwadi Supervisor / Worker' },
             ],
@@ -1740,7 +1730,7 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
@@ -1751,11 +1741,10 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'MPSC (Manipur Public Service Commission)',
             subCategories: [
-                { name: 'Combined Competitive Examination (CCE) - MAS, MPS, MFS' },
+                { name: 'Combined Competitive Examination (CCE) - Manipur Civil Services' },
                 { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
                 { name: 'Lecturer (in Government Colleges)' },
-                { name: 'Block Development Officer (BDO)' },
-                { name: 'Treasury Officer / Assistant Commissioner (Taxation)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
                 { name: 'MPSC Departmental Examinations' },
             ],
         },
@@ -1771,15 +1760,15 @@ export const EXAM_DATA: ExamData = {
         {
             name: 'Teaching (DoE Manipur)',
             subCategories: [
-                { name: 'Manipur TET (MTET)' },
+                { name: 'Manipur TET (Teacher Eligibility Test)' },
                 { name: 'Primary & Upper Primary Teacher' },
-                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Secondary Teacher (TGT)' },
                 { name: 'Post Graduate Teacher (PGT)' },
-                { name: 'Non-Teaching Staff (Clerk, DEO, etc.)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
             ],
         },
         {
-            name: 'Rural Development & Panchayati Raj',
+            name: 'Rural Development & Panchayat Raj',
             subCategories: [
                 { name: 'Panchayat Secretary / Village Authority Secretary' },
                 { name: 'Social Education & Extension Officer (SEEO)' },
@@ -1832,7 +1821,429 @@ export const EXAM_DATA: ExamData = {
             name: 'Welfare Departments (BC, SC, ST, WCD)',
             subCategories: [
                 { name: 'Welfare Officer (BC/SC/ST)' },
-                { name: 'Hostel Superintendent / Manager' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Meghalaya': [
+        {
+            name: 'MPSC (Meghalaya Public Service Commission)',
+            subCategories: [
+                { name: 'Meghalaya Civil Services (CCCE) - Deputy Collector/DSP' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'MPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Meghalaya Police & Home Department',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (DSE Meghalaya)',
+            subCategories: [
+                { name: 'MTET (Meghalaya Teacher Eligibility Test)' },
+                { name: 'Primary & Upper Primary Teacher' },
+                { name: 'Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Panchayat Raj',
+            subCategories: [
+                { name: 'Panchayat Secretary / Village Employment Officer (VEO)' },
+                { name: 'Extension Officer (Panchayat Raj)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Meghalaya Power Sector (MeECL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Meghalaya State Cooperative Banks',
+            subCategories: [
+                { name: 'Meghalaya Rural Bank (MRB) - Clerk/Officer' },
+                { name: 'Meghalaya Co-operative Apex Bank (MCABL)' },
+            ],
+        },
+        {
+            name: 'Meghalaya High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Mizoram': [
+        {
+            name: 'MPSC (Mizoram Public Service Commission)',
+            subCategories: [
+                { name: 'Mizoram Civil Services (CCCE) - Deputy Collector/DSP' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'MPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Mizoram Police & Home Department',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (DSE Mizoram)',
+            subCategories: [
+                { name: 'MTET (Mizoram Teacher Eligibility Test)' },
+                { name: 'Primary & Upper Primary Teacher' },
+                { name: 'Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Village Councils',
+            subCategories: [
+                { name: 'Village Council Secretary' },
+                { name: 'Extension Officer (Rural Development)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Mizoram Power & Electricity Department',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Mizoram State Cooperative Banks',
+            subCategories: [
+                { name: 'Mizoram Co-operative Apex Bank (MCAB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Mizoram High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Nagaland': [
+        {
+            name: 'NPSC (Nagaland Public Service Commission)',
+            subCategories: [
+                { name: 'Nagaland Civil Services (CCCE) - Deputy Commissioner/DSP' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'NPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Nagaland Police & Home Department',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (DSE Nagaland)',
+            subCategories: [
+                { name: 'NTET (Nagaland Teacher Eligibility Test)' },
+                { name: 'Primary & Upper Primary Teacher' },
+                { name: 'Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Village Councils',
+            subCategories: [
+                { name: 'Village Council Secretary / VDO' },
+                { name: 'Extension Officer (Rural Development)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Nagaland Power & Infrastructure Dept',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Civil/Electrical' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Nagaland State Cooperative Banks',
+            subCategories: [
+                { name: 'Nagaland Rural Bank (NRB) - Clerk/Officer' },
+                { name: 'Nagaland State Co-operative Apex Bank (NSCAB)' },
+            ],
+        },
+        {
+            name: 'Nagaland High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Odisha': [
+        {
+            name: 'OPSC (Odisha Public Service Commission)',
+            subCategories: [
+                { name: 'Odisha Civil Services (OCSE) - OAS/OPS/OFS' },
+                { name: 'Assistant Section Officer (ASO)' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer in Government Degree Colleges' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'Statistical Officer / Labour Inspector' },
+            ],
+        },
+        {
+            name: 'Odisha Police Recruitment Board',
+            subCategories: [
+                { name: 'Sub Inspector (SI) of Police' },
+                { name: 'Police Constable (Civil & Armed)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Supervisor' },
+            ],
+        },
+        {
+            name: 'Teaching (BSE Odisha / OSSC)',
+            subCategories: [
+                { name: 'OTET (Odisha Teacher Eligibility Test)' },
+                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'PET / Computer Teacher' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Revenue (OSSC)',
+            subCategories: [
+                { name: 'Panchayat Executive Officer (PEO)' },
+                { name: 'Revenue Inspector (RI) / Amin' },
+                { name: 'ARI / Statistical Field Surveyor (SFS)' },
+                { name: 'Gram Rozgar Sevak (GRS)' },
+            ],
+        },
+        {
+            name: 'Odisha Power Sector (GRIDCO, TPCODL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Odisha State Cooperative Banks',
+            subCategories: [
+                { name: 'Odisha State Cooperative Bank (OSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Odisha High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court Junior Clerk / Copyist / Steno' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (SC/ST/OBC, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (SC/ST/OBC)' },
+                { name: 'Hostel Superintendent' },
                 { name: 'Child Development Project Officer (CDPO)' },
                 { name: 'Anganwadi Supervisor / Worker' },
             ],
@@ -1845,12 +2256,974 @@ export const EXAM_DATA: ExamData = {
                 { name: 'Town Planning / Municipal Officer' },
                 { name: 'Motor Vehicle Inspector (MVI)' },
                 { name: 'Food Safety Officer (FSO)' },
-                { name: 'Lecturer (Polytechnic / ITI)' },
+                { name: 'Lecturer (Polytechnic)' },
                 { name: 'University Staff (Admin, Research)' },
                 { name: 'IT & e-Governance Staff' },
                 { name: 'Tourism & Culture Dept Staff' },
             ],
         },
-      ]
+    ],
+    'Punjab': [
+        {
+            name: 'PPSC (Punjab Public Service Commission)',
+            subCategories: [
+                { name: 'Punjab Civil Services (PCS) CCE' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'Agriculture / Horticulture Development Officer' },
+                { name: 'PPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Punjab Police Recruitment (PSSSB)',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (PSEB / DSE Punjab)',
+            subCategories: [
+                { name: 'PTET (Punjab Teacher Eligibility Test)' },
+                { name: 'Primary Teacher (PRT)' },
+                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Revenue',
+            subCategories: [
+                { name: 'Patwari / Kanungo (Land Records)' },
+                { name: 'Gram Sachiv / Panchayat Secretary' },
+                { name: 'Extension Officer (Panchayat Raj)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Punjab Power Sector (PSPCL, PSTCL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Punjab State Cooperative Banks',
+            subCategories: [
+                { name: 'Punjab State Cooperative Bank (PSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Punjab & Haryana High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Rajasthan': [
+        {
+            name: 'RPSC (Rajasthan Public Service Commission)',
+            subCategories: [
+                { name: 'RAS/RTS (Rajasthan Administrative Services)' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'Agriculture / Horticulture Officer' },
+                { name: 'RPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Rajasthan Police Recruitment',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Prahari / Platoon Commander / Fireman' },
+                { name: 'Driver Constable / Radio Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (RBSE / RSMSSB)',
+            subCategories: [
+                { name: 'REET (Teacher Eligibility Examination)' },
+                { name: 'Primary Teacher (PRT)' },
+                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Revenue',
+            subCategories: [
+                { name: 'Patwari / Kanungo (Land Records)' },
+                { name: 'Gram Sevak / Panchayat Secretary' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Rajasthan Power Sector (RVUNL, JVVNL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Rajasthan State Cooperative Banks',
+            subCategories: [
+                { name: 'Rajasthan State Cooperative Bank (RSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Rajasthan High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Sikkim': [
+        {
+            name: 'SPSC (Sikkim Public Service Commission)',
+            subCategories: [
+                { name: 'Sikkim Civil Services (CCCE) - Deputy Collector/DSP' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'SPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Sikkim Police & Home Department',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (DSE Sikkim)',
+            subCategories: [
+                { name: 'STET (Sikkim Teacher Eligibility Test)' },
+                { name: 'Primary & Upper Primary Teacher' },
+                { name: 'Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Panchayat Raj',
+            subCategories: [
+                { name: 'Panchayat Secretary / Gram Sachiv' },
+                { name: 'Extension Officer (Panchayat Raj)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Sikkim Power Department (SECL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Sikkim State Cooperative Banks',
+            subCategories: [
+                { name: 'Sikkim State Cooperative Bank (SSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Sikkim High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Tamil Nadu': [
+        {
+            name: 'TNPSC (Tamil Nadu Public Service Commission)',
+            subCategories: [
+                { name: 'Group-I Services (Deputy Collector, DSP, etc.)' },
+                { name: 'Group-II Services (Sub-Registrar, etc.)' },
+                { name: 'Group-IIA (Non-Interview Posts)' },
+                { name: 'Group-III Services (Bill Collector, Junior Assistant)' },
+                { name: 'Group-IV Services (VAO, Junior Assistant)' },
+                { name: 'Combined Engineering Services (CES)' },
+                { name: 'Forest Apprentice / Range Forest Officer (RFO)' },
+            ],
+        },
+        {
+            name: 'TN Police Recruitment (TNUSRB)',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (PC)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (Teachers Recruitment Board - TRB)',
+            subCategories: [
+                { name: 'TNTET (Tamil Nadu Teacher Eligibility Test)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Trained Graduate Teacher (TGT) / BT Assistant' },
+                { name: 'Polytechnic Lecturer / ITI Instructor' },
+                { name: 'Non-Teaching Staff (JA, Lab Assistant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Panchayat Raj',
+            subCategories: [
+                { name: 'VAO (Village Administrative Officer)' },
+                { name: 'Executive Officer (Panchayat Union)' },
+                { name: 'Bill Collector / Field Surveyor' },
+                { name: 'Extension Officer' },
+            ],
+        },
+        {
+            name: 'Tamil Nadu Power Sector (TANGEDCO)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Technical / Junior Assistant' },
+                { name: 'Lineman / Assessor' },
+            ],
+        },
+        {
+            name: 'Tamil Nadu State Cooperative Banks',
+            subCategories: [
+                { name: 'Tamil Nadu State Apex Cooperative Bank (TNSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Tamil Nadu High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Steno / Typist' },
+                { name: 'Field Investigator / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Officer' },
+                { name: 'Fisheries Inspector' },
+                { name: 'Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Inspector / Assistant' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Telangana': [
+        {
+            name: 'TSPSC (Telangana State Public Service Commission)',
+            subCategories: [
+                { name: 'Group-I Services (Deputy Collector, CTO, etc.)' },
+                { name: 'Group-II Services (Municipal Commissioner, ASO)' },
+                { name: 'Group-III Services (Junior Accountant, Auditor)' },
+                { name: 'Group-IV Services (Junior Assistant, VRO)' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+            ],
+        },
+        {
+            name: 'Telangana Police Recruitment (TSLPRB)',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (PC)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Radio Technician' },
+                { name: 'Excise Constable / SI' },
+            ],
+        },
+        {
+            name: 'Teaching (DSE Telangana)',
+            subCategories: [
+                { name: 'TS TET (Teacher Eligibility Test)' },
+                { name: 'School Assistant (SA) - TGT' },
+                { name: 'Secondary Grade Teacher (SGT) - PRT' },
+                { name: 'Physical Education Teacher (PET)' },
+                { name: 'Non-Teaching Staff (JA, Lab Technician)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Panchayat Raj',
+            subCategories: [
+                { name: 'Village Revenue Officer (VRO)' },
+                { name: 'Village Revenue Assistant (VRA)' },
+                { name: 'Panchayat Secretary' },
+                { name: 'Welfare & Extension Officer (WEO)' },
+            ],
+        },
+        {
+            name: 'Telangana Power Sector (TSGENCO, TSTRANSCO)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE) / Sub Engineer (SE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Junior Accounts Officer (JAO)' },
+            ],
+        },
+        {
+            name: 'Telangana State Cooperative Banks',
+            subCategories: [
+                { name: 'Telangana State Cooperative Bank (TSCB) - Staff Assistant/Manager' },
+                { name: 'District Cooperative Central Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Telangana High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court Junior Assistant / Typist / Steno' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Welfare Officer' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Beat Officer (FBO) / Forest Section Officer (FSO)' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Tripura': [
+        {
+            name: 'TPSC (Tripura Public Service Commission)',
+            subCategories: [
+                { name: 'Tripura State Civil Services (CCCE) - Deputy Collector/DSP' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'TPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Tripura Police & Home Department',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (TBSE / DSE Tripura)',
+            subCategories: [
+                { name: 'Tripura TET (Teacher Eligibility Test)' },
+                { name: 'Primary & Upper Primary Teacher' },
+                { name: 'Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Panchayat Raj',
+            subCategories: [
+                { name: 'Panchayat Secretary / Gram Sevak' },
+                { name: 'Extension Officer (Panchayat Raj)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'Tripura Power Sector (TPDDL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Tripura State Cooperative Banks',
+            subCategories: [
+                { name: 'Tripura State Cooperative Bank (TSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Tripura High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Uttar Pradesh': [
+        {
+            name: 'UPPSC (Uttar Pradesh Public Service Commission)',
+            subCategories: [
+                { name: 'UPPCS (Combined State/Upper Subordinate Services)' },
+                { name: 'Assistant Engineer (AE)' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'RO/ARO (Review Officer / Assistant Review Officer)' },
+                { name: 'UPPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'UP Police Recruitment (UPPRPB)',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Radio Operator' },
+                { name: 'Platoon Commander / Home Guard' },
+            ],
+        },
+        {
+            name: 'Teaching (UPBEB / UPSSSC)',
+            subCategories: [
+                { name: 'UPTET (Teacher Eligibility Test)' },
+                { name: 'Super TET' },
+                { name: 'Primary Teacher' },
+                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (JA, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Revenue',
+            subCategories: [
+                { name: 'Lekhpal / Patwari' },
+                { name: 'Gram Panchayat Adhikari / Panchayat Sachiv' },
+                { name: 'Village Development Officer (VDO)' },
+            ],
+        },
+        {
+            name: 'UP Power Sector (UPPCL, UPRVUNL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'UP Cooperative Banks',
+            subCategories: [
+                { name: 'UP Cooperative Bank (UPCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Allahabad High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'Uttarakhand': [
+        {
+            name: 'UKPSC (Uttarakhand Public Service Commission)',
+            subCategories: [
+                { name: 'UKPCS (Combined State Civil/Upper Subordinate Services)' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO) / ACF' },
+                { name: 'Agriculture Officer / Horticulture Officer' },
+                { name: 'UKPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'Uttarakhand Police Recruitment (UKSSSC)',
+            subCategories: [
+                { name: 'Sub Inspector (SI)' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Jail Warder / Fireman' },
+                { name: 'Driver Constable / Radio Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (UBSE / DSE Uttarakhand)',
+            subCategories: [
+                { name: 'UTET (Uttarakhand Teacher Eligibility Test)' },
+                { name: 'Primary Teacher' },
+                { name: 'Trained Graduate Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Rural Development & Revenue',
+            subCategories: [
+                { name: 'Patwari / Lekhpal' },
+                { name: 'Gram Panchayat Adhikari / Panchayat Sachiv' },
+                { name: 'Village Development Officer (VDO)' },
+            ],
+        },
+        {
+            name: 'Uttarakhand Power Sector (UPCL, UJVNL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'Uttarakhand State Cooperative Banks',
+            subCategories: [
+                { name: 'Uttarakhand Gramin Bank (UKGB) / USCB - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Uttarakhand High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ],
+    'West Bengal': [
+        {
+            name: 'WBPSC (West Bengal Public Service Commission)',
+            subCategories: [
+                { name: 'WBCS (Exe) / WBCS (Other Services)' },
+                { name: 'West Bengal Judicial Service' },
+                { name: 'Assistant Engineer (AE) - Civil, Mechanical, Electrical' },
+                { name: 'Lecturer (in Government Colleges)' },
+                { name: 'Forest Range Officer (FRO)' },
+                { name: 'WBCS (Group C & D) - Lower Services' },
+                { name: 'WBPSC Departmental Examinations' },
+            ],
+        },
+        {
+            name: 'West Bengal Police Recruitment (WBPRB)',
+            subCategories: [
+                { name: 'Sub Inspector (SI) - Unarmed & Armed' },
+                { name: 'Police Constable (GD & Tradesmen)' },
+                { name: 'Lady Constable / Warder / Fireman' },
+                { name: 'Driver Constable / Wireless Operator' },
+            ],
+        },
+        {
+            name: 'Teaching (WBBPE, WBSSC)',
+            subCategories: [
+                { name: 'WBTET (West Bengal Teacher Eligibility Test)' },
+                { name: 'Primary Teacher (PRT)' },
+                { name: 'Upper Primary / Secondary Teacher (TGT)' },
+                { name: 'Post Graduate Teacher (PGT)' },
+                { name: 'Headmaster / Headmistress (HM)' },
+                { name: 'Non-Teaching Staff (Clerk, Lab Attendant)' },
+            ],
+        },
+        {
+            name: 'Panchayat & Rural Development',
+            subCategories: [
+                { name: 'Panchayat Secretary / GPDO' },
+                { name: 'Extension Officer (Panchayat Raj)' },
+                { name: 'Social Education & Extension Officer (SEEO)' },
+            ],
+        },
+        {
+            name: 'West Bengal Power Sector (WBSEDCL, WBPDCL)',
+            subCategories: [
+                { name: 'Assistant Engineer (AE) - Electrical/Civil' },
+                { name: 'Junior Engineer (JE)' },
+                { name: 'Lineman / Technician' },
+                { name: 'Office Assistant / DEO' },
+            ],
+        },
+        {
+            name: 'West Bengal State Cooperative Banks',
+            subCategories: [
+                { name: 'West Bengal State Cooperative Bank (WBSCB) - Clerk/Officer' },
+                { name: 'District Central Cooperative Banks (DCCB)' },
+            ],
+        },
+        {
+            name: 'Calcutta High Court & Judiciary',
+            subCategories: [
+                { name: 'Civil Judge (Junior Division)' },
+                { name: 'High Court LDC / Stenographer' },
+                { name: 'Peon / Process Server' },
+            ],
+        },
+        {
+            name: 'Health & Family Welfare Department',
+            subCategories: [
+                { name: 'Staff Nurse (GNM / B.Sc)' },
+                { name: 'Pharmacist / Lab Technician / Radiographer' },
+                { name: 'Medical Officer (MBBS)' },
+                { name: 'AYUSH Medical Officer' },
+                { name: 'Veterinary Assistant Surgeon (VAS)' },
+            ],
+        },
+        {
+            name: 'Agriculture & Allied Departments',
+            subCategories: [
+                { name: 'Agricultural Extension Officer (AEO)' },
+                { name: 'Horticulture Development Officer' },
+                { name: 'Fisheries / Sericulture Officer' },
+                { name: 'Livestock Inspector / Veterinary Field Assistant' },
+            ],
+        },
+        {
+            name: 'Welfare Departments (BC, SC, ST, WCD)',
+            subCategories: [
+                { name: 'Welfare Officer (BC/SC/ST)' },
+                { name: 'Hostel Superintendent' },
+                { name: 'Child Development Project Officer (CDPO)' },
+                { name: 'Anganwadi Supervisor / Worker' },
+            ],
+        },
+        {
+            name: 'Other State Departments',
+            subCategories: [
+                { name: 'Forest Guard / Forester' },
+                { name: 'Statistical Assistant / DEO' },
+                { name: 'Town Planning / Municipal Officer' },
+                { name: 'Motor Vehicle Inspector (MVI)' },
+                { name: 'Food Safety Officer (FSO)' },
+                { name: 'Lecturer (Polytechnic / Engineering Colleges)' },
+                { name: 'University Staff (Admin, Research)' },
+                { name: 'IT & e-Governance Staff' },
+                { name: 'Tourism & Culture Dept Staff' },
+            ],
+        },
+    ]
   },
 };
