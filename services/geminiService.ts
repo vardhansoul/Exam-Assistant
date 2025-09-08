@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, Chat } from "@google/genai";
-import type { Quiz, ExamDetailGroup, SyllabusTopic, ExamStatusUpdate, StudyMaterial, DailyBriefingData, ExamByQualification } from '../types';
+// Fix: Import DailyBriefing types for DailyBriefing.tsx component.
+import type { Quiz, ExamDetailGroup, SyllabusTopic, ExamStatusUpdate, StudyMaterial, ExamByQualification, GroundedSummary, GroundingChunk, MindMapNode, DailyBriefingData, DailyBriefingMCQ } from '../types';
 import { saveStudyNotesToCache, getApiCache, setApiCache, isCacheStale } from '../utils/tracking';
 
 if (!process.env.API_KEY) {
@@ -210,7 +211,7 @@ The entire response must be in the specified JSON format. The quiz title should 
                                         items: { type: Type.STRING },
                                         description: `The options in English, in the same order.`
                                     },
-                                    correctAnswer: { type: Type.STRING, description: `The correct answer from the ${nativeLanguage} options.` }
+                                    correctAnswer: { type: Type.STRING, description: `The correct answer in ${nativeLanguage}.` }
                                 }
                             }
                         }
@@ -218,243 +219,138 @@ The entire response must be in the specified JSON format. The quiz title should 
                 }
             }
         });
-        
-        const jsonText = response.text.trim();
-        const quizData: Partial<Quiz> = JSON.parse(jsonText);
-        return {
-            title: quizData.title || `Quiz on ${topic}`,
-            questions: quizData.questions || [],
-        };
+
+        const quizData: Quiz = JSON.parse(response.text.trim());
+        return quizData;
     } catch (error) {
-        console.error("Error generating quiz:", error);
-        throw error;
-    }
-};
-
-export const generateMicroTopics = async (topic: string, language: string): Promise<string[]> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `Generate a list of important, granular micro-topics for the broader subject of '${topic}' for someone preparing for a government job exam. The list of topics must be in the ${language} language. Provide only a JSON array of strings.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        topics: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.STRING
-                            },
-                            description: "A list of micro-topics."
-                        }
-                    }
-                }
-            }
-        });
-
-        const jsonText = response.text.trim();
-        const data: { topics?: string[] } = JSON.parse(jsonText);
-        return data.topics || [];
-    } catch (error) {
-        console.error("Error generating micro-topics:", error);
-        throw error;
-    }
-};
-
-
-export const generateRelevantImage = async (topic: string): Promise<string | null> => {
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: `A clear, high-quality, educational, 3D rendered style image that visually represents the topic of '${topic}'. The image should be suitable for a student preparing for government exams. Avoid text overlays.`,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/png',
-              aspectRatio: '16:9',
-            },
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-            return `data:image/png;base64,${base64ImageBytes}`;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error generating image:", error);
+        console.error(`Error generating quiz for topic ${topic}:`, error);
         throw error;
     }
 };
 
 export const generateStudyNotes = async (topic: string, language: string): Promise<StudyMaterial> => {
+    const cacheKey = `study-notes-${topic}-${language}`;
+    const cachedNotes = getApiCache<StudyMaterial>(cacheKey);
+
+    if (cachedNotes && !isCacheStale(cachedNotes.timestamp)) {
+        // Also save to the separate, simpler study notes cache for offline Topic Explorer/Study Helper use
+        saveStudyNotesToCache(topic, language, cachedNotes.data);
+        return cachedNotes.data;
+    }
+    
     try {
-        let textPrompt: string;
-        const isAptitudeOrReasoning = topic.toLowerCase().includes('aptitude') || topic.toLowerCase().includes('reasoning');
-        const isCodeMixed = language.includes('+ English');
-
-        if (isCodeMixed) {
-            let codeMixedName = language;
-            let nativeLanguage = language.split(' ')[0]; // Fallback
-
-            const match = language.match(/^(.*?) \((.*?) \+ English\)$/);
-            if (match) {
-                codeMixedName = match[1];
-                nativeLanguage = match[2];
-            }
-
-            if (isAptitudeOrReasoning) {
-                 textPrompt = `You are an expert and friendly teacher for government job aspirants. Explain the concept of '${topic}'. Your entire explanation must be in ${codeMixedName}, a natural, conversational mix of ${nativeLanguage} and English. The goal is to sound like a real teacher, not a machine translation.
-- The sentence structure and grammar must primarily follow ${nativeLanguage}.
-- Seamlessly integrate common English words for technical terms, key concepts, or for clarity. Do not translate common English technical terms; use them as they are. For example, use "percentage" or "ratio" within a ${nativeLanguage} sentence.
-- This should mimic how a bilingual teacher would naturally code-switch in a classroom.
-- Make the concept extremely easy to understand and remember. Use simple, everyday analogies and real-world examples.
-- Structure the information clearly using markdown (headings, bold text, lists).`;
-            } else {
-                textPrompt = `You are a helpful tutor for government job aspirants. Provide a concise yet comprehensive summary of the topic: '${topic}'. The summary must be in ${codeMixedName}, a natural, conversational mix of ${nativeLanguage} and English.
-- The sentence structure and grammar should primarily follow ${nativeLanguage}.
-- Use common English words for technical or complex terms within natural-sounding ${nativeLanguage} sentences to ensure clarity and readability for a bilingual audience. The blend should feel natural, like how a bilingual person speaks.
-- Use markdown-style headings, bullet points, and bold text to structure the information for easy learning.`;
-            }
-
-        } else {
-            textPrompt = `You are a helpful tutor for government job aspirants. Provide a concise yet comprehensive summary of the topic: '${topic}'. The entire summary must be in the ${language}. Use markdown-style headings, bullet points, and bold text to structure the information for easy learning. Where appropriate, make the explanation memorable by using simple analogies or examples.`;
-        }
-
-        const textGenerationPromise = ai.models.generateContent({
+        const prompt = `Generate comprehensive study notes on the topic '${topic}' for a government job exam aspirant in India. The notes should be well-structured, easy to understand, and cover all key aspects. Use markdown for formatting (e.g., ## for headings, * for bullet points). All text content must be in the ${language} language.`;
+        
+        const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: textPrompt,
+            contents: prompt
         });
-        
-        const imageGenerationPromise = isAptitudeOrReasoning 
-            ? Promise.resolve(null) 
-            : generateRelevantImage(topic).catch(err => {
-                console.warn('Image generation failed but continuing with text notes:', err);
-                return null;
-            });
 
-        const [textResponse, imageUrl] = await Promise.all([textGenerationPromise, imageGenerationPromise]);
+        const material: StudyMaterial = { notes: response.text, imageUrl: null };
         
-        const material: StudyMaterial = {
-            notes: textResponse.text,
-            imageUrl
-        };
-
+        // Also save to the separate, simpler study notes cache for offline Topic Explorer/Study Helper use
         saveStudyNotesToCache(topic, language, material);
-
+        setApiCache(cacheKey, material); // Update the main API cache
+        
         return material;
     } catch (error) {
-        console.error("Error generating study notes:", error);
+        console.error(`Error generating study notes for topic ${topic}:`, error);
         throw error;
     }
 };
 
 export const generateStoryForTopic = async (topic: string, language: string): Promise<string> => {
+    const prompt = `Create a short, memorable story or an analogy to help a student understand and remember the core concept of '${topic}'. The story should be simple, engaging, and directly related to the topic. The story must be in the ${language} language.`;
+
     try {
-        const prompt = `You are a creative and wise storyteller who makes complex topics simple and memorable for government job aspirants.
-Explain the core concept of '${topic}' through a short, simple, and engaging story, analogy, or real-world scenario.
-The story must be easy to remember and directly relate to the topic.
-The entire response must be in the ${language} language.
-If the language is not English, try to incorporate cultural elements, names, or scenarios common to the regions where ${language} is spoken to make it more relatable and memorable.
-Use markdown for formatting.`;
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-        });
-
-        return response.text;
-    } catch (error) {
-        console.error("Error generating story for topic:", error);
-        throw error;
-    }
-};
-
-export const generateSyllabus = async (examCategory: string, language: string): Promise<SyllabusTopic[]> => {
-    try {
-        const prompt = `Generate a detailed, structured syllabus for the '${examCategory}' exam category in India.
-The response must be a JSON array of topic objects.
-Each topic object must have:
-1.  "id": A unique string identifier (e.g., "history-1").
-2.  "title": The name of the syllabus topic in the ${language} language.
-3.  "children": An optional array of nested topic objects for sub-topics.
-
-Create a comprehensive, nested structure. For example, "General Studies" might have children like "History", "Geography", and "Polity". "History" could then have children like "Ancient History", "Medieval History", and "Modern History".
-Provide a rich, multi-level hierarchy. Do not make it a flat list.`;
-
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
+                // Low latency, creative task
+                thinkingConfig: { thinkingBudget: 0 }
+            }
+        });
+        return response.text;
+    } catch (error) {
+        console.error(`Error generating story for topic ${topic}:`, error);
+        throw error;
+    }
+};
+
+// Fix: Add generateMicroTopics function for TopicExplorer.tsx
+export const generateMicroTopics = async (topic: string, language: string): Promise<string[]> => {
+    const cacheKey = `micro-topics-${topic}-${language}`;
+    return getCachedData(cacheKey, async () => {
+        try {
+            const prompt = `Generate a list of specific, granular micro-topics for the broader subject of '${topic}'. These topics should be suitable for focused, short study sessions for a government job exam in India. The list should contain between 5 to 10 micro-topics. The response must be a JSON array of strings, and all topics must be in the ${language} language.`;
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
                         type: Type.OBJECT,
                         properties: {
-                            id: { type: Type.STRING },
-                            title: { type: Type.STRING },
-                            children: {
+                            microTopics: {
                                 type: Type.ARRAY,
-                                items: {
-                                    $ref: "#" // Recursive reference for nested structure
-                                }
+                                items: { type: Type.STRING }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+            const data: { microTopics?: string[] } = JSON.parse(response.text.trim());
+            return data.microTopics || [];
+        } catch (error) {
+            console.error(`Error generating micro-topics for ${topic}:`, error);
+            throw error;
+        }
+    });
+};
 
-        const jsonText = response.text.trim();
-        const data = JSON.parse(jsonText);
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error(`Error generating syllabus for ${examCategory}:`, error);
-        throw error;
-    }
+export const createInterviewSession = (jobRole: string, language: string): Chat => {
+    const systemInstruction = `You are an expert interviewer conducting a mock interview for the role of '${jobRole}' for a government job in India.
+- Start with a brief greeting and then ask the first question.
+- Ask a mix of technical, situational, and behavioral questions relevant to the role.
+- Keep questions concise. Ask only one question at a time.
+- After the user answers, provide brief, constructive feedback in italics (e.g., _"Good answer, you clearly described the situation. To make it stronger, you could also mention the outcome."_). Then, immediately ask the next question.
+- Maintain a professional and encouraging tone.
+- All your responses must be in the ${language} language.`;
+    
+    const chat = ai.chats.create({
+        model: 'gemini-2.5-flash',
+        config: {
+            systemInstruction: systemInstruction,
+        }
+    });
+
+    return chat;
 };
 
 
 export const generateSyllabusInfo = async (jobRole: string, language: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `Provide a brief overview of the typical exam pattern and syllabus for the '${jobRole}' role in India's government sector. Format the response clearly using markdown (headings, lists). The entire response must be in the ${language} language. Keep it concise.`,
-        });
-        return response.text;
-    } catch (error) {
-        console.error("Error generating syllabus info:", error);
-        throw error;
-    }
-};
-
-export const createInterviewSession = (jobRole: string, language: string): Chat => {
-    const chat = ai.chats.create({
-        model: 'gemini-2.5-flash',
-        config: {
-            systemInstruction: `You are an expert interviewer for a ${jobRole} position in the government sector. Your tone should be professional but encouraging. The entire interview must be conducted in the ${language}. Start by introducing yourself and the role in ${language}. Ask one question at a time. After the user responds, provide brief, constructive feedback in italics (in ${language}) and then ask the next relevant question. Keep the interview flowing naturally. Do not greet the user with "Hello". Jump right into the interview.`,
-        },
+    const cacheKey = `syllabus-info-${jobRole}-${language}`;
+    return getCachedData(cacheKey, async () => {
+        const prompt = `Provide a typical, high-level overview of the exam pattern and key syllabus topics for the '${jobRole}' government job exam in India. Use simple markdown for formatting (e.g., '## Exam Pattern', '### Tier 1', '* General Awareness'). The information should be a general guide for a prospective candidate. All content must be in the ${language} language.`;
+        try {
+            const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt });
+            return response.text;
+        } catch (error) {
+            console.error(`Error generating syllabus info for ${jobRole}:`, error);
+            throw error;
+        }
     });
-    return chat;
 };
 
-export const generateStatusUpdate = async (
-    examCategory: string,
-    subCategory: string,
-    tier: string,
-    language: string,
-    updateType: 'Result' | 'Admit Card'
-): Promise<ExamStatusUpdate> => {
+export const generateSyllabus = async (examName: string, language: string): Promise<SyllabusTopic[]> => {
+    const prompt = `Generate a structured syllabus for the '${examName}' exam category. Organize it hierarchically with main subjects and sub-topics.
+The response must be a JSON array of objects. Each object should have:
+1. "id": A unique string identifier (e.g., "quant-aptitude").
+2. "title": The name of the topic in ${language}.
+3. "children": An optional array of topic objects for sub-topics, following the same structure.
+The depth can be up to 3 levels. Aim for a comprehensive yet organized structure.`;
     try {
-        const tierPrompt = tier ? ` for the '${tier}' stage` : '';
-        const prompt = `Act as a real-time information tracker. Simulate using a web crawler to perform a deep search and find the absolute latest status of the ${updateType} for the '${subCategory}' exam${tierPrompt}, part of the '${examCategory}' category in India.
-Your response must be a JSON object containing:
-1. "status": A concise status (e.g., "Released", "Announced", "Not Yet Released", "Available for Download", "Delayed", "Unavailable").
-2. "details": A short, one-sentence summary of the current situation.
-3. "link": The direct, official URL to view the ${updateType} or the main notification page. Prioritize the most direct link. If no link is available, return an empty string.
-
-Be aware of website changes (e.g., ssc.nic.in to ssc.gov.in). Verify and provide the current, official link. It is critical this data is not stale. All text must be in the ${language} language.`;
-
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
@@ -463,53 +359,208 @@ Be aware of website changes (e.g., ssc.nic.in to ssc.gov.in). Verify and provide
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        status: { type: Type.STRING },
-                        details: { type: Type.STRING },
-                        link: { type: Type.STRING },
+                        syllabus: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    id: { type: Type.STRING },
+                                    title: { type: Type.STRING },
+                                    children: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                id: { type: Type.STRING },
+                                                title: { type: Type.STRING },
+                                                children: {
+                                                    type: Type.ARRAY,
+                                                    items: {
+                                                        type: Type.OBJECT,
+                                                        properties: {
+                                                            id: { type: Type.STRING },
+                                                            title: { type: Type.STRING }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         });
-
-        const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
+        const data: { syllabus?: SyllabusTopic[] } = JSON.parse(response.text.trim());
+        return data.syllabus || [];
     } catch (error) {
-        console.error(`Error generating ${updateType} status for ${subCategory}:`, error);
+        console.error(`Error generating syllabus for ${examName}:`, error);
         throw error;
     }
 };
 
-export const generateDailyBriefing = async (language: string): Promise<DailyBriefingData> => {
-    try {
-        const prompt = `Generate a "Daily Briefing" for a government job aspirant in India.
-1.  First, provide a concise summary (around 100-150 words) of a single, recent, and highly important current affairs topic. This topic should be relevant to major exams like UPSC, SSC, Banking, etc.
-2.  After the summary, create two distinct multiple-choice questions (MCQs) based *only* on the information presented in the summary.
-3.  Each MCQ must have four options.
-4.  Indicate the correct answer for each MCQ.
-5.  The entire response, including the summary, questions, options, and correct answers, must be in the ${language} language.
 
-The response must be in the specified JSON format.`;
+export const generateStatusUpdate = async (exam: string, subCategory: string, tier: string, language: string, type: 'Result' | 'Admit Card'): Promise<ExamStatusUpdate> => {
+    const tierPrompt = tier ? ` for the '${tier}' stage` : '';
+    // FIX: The prompt should ask for JSON, but the config should not enforce it when using googleSearch.
+    const prompt = `Check the latest status of the '${type}' for the '${subCategory}' exam${tierPrompt}, which is part of the '${exam}' category.
+Provide a concise update. Respond with ONLY a valid JSON object with the following keys:
+1. "status": A short status line (e.g., "Result Released", "Admit Card Available", "Not Yet Announced").
+2. "details": A one-sentence explanation providing more context (e.g., "The official results were declared on July 20, 2024.", "Admit cards can be downloaded until the exam date.").
+3. "link": The most relevant official URL for the update, if available. If not, this field should be null.
+All text content must be in the ${language} language. Do not include any text before or after the JSON object.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            // FIX: responseMimeType and responseSchema are not allowed when using the googleSearch tool.
+            config: {
+                tools: [{googleSearch: {}}], // Use search for real-time info
+            }
+        });
+
+        // The model might return a string, even for a null link.
+        const parsed: { status: string; details: string; link?: string | null } = JSON.parse(response.text.trim());
+        if (parsed.link === "null" || parsed.link === "") {
+            parsed.link = null;
+        }
+
+        return parsed as ExamStatusUpdate;
+
+    } catch (error) {
+        console.error(`Error generating status update for ${subCategory}:`, error);
+        throw error;
+    }
+};
+
+// Fix: Add generateDailyBriefing function for DailyBriefing.tsx
+export const generateDailyBriefing = async (language: string): Promise<DailyBriefingData> => {
+    // This function is not cached by getCachedData because it's time-sensitive (daily).
+    // The component itself implements a simple daily cache.
+    try {
+        const prompt = `Generate a daily current affairs briefing for a government job exam aspirant in India for today.
+The briefing should contain:
+1.  A concise "summary" of the single most important national or international news event from the last 24 hours. The summary should be a short paragraph.
+2.  A list of 2-3 multiple-choice questions ("mcqs") based on the summary to test understanding.
+
+For each MCQ, provide:
+-   "question": The question text.
+-   "options": An array of 4 strings.
+-   "correctAnswer": The correct option from the array.
+
+The entire response must be ONLY a single valid JSON object with "summary" and "mcqs" keys. Do not include any text before or after the JSON object. All text must be in the ${language} language.`;
         
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
+                tools: [{googleSearch: {}}],
+            }
+        });
+
+        const briefingData: DailyBriefingData = JSON.parse(response.text.trim());
+        return briefingData;
+    } catch (error) {
+        console.error(`Error generating daily briefing:`, error);
+        throw error;
+    }
+};
+
+export const generateGroundedSummary = async (topic: string, language: string, frequency: string, examContext: string): Promise<GroundedSummary> => {
+    try {
+        const examPrompt = examContext ? `The user is preparing for the '${examContext}' exam.` : 'The user is a government job aspirant in India.';
+        const topicPrompt = topic ? `If possible, focus on aspects related to '${topic}', but prioritize the most important general news if the topic is too niche.` : '';
+
+        const prompt = `Act as an expert AI tutor for government job exams in India. ${examPrompt}
+
+Your task is to generate a current affairs summary for the specified frequency: '${frequency}'.
+
+Instructions:
+1.  **Filter for Importance:** Analyze the latest news from Google Search and provide a summary of ONLY the 5-7 most important current affairs events relevant to the specified exam context. Do not include minor or irrelevant events.
+2.  **Memorable Teaching Style:** For each event, explain it in simple, easy-to-remember language. Use markdown for clear formatting:
+    *   Use a main heading for the entire summary (e.g., "## Monthly Current Affairs Briefing").
+    *   Use subheadings (\`###\`) for each individual news event.
+    *   Use bullet points (\`*\`) for key takeaways under each event.
+    *   Use bold (\`**text**\`) to highlight crucial names, dates, legal articles, and terms.
+    *   To emphasize critically important facts that are frequently asked in exams, wrap them in special color tags: ||red:critical fact||, ||blue:key definition||, ||green:positive outcome||, or ||orange:word of caution||.
+3.  **Language:** All content must be in the ${language} language.
+${topicPrompt}`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                tools: [{googleSearch: {}}],
+            },
+        });
+
+        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] || [];
+        
+        return {
+            text: response.text,
+            sources: sources
+        };
+    } catch (error) {
+        console.error(`Error generating grounded summary for topic ${topic}:`, error);
+        throw error;
+    }
+};
+
+export const createCurrentAffairsChat = (topic: string, summary: string, language: string, frequency: string, examContext: string): Chat => {
+    const systemInstruction = `You are a helpful AI assistant specializing in current affairs. You will be answering follow-up questions about a summary you just provided on the optional topic of '${topic}' for a '${frequency}' period, tailored for a '${examContext}' exam aspirant. The summary was: "${summary}". Keep your answers concise, accurate, and relevant to the user's questions. All responses must be in ${language}.`;
+    
+    const chat = ai.chats.create({
+        model: 'gemini-2.5-flash',
+        config: {
+            systemInstruction: systemInstruction,
+        },
+    });
+
+    return chat;
+};
+
+export const generateMindMap = async (topic: string, language: string): Promise<MindMapNode> => {
+    const prompt = `Generate a mind map for the topic '${topic}'. The mind map should be structured as a JSON object.
+The root object must have a "name" key with the topic name and an optional "children" key which is an array of node objects.
+Each child node object should also have a "name" and an optional "children" array.
+Create a logical hierarchy that is at least 2-3 levels deep to be visually effective.
+All text content must be in the ${language} language.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        summary: {
-                            type: Type.STRING,
-                            description: "A concise summary of a recent current affairs topic."
-                        },
-                        mcqs: {
+                        name: { type: Type.STRING },
+                        children: {
                             type: Type.ARRAY,
                             items: {
                                 type: Type.OBJECT,
                                 properties: {
-                                    question: { type: Type.STRING },
-                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                    correctAnswer: { type: Type.STRING }
+                                    name: { type: Type.STRING },
+                                    children: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                name: { type: Type.STRING },
+                                                children: {
+                                                    type: Type.ARRAY,
+                                                    items: {
+                                                        type: Type.OBJECT,
+                                                        properties: { name: { type: Type.STRING } }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -517,50 +568,27 @@ The response must be in the specified JSON format.`;
                 }
             }
         });
-
-        const jsonText = response.text.trim();
-        const data = JSON.parse(jsonText);
-        // Ensure that the mcqs property is always an array to prevent runtime errors.
-        return {
-            summary: data.summary || '',
-            mcqs: data.mcqs || [],
-        };
-
+        return JSON.parse(response.text.trim());
     } catch (error) {
-        console.error("Error generating daily briefing:", error);
+        console.error(`Error generating mind map for topic ${topic}:`, error);
         throw error;
     }
 };
 
 
-export const getSpecificErrorMessage = (error: unknown): string => {
-    if (error instanceof SyntaxError) { // Specific check for JSON parsing errors
-        return "The AI returned an invalid format. This might be a temporary issue. Please try again.";
+// --- Error Handling ---
+export const getSpecificErrorMessage = (error: any): string => {
+    let message = 'An unexpected error occurred. Please try again.';
+    if (error && typeof error.message === 'string') {
+        if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
+            message = 'The service is currently busy. Please wait a moment and try again.';
+        } else if (error.message.toLowerCase().includes('api key not valid')) {
+            message = 'The API key is invalid. Please check the configuration.';
+        } else if (error.message.toLowerCase().includes('network error') || error.message.toLowerCase().includes('failed to fetch')) {
+             message = 'A network error occurred. Please check your internet connection.';
+        } else if (error.message.toLowerCase().includes('safety policy')) {
+            message = 'The request was blocked due to the safety policy. Please modify your prompt and try again.';
+        }
     }
-    if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        if (message.includes('api key not valid')) {
-            return "There's an issue with the application configuration. Please contact support.";
-        }
-        if (message.includes('rate limit') || message.includes('resource_exhausted')) {
-            return "The AI service is currently busy due to high demand. Please wait a moment and try again.";
-        }
-        if (message.includes('safety') || message.includes('blocked')) {
-            return "The request was blocked due to safety filters. Please try a different topic or phrasing.";
-        }
-        if (message.includes('network') || message.includes('failed to fetch')) {
-             return "A network error occurred. Please check your internet connection and try again.";
-        }
-        if (message.includes('json')) {
-             return "The AI returned an invalid format. This might be a temporary issue. Please try again.";
-        }
-        // Check for our custom offline error message
-        if (message.includes('offline') && message.includes('downloaded')) {
-            return message;
-        }
-        // Generic AI error
-        return "An unexpected error occurred while communicating with the AI service. Please try again later.";
-    }
-    // Fallback for non-Error objects
-    return "An unknown error occurred. Please try again later.";
+    return message;
 };

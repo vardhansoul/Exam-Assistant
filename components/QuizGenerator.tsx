@@ -11,26 +11,24 @@ import Select from './Select';
 interface QuizGeneratorProps {
     topics: string[];
     language: string;
-    microTopic?: string | null;
-    onQuizFinish: () => void;
     isOnline: boolean;
 }
 
-const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, microTopic, onQuizFinish, isOnline }) => {
-  const [topic, setTopic] = useState<string>(microTopic || (topics.length > 0 ? topics[0] : ''));
+const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline }) => {
+  const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
   const [difficulty, setDifficulty] = useState<string>(DIFFICULTY_LEVELS[0]);
   const [numQuestions, setNumQuestions] = useState<number>(5);
   const [quiz, setQuiz] = useState<QuizType | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(!!microTopic && isOnline);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // If the available topics change and the currently selected topic is no longer in the list,
     // update the selection to the first available topic.
-    if (topics.length > 0 && !topics.includes(topic) && !microTopic) {
+    if (topics.length > 0 && !topics.includes(topic)) {
       setTopic(topics[0]);
     }
-  }, [topics, topic, microTopic]);
+  }, [topics, topic]);
 
   const handleGenerateQuiz = async () => {
     if (!isOnline) {
@@ -49,24 +47,10 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, microTo
     setIsLoading(false);
   };
   
-  useEffect(() => {
-    if(microTopic && isOnline) {
-        setTopic(microTopic);
-        handleGenerateQuiz();
-    } else if (microTopic && !isOnline) {
-      setError("You are offline. Please connect to the internet to generate this quiz.");
-      setIsLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [microTopic, language, isOnline]);
-
 
   const resetQuiz = () => {
     setQuiz(null);
     setError(null);
-    if (microTopic) {
-        onQuizFinish();
-    }
   };
 
   if (isLoading) {
@@ -89,7 +73,7 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, microTo
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mb-4">{error}</p>}
        {!isOnline && <p className="text-orange-500 bg-orange-100 p-3 rounded-md mb-4">You are offline. Connect to generate new quizzes.</p>}
       <div className="space-y-6">
-        <Select label="Select Topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={!!microTopic || topics.length === 0}/>
+        <Select label="Select Topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0}/>
         
         <div>
           <label htmlFor="difficulty-slider" className="block text-sm font-medium text-gray-700">

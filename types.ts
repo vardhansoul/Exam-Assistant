@@ -5,13 +5,13 @@ export enum AppView {
   QUIZ = 'QUIZ',
   STUDY = 'STUDY',
   INTERVIEW = 'INTERVIEW',
-  TUTORIALS = 'TUTORIALS',
   LEARNING_TRACKER = 'LEARNING_TRACKER',
   SYLLABUS_TRACKER = 'SYLLABUS_TRACKER',
   RESULT_TRACKER = 'RESULT_TRACKER',
   ADMIT_CARD_TRACKER = 'ADMIT_CARD_TRACKER',
   APPLICATION_TRACKER = 'APPLICATION_TRACKER',
-  DAILY_BRIEFING = 'DAILY_BRIEFING',
+  CURRENT_AFFAIRS = 'CURRENT_AFFAIRS',
+  MIND_MAP = 'MIND_MAP',
 }
 
 export interface QuizQuestion {
@@ -88,6 +88,30 @@ export interface ApplicationRecord {
   notes?: string;
 }
 
+export interface ExamByQualification {
+    examName: string;
+    examCategory: string;
+    description: string;
+}
+
+export interface GroundingChunk {
+  web: {
+    uri: string;
+    title: string;
+  };
+}
+
+export interface GroundedSummary {
+  text: string;
+  sources: GroundingChunk[];
+}
+
+export interface MindMapNode {
+  name: string;
+  children?: MindMapNode[];
+}
+
+// Fix: Add DailyBriefing types for DailyBriefing.tsx component
 export interface DailyBriefingMCQ {
   question: string;
   options: string[];
@@ -97,12 +121,6 @@ export interface DailyBriefingMCQ {
 export interface DailyBriefingData {
   summary: string;
   mcqs: DailyBriefingMCQ[];
-}
-
-export interface ExamByQualification {
-    examName: string;
-    examCategory: string;
-    description: string;
 }
 
 // --- Static Exam Data Structure ---

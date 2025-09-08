@@ -7,13 +7,13 @@ import { getLastSelection, saveLastSelection } from './utils/tracking';
 import QuizGenerator from './components/QuizGenerator';
 import StudyHelper from './components/StudyHelper';
 import MockInterview from './components/MockInterview';
-import TopicExplorer from './components/TopicExplorer';
 import LearningTracker from './components/LearningTracker';
 import SyllabusTracker from './components/SyllabusTracker';
 import ResultTracker from './components/ResultTracker';
 import AdmitCardTracker from './components/AdmitCardTracker';
 import ApplicationTracker from './components/ApplicationTracker';
-import DailyBriefing from './components/DailyBriefing';
+import CurrentAffairsAnalyst from './components/CurrentAffairsAnalyst';
+import MindMapGenerator from './components/MindMapGenerator';
 import Card from './components/Card';
 import Select from './components/Select';
 import Button from './components/Button';
@@ -30,7 +30,7 @@ import { TrophyIcon } from './components/icons/TrophyIcon';
 import { DocumentTextIcon } from './components/icons/DocumentTextIcon';
 import { KeyIcon } from './components/icons/KeyIcon';
 import { ArrowPathIcon } from './components/icons/ArrowPathIcon';
-import { SparklesIcon } from './components/icons/SparklesIcon';
+import { RectangleGroupIcon } from './components/icons/RectangleGroupIcon';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ChevronRightIcon } from './components/icons/ChevronRightIcon';
 
@@ -66,13 +66,13 @@ const getViewTitle = (view: AppView): string => {
         case AppView.QUIZ: return "Quiz Generator";
         case AppView.STUDY: return "AI Study Helper";
         case AppView.INTERVIEW: return "Mock Interview";
-        case AppView.TUTORIALS: return "Topic Explorer";
-        case AppView.LEARNING_TRACKER: return "Learning Tracker";
+        case AppView.LEARNING_TRACKER: return "Progress & Insights";
         case AppView.SYLLABUS_TRACKER: return "Syllabus Tracker";
         case AppView.RESULT_TRACKER: return "Result Tracker";
         case AppView.ADMIT_CARD_TRACKER: return "Admit Card Tracker";
         case AppView.APPLICATION_TRACKER: return "Application Tracker";
-        case AppView.DAILY_BRIEFING: return "Daily AI Briefing";
+        case AppView.CURRENT_AFFAIRS: return "Current Affairs Analyst";
+        case AppView.MIND_MAP: return "Mind Map Generator";
         default: return "";
     }
 };
@@ -81,7 +81,6 @@ const getViewTitle = (view: AppView): string => {
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [language, setLanguage] = useState<string>(LANGUAGES[0]);
-  const [quizMicroTopic, setQuizMicroTopic] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   // --- Selection State ---
@@ -302,19 +301,8 @@ const App: React.FC = () => {
   }, [selectedSubCategory, selectedExam, selectedTier, language, selectionLevel, staticTopics, staticDetails]);
 
 
-  const handleStartMicroTopicQuiz = (topic: string) => {
-    setQuizMicroTopic(topic);
-    setView(AppView.QUIZ);
-  };
-  
-  const handleQuizFinish = () => {
-      setQuizMicroTopic(null);
-      setView(AppView.TUTORIALS);
-  }
-  
   const navigateHome = () => {
       setView(AppView.HOME);
-      setQuizMicroTopic(null);
   }
 
   const renderContent = () => {
@@ -322,13 +310,11 @@ const App: React.FC = () => {
 
     switch (view) {
       case AppView.QUIZ:
-        return <QuizGenerator topics={examTopics} language={language} microTopic={quizMicroTopic} onQuizFinish={handleQuizFinish} isOnline={isOnline}/>;
+        return <QuizGenerator topics={examTopics} language={language} isOnline={isOnline}/>;
       case AppView.STUDY:
         return <StudyHelper topics={examTopics} language={language} isOnline={isOnline} />;
       case AppView.INTERVIEW:
         return <MockInterview language={language} isOnline={isOnline} />;
-      case AppView.TUTORIALS:
-        return <TopicExplorer topics={examTopics} language={language} onStartQuiz={handleStartMicroTopicQuiz} isOnline={isOnline}/>;
       case AppView.LEARNING_TRACKER:
         return <LearningTracker />;
       case AppView.SYLLABUS_TRACKER:
@@ -339,8 +325,10 @@ const App: React.FC = () => {
         return <AdmitCardTracker selection={{ selectedExam, selectedSubCategory, selectedTier }} language={language} isOnline={isOnline} />;
       case AppView.APPLICATION_TRACKER:
         return <ApplicationTracker />;
-      case AppView.DAILY_BRIEFING:
-        return <DailyBriefing language={language} isOnline={isOnline} />;
+      case AppView.CURRENT_AFFAIRS:
+        return <CurrentAffairsAnalyst language={language} isOnline={isOnline} selectionPath={selectionPath} />;
+      case AppView.MIND_MAP:
+        return <MindMapGenerator topics={examTopics} language={language} isOnline={isOnline} />;
       case AppView.HOME:
       default:
         // Helper component for the new card-based selection
@@ -615,11 +603,11 @@ const App: React.FC = () => {
             )}
 
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               <FeatureCard
-                icon={<SparklesIcon className="w-6 h-6" />}
-                title="Daily AI Briefing"
-                description="Get a daily summary of key current affairs with a quick quiz."
-                onClick={() => setView(AppView.DAILY_BRIEFING)}
+              <FeatureCard
+                icon={<GlobeAltIcon className="w-6 h-6" />}
+                title="Current Affairs Analyst"
+                description="Get real-time, sourced summaries on any topic and ask follow-up questions."
+                onClick={() => setView(AppView.CURRENT_AFFAIRS)}
               />
               <FeatureCard
                 icon={<ClipboardListIcon className="w-6 h-6" />}
@@ -635,23 +623,23 @@ const App: React.FC = () => {
                 onClick={() => setView(AppView.STUDY)}
                 disabled={!isExamSelected}
               />
+               <FeatureCard
+                icon={<RectangleGroupIcon className="w-6 h-6" />}
+                title="Mind Map Generator"
+                description="Visually explore connections between concepts with AI-generated mind maps."
+                onClick={() => setView(AppView.MIND_MAP)}
+                disabled={!isExamSelected}
+              />
               <FeatureCard
                 icon={<UserGroupIcon className="w-6 h-6" />}
                 title="Mock Interview"
                 description="Practice with a realistic, AI-driven mock interview experience."
                 onClick={() => setView(AppView.INTERVIEW)}
               />
-              <FeatureCard
-                icon={<AcademicCapIcon className="w-6 h-6" />}
-                title="Topic Explorer"
-                description="Break down broad subjects into micro-topics for detailed tutorials."
-                onClick={() => setView(AppView.TUTORIALS)}
-                disabled={!isExamSelected}
-              />
                <FeatureCard
                 icon={<ChartBarIcon className="w-6 h-6" />}
-                title="Learning Tracker"
-                description="Visualize your study progress and review quiz history."
+                title="Progress & Insights"
+                description="Track quiz history, detect weak areas, and view study consistency."
                 onClick={() => setView(AppView.LEARNING_TRACKER)}
               />
                <FeatureCard
