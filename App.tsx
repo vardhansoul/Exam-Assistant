@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic } from './types';
 import { LANGUAGES, QUALIFICATION_CATEGORIES, SELECTION_LEVELS, INDIAN_STATES, EXAM_DATA, CBSE_10_SUBJECTS } from './constants';
 import { generateExamsByQualification, getSpecificErrorMessage, generateTopicsForExam, generateExamDetails } from './services/geminiService';
-import { getLastSelection, saveLastSelection, getSyllabusProgress } from './utils/tracking';
+import { getLastSelection, saveLastSelection, getSyllabusProgress, getTrackingData } from './utils/tracking';
 import TopicExplorer from './components/TopicExplorer';
 import MockInterview from './components/MockInterview';
 import LearningTracker from './components/LearningTracker';
@@ -232,13 +232,42 @@ const App: React.FC = () => {
     const syllabusProgressData = useMemo(() => getSyllabusProgress(), []);
     const currentSyllabusProgress = syllabusProgressData[syllabusKey] || { checkedIds: [], syllabus: [] };
 
-    const countTopics = (topics: SyllabusTopic[]): number => {
+    const countTopics = useCallback((topics: SyllabusTopic[]): number => {
       return topics.reduce((acc, topic) => acc + 1 + (topic.children ? countTopics(topic.children) : 0), 0);
-    };
+    }, []);
 
-    const totalTopics = countTopics(currentSyllabusProgress.syllabus);
+    const totalTopics = useMemo(() => countTopics(currentSyllabusProgress.syllabus), [currentSyllabusProgress.syllabus, countTopics]);
     const progressPercentage = totalTopics > 0 ? Math.round((currentSyllabusProgress.checkedIds.length / totalTopics) * 100) : 0;
   
+    const performanceStats = useMemo(() => {
+        const progress = getTrackingData();
+
+        const topicScores: Record<string, { totalScore: number; totalAttempts: number; totalPossible: number }> = {};
+        progress.quizHistory.forEach(result => {
+            if (!topicScores[result.topic]) topicScores[result.topic] = { totalScore: 0, totalAttempts: 0, totalPossible: 0 };
+            topicScores[result.topic].totalScore += result.score;
+            topicScores[result.topic].totalAttempts += 1;
+            topicScores[result.topic].totalPossible += result.totalQuestions;
+        });
+
+        const masteredTopics = new Set<string>();
+        for (const topic in topicScores) {
+            const d = topicScores[topic];
+            const avg = d.totalPossible > 0 ? (d.totalScore / d.totalPossible) : 0;
+            if (d.totalAttempts >= 2 && avg >= 0.8) masteredTopics.add(topic);
+        }
+        
+        const totalQuizzes = progress.quizHistory.length;
+        const totalScore = progress.quizHistory.reduce((sum, q) => sum + (q.score / q.totalQuestions) * 100, 0);
+        const averageScore = totalQuizzes > 0 ? Math.round(totalScore / totalQuizzes) : 0;
+
+        return {
+            averageScore,
+            topicsStudied: progress.studiedTopics.length,
+            topicsMastered: masteredTopics.size,
+        };
+    }, []);
+
     const allTools = [
       { view: AppView.INTERVIEW, icon: <UserGroupIcon className="w-6 h-6" />, title: 'Mock Interview', desc: 'Practice with an AI interviewer.', disabled: selectionLevel === '10th Class (CBSE)' },
       { view: AppView.SYLLABUS_TRACKER, icon: <ClipboardListIcon className="w-6 h-6" />, title: 'Syllabus Tracker', desc: 'Generate and track syllabus progress.', disabled: !selectionPath },
@@ -250,26 +279,34 @@ const App: React.FC = () => {
       { view: AppView.APPLICATION_TRACKER, icon: <KeyIcon className="w-6 h-6" />, title: 'Application Tracker', desc: 'Save application credentials.', disabled: selectionLevel === '10th Class (CBSE)' },
     ];
   
+    const StatDisplay: React.FC<{ label: string; value: string | number; }> = ({ label, value }) => (
+      <div className="text-center p-2">
+        <p className="text-sm font-semibold text-slate-600">{label}</p>
+        <p className="text-3xl font-bold text-slate-800 mt-1">{value}</p>
+      </div>
+    );
+
     return (
       <div className="space-y-6">
         {!isExamSelected ? (
           <ExamSelectionWizard />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="!p-6">
-                <h3 className="font-semibold text-slate-600">Syllabus Progress</h3>
-                <p className="text-2xl font-bold text-slate-800 mt-2">{progressPercentage}%</p>
-                <div className="w-full bg-slate-200 rounded-full h-2.5 mt-2">
-                  <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+            <Card>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-slate-600">Your Progress for:</h3>
+                  <p className="text-lg font-bold text-slate-800 mt-1 truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={selectionPath}>{selectionPath}</p>
                 </div>
-              </Card>
-              <Card className="!p-6">
-                <h3 className="font-semibold text-slate-600">Selected Exam</h3>
-                <p className="text-lg font-bold text-slate-800 mt-2 truncate">{selectionPath}</p>
-                 <button onClick={handleResetSelection} className="text-sm text-indigo-600 hover:underline font-semibold">Change Exam</button>
-              </Card>
-            </div>
+                <button onClick={handleResetSelection} className="text-sm text-indigo-600 hover:underline font-semibold flex-shrink-0 ml-4 whitespace-nowrap">Change Exam</button>
+              </div>
+              <div className="mt-6 pt-6 border-t grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 divide-x divide-slate-200">
+                <StatDisplay label="Syllabus Progress" value={`${progressPercentage}%`} />
+                <StatDisplay label="Avg. Quiz Score" value={`${performanceStats.averageScore}%`} />
+                <StatDisplay label="Topics Studied" value={performanceStats.topicsStudied} />
+                <StatDisplay label="Topics Mastered" value={performanceStats.topicsMastered} />
+              </div>
+            </Card>
 
             <Card className="!p-6 bg-indigo-50 border-indigo-200">
                 <div className="flex flex-col sm:flex-row sm:items-center">
@@ -452,7 +489,7 @@ const App: React.FC = () => {
       {/* Sidebar for md and up */}
       <aside className={`fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
         <div className="flex items-center justify-between p-4 border-b border-slate-200 h-16">
-          <h1 className="text-xl font-bold text-slate-800">GovPrep AI</h1>
+          <h1 className="text-xl font-bold text-slate-800">Club of Competition</h1>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-500 hover:text-slate-800">
               <XMarkIcon className="w-6 h-6" />
           </button>

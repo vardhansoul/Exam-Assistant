@@ -1,7 +1,7 @@
 
 // Define cache names for versioning
-const STATIC_CACHE_NAME = 'govprep-ai-static-v3';
-const DYNAMIC_CACHE_NAME = 'govprep-ai-dynamic-v3';
+const STATIC_CACHE_NAME = 'club-of-competition-static-v1';
+const DYNAMIC_CACHE_NAME = 'club-of-competition-dynamic-v1';
 
 // List of assets to be cached on installation
 const ASSETS_TO_CACHE = [

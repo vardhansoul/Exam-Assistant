@@ -13,7 +13,7 @@ interface DailyBriefingProps {
   isOnline: boolean;
 }
 
-const DAILY_BRIEFING_CACHE_KEY = 'govPrepAiDailyBriefing';
+const DAILY_BRIEFING_CACHE_KEY = 'clubOfCompetitionDailyBriefing';
 
 interface CachedBriefing {
   date: string; // YYYY-MM-DD

@@ -2,14 +2,14 @@
 
 import type { LearningProgress, QuizResult, SyllabusProgress, SyllabusTopic, ApplicationRecord, StudyMaterial, LastSelection } from '../types';
 
-const TRACKING_KEY = 'govPrepAiLearningTracker';
-const SYLLABUS_TRACKING_KEY = 'govPrepAiSyllabusTracker';
-const APPLICATION_TRACKER_KEY = 'govPrepAiApplicationTracker';
-const STUDY_NOTES_CACHE_KEY = 'govPrepAiStudyNotesCache';
-const API_CACHE_KEY = 'govPrepAiApiCache';
-const LAST_SELECTION_KEY = 'govPrepAiLastSelection';
+const TRACKING_KEY = 'clubOfCompetitionLearningTracker';
+const SYLLABUS_TRACKING_KEY = 'clubOfCompetitionSyllabusTracker';
+const APPLICATION_TRACKER_KEY = 'clubOfCompetitionApplicationTracker';
+const STUDY_NOTES_CACHE_KEY = 'clubOfCompetitionStudyNotesCache';
+const API_CACHE_KEY = 'clubOfCompetitionApiCache';
+const LAST_SELECTION_KEY = 'clubOfCompetitionLastSelection';
 // Fix: Add QUIZ_USAGE_KEY to fix import errors in QuizGenerator.tsx.
-const QUIZ_USAGE_KEY = 'govPrepAiQuizUsage';
+const QUIZ_USAGE_KEY = 'clubOfCompetitionQuizUsage';
 
 const API_CACHE_MAX_SIZE = 100;
 const API_CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
