@@ -1,8 +1,9 @@
+
+
 import type { Chat } from '@google/genai';
 
 export enum AppView {
   HOME = 'HOME',
-  QUIZ = 'QUIZ',
   STUDY = 'STUDY',
   INTERVIEW = 'INTERVIEW',
   LEARNING_TRACKER = 'LEARNING_TRACKER',
@@ -12,19 +13,7 @@ export enum AppView {
   APPLICATION_TRACKER = 'APPLICATION_TRACKER',
   CURRENT_AFFAIRS = 'CURRENT_AFFAIRS',
   MIND_MAP = 'MIND_MAP',
-}
-
-export interface QuizQuestion {
-  question: string;
-  questionEnglish: string;
-  options: string[];
-  optionsEnglish: string[];
-  correctAnswer: string;
-}
-
-export interface Quiz {
-  title: string;
-  questions: QuizQuestion[];
+  GUESS_PAPER = 'GUESS_PAPER',
 }
 
 export interface ChatMessage {
@@ -33,6 +22,20 @@ export interface ChatMessage {
 }
 
 export type InterviewChat = Chat;
+
+// Fix: Add Quiz and QuizQuestion types to fix import errors in Quiz.tsx and QuizGenerator.tsx.
+export interface QuizQuestion {
+  question: string;
+  questionEnglish?: string;
+  options: string[];
+  optionsEnglish?: string[];
+  correctAnswer: string;
+}
+
+export interface Quiz {
+  title: string;
+  questions: QuizQuestion[];
+}
 
 export interface QuizResult {
   topic: string;
@@ -64,6 +67,7 @@ export interface ExamDetailGroup {
 export interface SyllabusTopic {
   id: string;
   title: string;
+  details?: string;
   children?: SyllabusTopic[];
 }
 
@@ -111,7 +115,32 @@ export interface MindMapNode {
   children?: MindMapNode[];
 }
 
-// Fix: Add DailyBriefing types for DailyBriefing.tsx component
+export interface GuessQuestion {
+  question: string;
+  answer: string;
+}
+
+export interface GuessPaper {
+  title: string;
+  questions: GuessQuestion[];
+}
+
+export interface PerformanceSummary {
+    totalQuizzes: number;
+    averageScore: number;
+    topicsStudied: number;
+    topicsMastered: number;
+    weakTopics: number;
+    studyStreak: number;
+}
+
+export interface RankPrediction {
+    predictedRank: string;
+    analysis: string;
+    recommendations: string[];
+}
+
+// Fix: Add DailyBriefingMCQ and DailyBriefingData types to fix import errors in DailyBriefing.tsx.
 export interface DailyBriefingMCQ {
   question: string;
   options: string[];
@@ -141,7 +170,6 @@ export interface ExamSubCategory {
 export interface ExamCategory {
   name: string;
   subCategories: ExamSubCategory[] | null; // null means fetch dynamically
-  // Fix: Add optional 'details' property to allow details on exam categories.
   details?: ExamDetailGroup[];
 }
 

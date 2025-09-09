@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTrackingData } from '../utils/tracking';
-import type { LearningProgress, QuizResult } from '../types';
+import { predictRank, getSpecificErrorMessage } from '../services/geminiService';
+import type { LearningProgress, QuizResult, PerformanceSummary, RankPrediction } from '../types';
 import Card from './Card';
-import { CheckBadgeIcon } from './icons/CheckBadgeIcon';
-import { ExclamationTriangleIcon } from './icons/ExclamationTriangleIcon';
-import { ClockIcon } from './icons/ClockIcon';
+import LoadingSpinner from './LoadingSpinner';
+import { FireIcon } from './icons/FireIcon';
+import Button from './Button';
 
 interface WeakArea {
     topic: string;
@@ -12,266 +14,295 @@ interface WeakArea {
     attempts: number;
 }
 
-interface TimeInsights {
-    streak: number;
-    weeklyActivity: number[]; // Mon -> Sun
-    mostActiveDay: string;
+interface TopicStats {
+    topic: string;
+    usersStudied: number;
+    usersMastered: number;
+    currentUserStudied: boolean;
+    currentUserMastered: boolean;
 }
 
-const LearningTracker: React.FC = () => {
+interface LearningTrackerProps {
+    topics: string[];
+    selectionPath: string;
+}
+
+const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath }) => {
+    const [activeTab, setActiveTab] = useState('dashboard');
     const [progress, setProgress] = useState<LearningProgress>({ studiedTopics: [], quizHistory: [] });
     const [masteredTopics, setMasteredTopics] = useState<Set<string>>(new Set());
     const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
-    const [timeInsights, setTimeInsights] = useState<TimeInsights | null>(null);
+    const [benchmarkData, setBenchmarkData] = useState<TopicStats[]>([]);
+    const [rankPrediction, setRankPrediction] = useState<RankPrediction | null>(null);
+    const [isRankLoading, setIsRankLoading] = useState(false);
+    const [rankError, setRankError] = useState<string|null>(null);
+
+    const performanceSummary = useMemo((): PerformanceSummary => {
+        const totalQuizzes = progress.quizHistory.length;
+        const totalScore = progress.quizHistory.reduce((sum, q) => sum + (q.score / q.totalQuestions) * 100, 0);
+        const averageScore = totalQuizzes > 0 ? Math.round(totalScore / totalQuizzes) : 0;
+        
+        const quizDates = new Set(progress.quizHistory.map(q => new Date(q.date).toISOString().split('T')[0]));
+        let streak = 0;
+        if (quizDates.size > 0) {
+            let currentDate = new Date();
+            while (quizDates.has(currentDate.toISOString().split('T')[0])) {
+                streak++;
+                currentDate.setDate(currentDate.getDate() - 1);
+            }
+        }
+
+        return {
+            totalQuizzes, averageScore,
+            topicsStudied: progress.studiedTopics.length,
+            topicsMastered: masteredTopics.size,
+            weakTopics: weakAreas.length,
+            studyStreak: streak,
+        };
+    }, [progress, masteredTopics, weakAreas]);
 
     useEffect(() => {
         const data = getTrackingData();
         setProgress(data);
 
-        // --- Mastery Calculation ---
-        const calculateMastery = (quizHistory: QuizResult[]): Set<string> => {
-            const topicScores: Record<string, { totalScore: number; totalAttempts: number; totalPossible: number }> = {};
-            quizHistory.forEach(result => {
-                if (!topicScores[result.topic]) {
-                    topicScores[result.topic] = { totalScore: 0, totalAttempts: 0, totalPossible: 0 };
-                }
-                topicScores[result.topic].totalScore += result.score;
-                topicScores[result.topic].totalAttempts += 1;
-                topicScores[result.topic].totalPossible += result.totalQuestions;
-            });
-            const mastered = new Set<string>();
-            for (const topic in topicScores) {
-                const d = topicScores[topic];
-                if (d.totalAttempts >= 2 && (d.totalScore / d.totalPossible) >= 0.8) {
-                    mastered.add(topic);
-                }
-            }
-            return mastered;
-        };
-        setMasteredTopics(calculateMastery(data.quizHistory));
+        const topicScores: Record<string, { totalScore: number; totalAttempts: number; totalPossible: number }> = {};
+        data.quizHistory.forEach(result => {
+            if (!topicScores[result.topic]) topicScores[result.topic] = { totalScore: 0, totalAttempts: 0, totalPossible: 0 };
+            topicScores[result.topic].totalScore += result.score;
+            topicScores[result.topic].totalAttempts += 1;
+            topicScores[result.topic].totalPossible += result.totalQuestions;
+        });
 
-        // --- Weak Area Detection ---
-        const calculateWeakAreas = (quizHistory: QuizResult[]): WeakArea[] => {
-            const topicData: Record<string, { totalScore: number; totalPossible: number; count: number }> = {};
-            quizHistory.forEach(result => {
-                if (!topicData[result.topic]) {
-                    topicData[result.topic] = { totalScore: 0, totalPossible: 0, count: 0 };
-                }
-                topicData[result.topic].totalScore += result.score;
-                topicData[result.topic].totalPossible += result.totalQuestions;
-                topicData[result.topic].count += 1;
-            });
-            const weak: WeakArea[] = [];
-            for (const topic in topicData) {
-                const d = topicData[topic];
-                const averageScore = d.totalPossible > 0 ? (d.totalScore / d.totalPossible) : 0;
-                // Weak if attempted at least twice with an average score below 60%
-                if (d.count >= 2 && averageScore < 0.6) {
-                    weak.push({ topic, averageScore: Math.round(averageScore * 100), attempts: d.count });
-                }
-            }
-            return weak.sort((a, b) => a.averageScore - b.averageScore);
-        };
-        setWeakAreas(calculateWeakAreas(data.quizHistory));
-
-        // --- Time Management Insights ---
-        const calculateTimeInsights = (quizHistory: QuizResult[]): TimeInsights => {
-            if (quizHistory.length === 0) {
-                return { streak: 0, weeklyActivity: Array(7).fill(0), mostActiveDay: 'N/A' };
-            }
-
-            // Streak Calculation
-            const quizDates = new Set(quizHistory.map(q => new Date(q.date).toISOString().split('T')[0]));
-            let streak = 0;
-            if (quizDates.size > 0) {
-                let currentDate = new Date();
-                while (quizDates.has(currentDate.toISOString().split('T')[0])) {
-                    streak++;
-                    currentDate.setDate(currentDate.getDate() - 1);
-                }
-            }
-
-            // Weekly Activity (Last 7 days, Mon -> Sun)
-            const weeklyActivity = Array(7).fill(0);
-            const today = new Date();
-            const last7DaysStart = new Date();
-            last7DaysStart.setDate(today.getDate() - 6);
-            
-            quizHistory.forEach(q => {
-                const qDate = new Date(q.date);
-                if (qDate >= last7DaysStart && qDate <= today) {
-                    const dayIndex = (qDate.getDay() + 6) % 7; // Monday = 0, Sunday = 6
-                    weeklyActivity[dayIndex]++;
-                }
-            });
-
-
-            // Most Active Day
-            const dayCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun -> Sat
-            quizHistory.forEach(q => {
-                const dayIndex = new Date(q.date).getDay();
-                dayCounts[dayIndex]++;
-            });
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const maxCount = Math.max(...dayCounts);
-            const mostActiveDay = maxCount > 0 ? days[dayCounts.indexOf(maxCount)] : 'N/A';
-            
-            return { streak, weeklyActivity, mostActiveDay };
-        };
-        setTimeInsights(calculateTimeInsights(data.quizHistory));
-
+        const mastered = new Set<string>();
+        const weak: WeakArea[] = [];
+        for (const topic in topicScores) {
+            const d = topicScores[topic];
+            const avg = d.totalPossible > 0 ? (d.totalScore / d.totalPossible) : 0;
+            if (d.totalAttempts >= 2 && avg >= 0.8) mastered.add(topic);
+            if (d.totalAttempts >= 2 && avg < 0.6) weak.push({ topic, averageScore: Math.round(avg * 100), attempts: d.totalAttempts });
+        }
+        setMasteredTopics(mastered);
+        setWeakAreas(weak.sort((a, b) => a.averageScore - b.averageScore));
     }, []);
-
-    const renderQuizHistory = () => {
-        if (progress.quizHistory.length === 0) {
-            return <p className="text-center text-gray-500 bg-slate-50 p-4 rounded-lg">No quiz history yet. Take a quiz to see your results here!</p>;
-        }
-        return (
-            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                {progress.quizHistory.map((result: QuizResult, index: number) => {
-                    const percentage = Math.round((result.score / result.totalQuestions) * 100);
-                    let progressBarColor = 'bg-green-500';
-                    if (percentage < 50) {
-                        progressBarColor = 'bg-red-500';
-                    } else if (percentage < 80) {
-                        progressBarColor = 'bg-yellow-500';
-                    }
-
-                    return (
-                        <div key={index} className="bg-slate-100 p-3 rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                                <div>
-                                    <p className="font-semibold text-gray-800 truncate" title={result.topic}>{result.topic}</p>
-                                    <p className="text-sm text-gray-500">{new Date(result.date).toLocaleDateString()}</p>
-                                </div>
-                                <div className="text-right">
-                                   <p className={`text-lg font-bold ${percentage >= 80 ? 'text-green-600' : 'text-orange-600'}`}>
-                                        {result.score}/{result.totalQuestions}
-                                    </p>
-                                    <p className="text-sm text-gray-500">{percentage}%</p>
-                                </div>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                <div className={`${progressBarColor} h-2.5 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        );
-    };
     
-    const renderStudiedTopics = () => {
-        if (progress.studiedTopics.length === 0) {
-            return <p className="text-center text-gray-500 bg-slate-50 p-4 rounded-lg">You haven't studied any topics yet. Use the Study Helper to learn!</p>;
+    useEffect(() => {
+        if (topics.length > 0 && progress) {
+            const stats: TopicStats[] = topics.map(topic => {
+                const hash = topic.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+                const usersStudied = (Math.abs(hash) % 7500) + 500;
+                const masteryRate = ((Math.abs(hash) % 45) + 15) / 100;
+                const usersMastered = Math.floor(usersStudied * masteryRate);
+                return { topic, usersStudied, usersMastered, currentUserStudied: progress.studiedTopics.includes(topic), currentUserMastered: masteredTopics.has(topic) };
+            });
+            setBenchmarkData(stats.sort((a, b) => b.usersStudied - a.usersStudied));
         }
-        return (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {progress.studiedTopics.map(topic => (
-                     <div key={topic} className="bg-slate-100 p-3 rounded-lg flex items-center justify-between">
-                        <p className="font-medium text-gray-700">{topic}</p>
-                         {masteredTopics.has(topic) && (
-                            <div className="flex items-center gap-1 text-green-600" title="Mastered!">
-                                <CheckBadgeIcon className="w-5 h-5" />
-                                <span className="text-xs font-bold">Mastered</span>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
-    const renderWeakAreas = () => {
-        if (weakAreas.length === 0) {
-            return <p className="text-center text-gray-500 bg-green-50 p-4 rounded-lg">Great job! No consistent weak areas found. Keep up the good work!</p>;
+    }, [topics, progress, masteredTopics]);
+    
+    const handleGetRankPrediction = useCallback(async () => {
+        if (!selectionPath) return;
+        setIsRankLoading(true);
+        setRankError(null);
+        try {
+            const prediction = await predictRank(performanceSummary, selectionPath, 'English');
+            setRankPrediction(prediction);
+        } catch(e) {
+            setRankError(getSpecificErrorMessage(e));
         }
-        return (
-            <div className="space-y-3">
-                {weakAreas.map(area => (
-                    <div key={area.topic} className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
-                        <div className="flex justify-between items-center">
-                            <p className="font-semibold text-gray-800">{area.topic}</p>
-                            <p className="text-sm font-bold text-orange-600">Avg. Score: {area.averageScore}%</p>
-                        </div>
-                         <p className="text-xs text-gray-500 mt-1">{area.attempts} attempts</p>
-                    </div>
-                ))}
-            </div>
-        );
-    };
+        setIsRankLoading(false);
+    }, [performanceSummary, selectionPath]);
 
-    const renderTimeInsights = () => {
-        if (!timeInsights) return null;
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const maxActivity = Math.max(...timeInsights.weeklyActivity, 1);
-        return (
+    const DashboardTab = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-3xl font-bold text-blue-600">🔥 {timeInsights.streak}</p>
-                        <p className="text-sm font-medium text-gray-600">Day Streak</p>
-                    </div>
-                     <div className="bg-purple-50 p-4 rounded-lg">
-                        <p className="text-xl font-bold text-purple-600">{timeInsights.mostActiveDay}</p>
-                        <p className="text-sm font-medium text-gray-600">Most Productive Day</p>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <InfoCard title="Average Score" value={`${performanceSummary.averageScore}%`} />
+                    <InfoCard title="Study Streak" value={`${performanceSummary.studyStreak} Days`} icon={<FireIcon className="w-5 h-5" />} />
+                    <InfoCard title="Topics Mastered" value={performanceSummary.topicsMastered} />
+                    <InfoCard title="Weak Areas" value={performanceSummary.weakTopics} />
                 </div>
                 <div>
-                    <h4 className="text-md font-semibold text-gray-700 mb-2">Weekly Activity (Last 7 Days)</h4>
-                    <div className="flex justify-around items-end bg-gray-50 p-4 rounded-lg h-32">
-                        {timeInsights.weeklyActivity.map((count, index) => (
-                             <div key={index} className="flex flex-col items-center">
-                                <div 
-                                    className="w-6 bg-indigo-300 rounded-t-md hover:bg-indigo-500 transition-all"
-                                    style={{ height: `${(count / maxActivity) * 100}%` }}
-                                    title={`${count} quizzes`}
-                                ></div>
-                                <span className="text-xs font-bold text-gray-500 mt-1">{days[index]}</span>
-                             </div>
-                        ))}
-                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-3">Weak Areas</h3>
+                    {weakAreas.length === 0 ? <p className="text-center text-slate-500 bg-green-50 p-4 rounded-lg text-sm">No consistent weak areas found. Great job!</p> : (
+                        <div className="space-y-2">
+                            {weakAreas.map(area => (
+                                <div key={area.topic} className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
+                                    <div className="flex justify-between items-center">
+                                        <p className="font-semibold text-slate-800 text-sm">{area.topic}</p>
+                                        <p className="text-sm font-bold text-orange-600">Avg: {area.averageScore}%</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
-        );
-    };
+            <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-3">Progress Heatmap (Last 4 Months)</h3>
+                <ProgressHeatmap quizHistory={progress.quizHistory} />
+            </div>
+        </div>
+    );
+    
+    const BenchmarksTab = () => (
+        <>
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4 rounded-r-lg text-sm text-yellow-800">
+                <strong>Note:</strong> 'Community' data is simulated for demonstration. Your progress is real.
+            </div>
+            <div className="mt-4 max-h-[60vh] overflow-y-auto pr-2 space-y-3">
+                {benchmarkData.map(item => (
+                    <div key={item.topic} className="p-4 bg-slate-100 rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <p className="font-bold text-slate-800 flex-1 truncate pr-4" title={item.topic}>{item.topic}</p>
+                            <div className="text-right text-xs w-24 flex-shrink-0">
+                                {item.currentUserMastered ? <span className="font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Mastered</span> :
+                                 item.currentUserStudied ? <span className="font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">Studied</span> :
+                                 <span className="text-slate-500">Not Started</span>}
+                            </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-slate-200 grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p className="text-xs text-slate-500">Community Studied</p>
+                                <p className="font-bold text-indigo-700 text-lg">{item.usersStudied.toLocaleString()}</p>
+                            </div>
+                             <div>
+                                <p className="text-xs text-slate-500">Community Mastered</p>
+                                <p className="font-bold text-green-700 text-lg">{item.usersMastered.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </>
+    );
+
+    const RankPredictionTab = () => (
+        <div className="text-center max-w-2xl mx-auto">
+            {!selectionPath ? <p className="text-slate-500">Please select an exam on the dashboard to get a rank prediction.</p> :
+            isRankLoading ? <LoadingSpinner /> :
+            rankError ? <p className="text-red-500 bg-red-100 p-3 rounded-md">{rankError}</p> :
+            rankPrediction ? (
+                <div className="space-y-6">
+                    <div>
+                        <p className="text-lg font-semibold text-slate-600">Predicted Performance Bracket</p>
+                        <p className="text-4xl font-extrabold text-indigo-600 my-2">{rankPrediction.predictedRank}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-lg text-left">
+                        <h4 className="font-bold text-slate-800 mb-2">AI Analysis</h4>
+                        <p className="text-slate-600 text-sm">{rankPrediction.analysis}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-lg text-left">
+                        <h4 className="font-bold text-slate-800 mb-2">Recommendations</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-600 text-sm">
+                            {rankPrediction.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                        </ul>
+                    </div>
+                    <Button variant="secondary" onClick={() => setRankPrediction(null)}>Get New Prediction</Button>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-slate-800">Get Your AI Rank Prediction</h3>
+                    <p className="text-slate-500">The AI will analyze your performance data to give you a simulated rank and actionable feedback for the <strong>{selectionPath}</strong> exam.</p>
+                    <Button onClick={handleGetRankPrediction} disabled={!selectionPath}>Analyze My Performance</Button>
+                </div>
+            )}
+        </div>
+    );
+
+    const tabs = [
+        { id: 'dashboard', label: 'My Dashboard' },
+        { id: 'benchmarks', label: 'Community Benchmarks' },
+        { id: 'rank', label: 'AI Rank Prediction' },
+    ];
 
     return (
         <Card>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Progress & Insights</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Left Column: Analysis */}
-                <div className="space-y-8">
-                     <div>
-                        <h3 className="flex items-center text-xl font-semibold text-gray-700 mb-4">
-                            <ExclamationTriangleIcon className="w-6 h-6 mr-2 text-orange-500"/>
-                            Weak Area Detection
-                        </h3>
-                        {renderWeakAreas()}
-                    </div>
-                    <div>
-                        <h3 className="flex items-center text-xl font-semibold text-gray-700 mb-4">
-                            <ClockIcon className="w-6 h-6 mr-2 text-blue-500"/>
-                            Time Management Insights
-                        </h3>
-                        {renderTimeInsights()}
-                    </div>
-                </div>
-
-                {/* Right Column: History */}
-                <div className="space-y-8">
-                     <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-4">Recent Quiz History</h3>
-                        {renderQuizHistory()}
-                    </div>
-                     <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-4">Studied Topics ({progress.studiedTopics.length})</h3>
-                        {renderStudiedTopics()}
-                    </div>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-200 pb-4 mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">Progress & Insights</h2>
+                <div className="flex w-full sm:w-auto mt-4 sm:mt-0 rounded-lg bg-slate-200 p-1">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
             </div>
+            
+            {activeTab === 'dashboard' && <DashboardTab />}
+            {activeTab === 'benchmarks' && <BenchmarksTab />}
+            {activeTab === 'rank' && <RankPredictionTab />}
         </Card>
+    );
+};
+
+const InfoCard: React.FC<{title: string; value: string | number; icon?: React.ReactNode}> = ({ title, value, icon }) => (
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div className="flex items-center">
+            {icon && <div className="mr-2 text-slate-500">{icon}</div>}
+            <h4 className="text-sm font-semibold text-slate-600">{title}</h4>
+        </div>
+        <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+    </div>
+);
+
+const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory }) => {
+    const today = new Date();
+    const daysInPast = 16 * 7; // 16 weeks
+    
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - daysInPast + 1);
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+
+    const activityByDate = useMemo(() => {
+        const map = new Map<string, number>();
+        quizHistory.forEach(q => {
+            const date = new Date(q.date);
+            const dateString = date.toISOString().split('T')[0];
+            map.set(dateString, (map.get(dateString) || 0) + 1);
+        });
+        return map;
+    }, [quizHistory]);
+
+    const days = Array.from({ length: daysInPast }).map((_, i) => {
+        const day = new Date(startDate);
+        day.setDate(startDate.getDate() + i);
+        return day;
+    });
+
+    const getColor = (count: number) => {
+        if (count === 0) return 'bg-slate-200/70';
+        if (count <= 2) return 'bg-indigo-300';
+        if (count <= 4) return 'bg-indigo-500';
+        return 'bg-indigo-700';
+    };
+
+    return (
+        <div className="bg-slate-50 p-4 rounded-lg">
+            <div className="grid grid-flow-col grid-rows-7 gap-1">
+                {days.map((day, index) => {
+                    const dateString = day.toISOString().split('T')[0];
+                    const count = activityByDate.get(dateString) || 0;
+                    return (
+                        <div 
+                            key={index} 
+                            className={`w-4 h-4 rounded-sm ${getColor(count)}`}
+                            title={`${dateString}: ${count} quiz(zes)`}
+                        />
+                    );
+                })}
+            </div>
+             <div className="flex justify-end items-center gap-2 mt-2 text-xs text-slate-500">
+                <span>Less</span>
+                <div className="w-3 h-3 rounded-sm bg-slate-200/70 border border-slate-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-700"></div>
+                <span>More</span>
+            </div>
+        </div>
     );
 };
 

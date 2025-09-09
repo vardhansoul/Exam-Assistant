@@ -1,9 +1,19 @@
 import type { ExamData } from './types';
 
 export const SELECTION_LEVELS: string[] = [
-    'Exams by Qualification',
     'National Level',
     'State Level',
+    'Exams by Qualification',
+    '10th Class (CBSE)',
+];
+
+export const CBSE_10_SUBJECTS: string[] = [
+    'Mathematics',
+    'Science (Physics, Chemistry, Biology)',
+    'Social Science (History, Civics, Geography, Economics)',
+    'English (Language & Literature)',
+    'Hindi (Course A/B)',
+    'Computer Applications',
 ];
 
 export interface StateInfo {
@@ -64,11 +74,32 @@ export const LANGUAGES: string[] = [
     'Malayalam (മലയാളം)',
     'Punjabi (ਪੰਜਾਬੀ)',
     'Assamese (অসমীয়া)',
-    'Hinglish (Hindi + English)',
-    'Benglish (Bengali + English)',
-    'Marathinglish (Marathi + English)',
-    'Tenglish (Telugu + English)',
-    'Tanglish (Tamil + English)',
+    // Mixed Languages (Local + English)
+    'Hindi (हिन्दी) + English',
+    'Bengali (বাংলা) + English',
+    'Marathi (मराठी) + English',
+    'Telugu (తెలుగు) + English',
+    'Tamil (தமிழ்) + English',
+    'Gujarati (ગુજરાતી) + English',
+    'Urdu (اردو) + English',
+    'Kannada (ಕನ್ನಡ) + English',
+    'Odia (ଓଡ଼ିଆ) + English',
+    'Malayalam (മലയാളം) + English',
+    'Punjabi (ਪੰਜਾਬੀ) + English',
+    'Assamese (অসমীয়া) + English',
+    // Mixed Languages (English + Local)
+    'English + Hindi (हिन्दी)',
+    'English + Bengali (বাংলা)',
+    'English + Marathi (मराठी)',
+    'English + Telugu (తెలుగు)',
+    'English + Tamil (தமிழ்)',
+    'English + Gujarati (ગુજરાતી)',
+    'English + Urdu (اردو)',
+    'English + Kannada (ಕನ್ನಡ)',
+    'English + Odia (ଓଡ଼ିଆ)',
+    'English + Malayalam (മലയാളം)',
+    'English + Punjabi (ਪੰਜਾਬੀ)',
+    'English + Assamese (অসমীయా)',
 ];
 
 export const QUALIFICATION_CATEGORIES: string[] = [

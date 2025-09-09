@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { DIFFICULTY_LEVELS } from '../constants';
 import { generateQuiz, getSpecificErrorMessage } from '../services/geminiService';
+import { getQuizUsageToday, logQuizGeneration } from '../utils/tracking';
 import type { Quiz as QuizType } from '../types';
 import Quiz from './Quiz';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
 import Select from './Select';
+import { BeakerIcon } from './icons/BeakerIcon';
 
 interface QuizGeneratorProps {
     topics: string[];
@@ -14,25 +17,36 @@ interface QuizGeneratorProps {
     isOnline: boolean;
 }
 
+const MAX_QUESTIONS_PER_DAY = 5;
+
 const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline }) => {
   const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
-  const [difficulty, setDifficulty] = useState<string>(DIFFICULTY_LEVELS[0]);
-  const [numQuestions, setNumQuestions] = useState<number>(5);
+  const [difficulty, setDifficulty] = useState<string>(DIFFICULTY_LEVELS[1]); // Default to Medium
+  const [numQuestions, setNumQuestions] = useState<number>(3);
   const [quiz, setQuiz] = useState<QuizType | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [dailyUsage, setDailyUsage] = useState(getQuizUsageToday());
+
+  const questionsLeft = MAX_QUESTIONS_PER_DAY - dailyUsage;
+  const canGenerate = questionsLeft > 0 && isOnline;
 
   useEffect(() => {
-    // If the available topics change and the currently selected topic is no longer in the list,
-    // update the selection to the first available topic.
     if (topics.length > 0 && !topics.includes(topic)) {
       setTopic(topics[0]);
     }
   }, [topics, topic]);
 
+  useEffect(() => {
+    setDailyUsage(getQuizUsageToday());
+    if (numQuestions > questionsLeft) {
+      setNumQuestions(Math.max(1, questionsLeft));
+    }
+  }, [questionsLeft, numQuestions]);
+
   const handleGenerateQuiz = async () => {
-    if (!isOnline) {
-      setError("You are offline. Please connect to the internet to generate a new quiz.");
+    if (!canGenerate) {
+      setError("You are offline or have reached your daily limit.");
       return;
     }
     setIsLoading(true);
@@ -41,13 +55,14 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
     try {
         const generatedQuiz = await generateQuiz(topic, difficulty, numQuestions, language);
         setQuiz(generatedQuiz);
+        logQuizGeneration(numQuestions);
+        setDailyUsage(getQuizUsageToday());
     } catch (err) {
         setError(getSpecificErrorMessage(err));
     }
     setIsLoading(false);
   };
   
-
   const resetQuiz = () => {
     setQuiz(null);
     setError(null);
@@ -56,8 +71,11 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
   if (isLoading) {
     return (
       <Card className="text-center">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Generating Quiz for {topic}...</h2>
-        <p className="text-gray-500 mb-6">The AI is crafting the perfect questions for you.</p>
+        <div className="w-16 h-16 mx-auto flex items-center justify-center bg-indigo-100 rounded-full mb-4">
+            <BeakerIcon className="w-8 h-8 text-indigo-600"/>
+        </div>
+        <h2 className="text-xl font-semibold text-slate-700 mb-4">Generating Quiz...</h2>
+        <p className="text-slate-500 mb-6">The AI is crafting questions for {topic}.</p>
         <LoadingSpinner />
       </Card>
     );
@@ -68,52 +86,70 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
   }
 
   return (
-    <Card>
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Create Your Custom Quiz</h2>
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mb-4">{error}</p>}
-       {!isOnline && <p className="text-orange-500 bg-orange-100 p-3 rounded-md mb-4">You are offline. Connect to generate new quizzes.</p>}
-      <div className="space-y-6">
-        <Select label="Select Topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0}/>
-        
-        <div>
-          <label htmlFor="difficulty-slider" className="block text-sm font-medium text-gray-700">
-            Difficulty: <span className="font-bold">{difficulty}</span>
-          </label>
-          <input
-            id="difficulty-slider"
-            type="range"
-            min="0"
-            max={DIFFICULTY_LEVELS.length - 1}
-            step="1"
-            value={DIFFICULTY_LEVELS.indexOf(difficulty)}
-            onChange={(e) => setDifficulty(DIFFICULTY_LEVELS[parseInt(e.target.value, 10)])}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1 accent-indigo-600"
-          />
-          <div className="flex justify-between text-xs text-gray-500 w-full px-1 mt-1">
-            {DIFFICULTY_LEVELS.map((level) => (
-              <span key={level}>{level}</span>
-            ))}
-          </div>
+    <div className="max-w-2xl mx-auto">
+      <Card>
+        <div className="text-center">
+            <div className="w-16 h-16 mx-auto flex items-center justify-center bg-indigo-100 rounded-full mb-4">
+                <BeakerIcon className="w-8 h-8 text-indigo-600"/>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Custom Quiz Generator</h2>
+            <p className="text-slate-500 mt-2">Test your knowledge on a specific topic.</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Number of Questions: {numQuestions}</label>
-          <input
-            type="range"
-            min="3"
-            max="10"
-            value={numQuestions}
-            onChange={e => setNumQuestions(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-          />
+        <div className="my-6">
+            <div className="text-center p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                <p className="text-sm font-semibold text-indigo-700">Daily Question Limit</p>
+                <p className="text-2xl font-bold text-indigo-900 mt-1">{questionsLeft} / {MAX_QUESTIONS_PER_DAY}</p>
+                <div className="w-full bg-indigo-200 rounded-full h-2 mt-2">
+                    <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${(questionsLeft / MAX_QUESTIONS_PER_DAY) * 100}%` }}></div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div className="mt-8">
-        <Button onClick={handleGenerateQuiz} className="w-full" disabled={!isOnline || isLoading || topics.length === 0}>
-          {isLoading ? 'Generating...' : (isOnline ? 'Generate Quiz' : 'Offline')}
-        </Button>
-      </div>
-    </Card>
+
+        {error && <p className="text-red-600 bg-red-100 p-3 rounded-md mb-4 text-sm font-medium">{error}</p>}
+        
+        <div className="space-y-6">
+          <Select label="Select Topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0 || !canGenerate}/>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Difficulty
+            </label>
+            <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg">
+              {DIFFICULTY_LEVELS.map(level => (
+                <button
+                  key={level}
+                  onClick={() => setDifficulty(level)}
+                  disabled={!canGenerate}
+                  className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${difficulty === level ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:bg-slate-300/50'}`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700">Number of Questions: <span className="font-bold text-indigo-700">{numQuestions}</span></label>
+            <input
+              id="num-questions"
+              type="range"
+              min="1"
+              max={Math.max(1, questionsLeft)}
+              value={numQuestions}
+              onChange={e => setNumQuestions(Number(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2 accent-indigo-600"
+              disabled={!canGenerate || questionsLeft <= 1}
+            />
+          </div>
+        </div>
+        <div className="mt-8">
+          <Button onClick={handleGenerateQuiz} className="w-full !py-3" disabled={isLoading || topics.length === 0 || !canGenerate}>
+            {isLoading ? 'Generating...' : (!isOnline ? 'You are Offline' : questionsLeft > 0 ? 'Generate Quiz' : 'Daily Limit Reached')}
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 };
 

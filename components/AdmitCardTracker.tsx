@@ -1,3 +1,4 @@
+
 import React from 'react';
 import StatusTracker from './StatusTracker';
 
@@ -13,8 +14,8 @@ interface AdmitCardTrackerProps {
   isOnline: boolean;
 }
 
-const AdmitCardTracker: React.FC<AdmitCardTrackerProps> = ({ selection, language, isOnline }) => {
-  return <StatusTracker trackerType="Admit Card" selection={selection} language={language} isOnline={isOnline} />;
+const AdmitCardTracker: React.FC<AdmitCardTrackerProps> = (props) => {
+  return <StatusTracker {...props} trackerType="Admit Card" />;
 };
 
 export default AdmitCardTracker;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateMicroTopics, generateStudyNotes, generateStoryForTopic, getSpecificErrorMessage } from '../services/geminiService';
 import { getStudyNotesFromCache, markTopicAsStudied } from '../utils/tracking';
@@ -11,11 +12,10 @@ import Select from './Select';
 interface TopicExplorerProps {
     topics: string[];
     language: string;
-    onStartQuiz: (topic: string) => void;
     isOnline: boolean;
 }
 
-const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, onStartQuiz, isOnline }) => {
+const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnline }) => {
     const [mainTopic, setMainTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
     const [microTopics, setMicroTopics] = useState<string[] | null>(null);
     const [selectedMicroTopic, setSelectedMicroTopic] = useState<string | null>(null);
@@ -196,11 +196,6 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, onStart
                                         )}
                                         <div className="prose max-w-none">
                                             {formatNotes(tutorialContent.notes)}
-                                        </div>
-                                        <div className="mt-6 text-center border-t pt-6">
-                                            <Button onClick={() => onStartQuiz(selectedMicroTopic as string)} disabled={!isOnline}>
-                                                {isOnline ? 'Test My Knowledge' : 'Offline'}
-                                            </Button>
                                         </div>
                                         <div className="mt-6 border-t pt-4">
                                             {!isStoryLoading && (
