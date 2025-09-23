@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { generateSyllabus, getSpecificErrorMessage } from '../services/geminiService';
 import { getSyllabusProgress, saveSyllabusProgress } from '../utils/tracking';
@@ -79,7 +80,12 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
       const savedData = progress[syllabusKey];
       if (savedData) {
         setSyllabus(savedData.syllabus);
-        setCheckedIds(new Set(savedData.checkedIds));
+        // FIX: The type of checkedIds from localStorage can be uncertain.
+        // Explicitly ensure it's a string array before creating a Set.
+        const checkedIdsArray = Array.isArray(savedData.checkedIds)
+          ? savedData.checkedIds.filter((id): id is string => typeof id === 'string')
+          : [];
+        setCheckedIds(new Set(checkedIdsArray));
       } else {
         setSyllabus(null);
         setCheckedIds(new Set());

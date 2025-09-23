@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { generateStudyNotes, generateStoryForTopic, getSpecificErrorMessage } from '../services/geminiService';
 import { getStudyNotesFromCache, markTopicAsStudied } from '../utils/tracking';
@@ -13,16 +14,28 @@ interface StudyHelperProps {
   topics: string[];
   language: string;
   isOnline: boolean;
+  preselectedTopic?: string | null;
+  onClearPreselectedTopic?: () => void;
 }
 
-const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline }) => {
-  const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
+const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline, preselectedTopic, onClearPreselectedTopic }) => {
+  const [topic, setTopic] = useState<string>(() => preselectedTopic || (topics.length > 0 ? topics[0] : ''));
   const [studyMaterial, setStudyMaterial] = useState<StudyMaterial | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [stories, setStories] = useState<string[]>([]);
   const [isStoryLoading, setIsStoryLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  useEffect(() => {
+    if (preselectedTopic) {
+        // Automatically fetch notes if a topic is preselected
+        handleGenerateNotes(preselectedTopic);
+        if(onClearPreselectedTopic) {
+            onClearPreselectedTopic();
+        }
+    }
+  }, [preselectedTopic]);
+
   useEffect(() => {
     if (topics.length > 0 && !topics.includes(topic)) {
       setTopic(topics[0]);
@@ -31,14 +44,15 @@ const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline })
     }
   }, [topics, topic]);
 
-  const handleGenerateNotes = async () => {
+  const handleGenerateNotes = async (selectedTopic: string = topic) => {
+    if (!selectedTopic) return;
     setIsLoading(true);
     setStudyMaterial(null);
     setStories([]);
     setError(null);
 
     if (!isOnline) {
-        const cachedMaterial = getStudyNotesFromCache(topic, language);
+        const cachedMaterial = getStudyNotesFromCache(selectedTopic, language);
         if (cachedMaterial) {
             setStudyMaterial(cachedMaterial);
             setError("You are offline. Showing last saved version of these notes.");
@@ -50,8 +64,8 @@ const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline })
     }
 
     try {
-        markTopicAsStudied(topic);
-        const material = await generateStudyNotes(topic, language);
+        markTopicAsStudied(selectedTopic);
+        const material = await generateStudyNotes(selectedTopic, language);
         setStudyMaterial(material);
     } catch (err) {
         setError(getSpecificErrorMessage(err));
@@ -102,7 +116,7 @@ const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline })
                 <div className="w-full flex-grow">
                   <Select label="Select a topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0} />
                 </div>
-                <Button onClick={handleGenerateNotes} disabled={isLoading || topics.length === 0} className="w-full sm:w-auto flex-shrink-0 !py-3">
+                <Button onClick={() => handleGenerateNotes()} disabled={isLoading || topics.length === 0} className="w-full sm:w-auto flex-shrink-0 !py-3">
                   {isLoading ? 'Generating...' : 'Get Notes'}
                 </Button>
             </div>

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { DIFFICULTY_LEVELS } from '../constants';
 import { generateQuiz, getSpecificErrorMessage } from '../services/geminiService';
@@ -15,12 +16,14 @@ interface QuizGeneratorProps {
     topics: string[];
     language: string;
     isOnline: boolean;
+    preselectedTopic?: string | null;
+    onClearPreselectedTopic?: () => void;
 }
 
 const MAX_QUESTIONS_PER_DAY = 5;
 
-const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline }) => {
-  const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
+const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline, preselectedTopic, onClearPreselectedTopic }) => {
+  const [topic, setTopic] = useState<string>(() => preselectedTopic || (topics.length > 0 ? topics[0] : ''));
   const [difficulty, setDifficulty] = useState<string>(DIFFICULTY_LEVELS[1]); // Default to Medium
   const [numQuestions, setNumQuestions] = useState<number>(3);
   const [quiz, setQuiz] = useState<QuizType | null>(null);
@@ -30,6 +33,13 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
 
   const questionsLeft = MAX_QUESTIONS_PER_DAY - dailyUsage;
   const canGenerate = questionsLeft > 0 && isOnline;
+
+  useEffect(() => {
+    // Clear the preselected topic on mount so it's not sticky
+    if (preselectedTopic && onClearPreselectedTopic) {
+        onClearPreselectedTopic();
+    }
+  }, [preselectedTopic, onClearPreselectedTopic]);
 
   useEffect(() => {
     if (topics.length > 0 && !topics.includes(topic)) {

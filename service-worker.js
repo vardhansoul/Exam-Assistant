@@ -1,4 +1,5 @@
 
+
 // Define cache names for versioning
 const STATIC_CACHE_NAME = 'club-of-competition-static-v1';
 const DYNAMIC_CACHE_NAME = 'club-of-competition-dynamic-v1';
@@ -29,7 +30,7 @@ const ASSETS_TO_CACHE = [
   '/components/ResultTracker.tsx',
   '/components/AdmitCardTracker.tsx',
   '/components/ApplicationTracker.tsx',
-  '/components/CurrentAffairsAnalyst.tsx',
+  '/components/TeachShortcuts.tsx',
   // New Icons
   '/components/icons/AcademicCapIcon.tsx',
   '/components/icons/ArrowLeftIcon.tsx',
@@ -48,10 +49,10 @@ const ASSETS_TO_CACHE = [
   '/components/icons/DocumentSparklesIcon.tsx',
   '/components/icons/ExclamationTriangleIcon.tsx',
   '/components/icons/FireIcon.tsx',
-  '/components/icons/GlobeAltIcon.tsx',
   '/components/icons/HomeIcon.tsx',
   '/components/icons/InformationCircleIcon.tsx',
   '/components/icons/KeyIcon.tsx',
+  '/components/icons/LightBulbIcon.tsx',
   '/components/icons/PaperAirplaneIcon.tsx',
   '/components/icons/RectangleGroupIcon.tsx',
   '/components/icons/TrashIcon.tsx',

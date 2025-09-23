@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTrackingData } from '../utils/tracking';
 import { predictRank, getSpecificErrorMessage } from '../services/geminiService';
@@ -52,11 +53,12 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
             }
         }
 
+        // Ensure `masteredTopics` and `weakTopics` are string arrays to match the PerformanceSummary type.
         return {
             totalQuizzes, averageScore,
             topicsStudied: progress.studiedTopics.length,
-            topicsMastered: masteredTopics.size,
-            weakTopics: weakAreas.length,
+            masteredTopics: Array.from(masteredTopics),
+            weakTopics: weakAreas.map(area => area.topic),
             studyStreak: streak,
         };
     }, [progress, masteredTopics, weakAreas]);
@@ -117,8 +119,8 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                 <div className="grid grid-cols-2 gap-4">
                     <InfoCard title="Average Score" value={`${performanceSummary.averageScore}%`} />
                     <InfoCard title="Study Streak" value={`${performanceSummary.studyStreak} Days`} icon={<FireIcon className="w-5 h-5" />} />
-                    <InfoCard title="Topics Mastered" value={performanceSummary.topicsMastered} />
-                    <InfoCard title="Weak Areas" value={performanceSummary.weakTopics} />
+                    <InfoCard title="Topics Mastered" value={performanceSummary.masteredTopics.length} />
+                    <InfoCard title="Weak Areas" value={performanceSummary.weakTopics.length} />
                 </div>
                 <div>
                     <h3 className="text-lg font-bold text-slate-800 mb-3">Weak Areas</h3>

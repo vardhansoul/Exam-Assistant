@@ -99,7 +99,7 @@ export const LANGUAGES: string[] = [
     'English + Odia (ଓଡ଼ିଆ)',
     'English + Malayalam (മലയാളം)',
     'English + Punjabi (ਪੰਜਾਬੀ)',
-    'English + Assamese (অসমীయా)',
+    'English + Assamese (অসমіయా)',
 ];
 
 export const QUALIFICATION_CATEGORIES: string[] = [
@@ -129,6 +129,31 @@ export const JOB_ROLES: string[] = [
     'Police Constable/Sub-Inspector',
     'Stenographer',
     'Junior Engineer',
+];
+
+export const APTITUDE_TOPICS: string[] = [
+    // Quantitative Aptitude
+    'Percentages',
+    'Profit and Loss',
+    'Simple & Compound Interest',
+    'Time and Work',
+    'Time, Speed, and Distance',
+    'Ratio and Proportion',
+    'Averages',
+    'Number Systems',
+    'Algebra',
+    'Mixtures & Alligations',
+    // Reasoning
+    'Coding-Decoding',
+    'Blood Relations',
+    'Syllogism',
+    'Seating Arrangement',
+    'Puzzles',
+    'Direction Sense',
+    'Number Series',
+    'Analogies',
+    'Classification',
+    'Statement & Conclusions',
 ];
 
 

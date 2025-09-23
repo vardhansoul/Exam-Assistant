@@ -1,18 +1,25 @@
+
+
+
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic } from './types';
+import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic, UserProfile } from './types';
 import { LANGUAGES, QUALIFICATION_CATEGORIES, SELECTION_LEVELS, INDIAN_STATES, EXAM_DATA, CBSE_10_SUBJECTS } from './constants';
 import { generateExamsByQualification, getSpecificErrorMessage, generateTopicsForExam, generateExamDetails } from './services/geminiService';
 import { getLastSelection, saveLastSelection, getSyllabusProgress, getTrackingData } from './utils/tracking';
 import TopicExplorer from './components/TopicExplorer';
+import StudyHelper from './components/StudyHelper';
+import QuizGenerator from './components/QuizGenerator';
 import MockInterview from './components/MockInterview';
 import LearningTracker from './components/LearningTracker';
 import SyllabusTracker from './components/SyllabusTracker';
 import ResultTracker from './components/ResultTracker';
 import AdmitCardTracker from './components/AdmitCardTracker';
 import ApplicationTracker from './components/ApplicationTracker';
-import CurrentAffairsAnalyst from './components/CurrentAffairsAnalyst';
 import MindMapGenerator from './components/MindMapGenerator';
 import GuessPaperGenerator from './components/GuessPaperGenerator';
+import StudyPlanner from './components/StudyPlanner';
+import TeachShortcuts from './components/TeachShortcuts';
 import Card from './components/Card';
 import Select from './components/Select';
 import Button from './components/Button';
@@ -25,7 +32,6 @@ import { BookOpenIcon } from './components/icons/BookOpenIcon';
 import { ChartPieIcon } from './components/icons/ChartPieIcon';
 import { UserGroupIcon } from './components/icons/UserGroupIcon';
 import { ClipboardListIcon } from './components/icons/ClipboardListIcon';
-import { GlobeAltIcon } from './components/icons/GlobeAltIcon';
 import { RectangleGroupIcon } from './components/icons/RectangleGroupIcon';
 import { DocumentSparklesIcon } from './components/icons/DocumentSparklesIcon';
 import { TrophyIcon } from './components/icons/TrophyIcon';
@@ -34,12 +40,25 @@ import { KeyIcon } from './components/icons/KeyIcon';
 import { Bars3Icon } from './components/icons/Bars3Icon';
 import { XMarkIcon } from './components/icons/XMarkIcon';
 import { AcademicCapIcon } from './components/icons/AcademicCapIcon';
+import { SparklesIcon } from './components/icons/SparklesIcon';
+import { LightBulbIcon } from './components/icons/LightBulbIcon';
+import { auth } from './firebase';
+// Use Firebase compat imports to resolve module errors.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [language, setLanguage] = useState<string>(LANGUAGES[0]);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  
+  // State to link planner to tools
+  const [preselectedTopic, setPreselectedTopic] = useState<string | null>(null);
 
   // --- Selection State ---
   const [selectionLevel, setSelectionLevel] = useState<string>('');
@@ -58,7 +77,45 @@ const App: React.FC = () => {
   const [isDynamicDetailsLoading, setIsDynamicDetailsLoading] = useState<boolean>(false);
   const [dynamicDetailsError, setDynamicDetailsError] = useState<string | null>(null);
 
+  const handleLogin = async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        setAuthError(null);
+        await auth.signInWithPopup(provider);
+    } catch (error: any) {
+        console.error("Error signing in with Google", error);
+        if (error.code === 'auth/operation-not-supported-in-this-environment') {
+            setAuthError("Sign-in is not supported in this environment. Please open the app in a new browser tab.");
+        } else {
+            setAuthError("An error occurred during sign-in. Please try again.");
+        }
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+        await auth.signOut();
+    } catch (error) {
+        console.error("Error signing out", error);
+    }
+  };
+
   useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+            const newUser: UserProfile = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                picture: firebaseUser.photoURL || '',
+            };
+            setUser(newUser);
+        } else {
+            setUser(null);
+        }
+        setAuthInitialized(true);
+    });
+    
     const lastSelection = getLastSelection();
     if (lastSelection) {
       setSelectionLevel(lastSelection.selectionLevel);
@@ -68,6 +125,8 @@ const App: React.FC = () => {
       setSelectedSubCategory(lastSelection.selectedSubCategory);
       setSelectedTier(lastSelection.selectedTier);
     }
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -87,6 +146,8 @@ const App: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+  
+  const handleClearPreselectedTopic = useCallback(() => setPreselectedTopic(null), []);
 
   const selectionPath = useMemo(() => {
     if (selectionLevel === '10th Class (CBSE)') {
@@ -213,15 +274,18 @@ const App: React.FC = () => {
   const MainContent = () => {
     switch (view) {
       case AppView.STUDY: return <TopicExplorer topics={examTopics} language={language} isOnline={isOnline} />;
+      case AppView.STUDY_HELPER: return <StudyHelper topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} />;
+      case AppView.QUIZ: return <QuizGenerator topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} />;
       case AppView.LEARNING_TRACKER: return <LearningTracker topics={examTopics} selectionPath={selectionPath} />;
       case AppView.INTERVIEW: return <MockInterview language={language} isOnline={isOnline} />;
       case AppView.SYLLABUS_TRACKER: return <SyllabusTracker selectedExam={selectionPath} language={language} isOnline={isOnline} />;
-      case AppView.CURRENT_AFFAIRS: return <CurrentAffairsAnalyst language={language} isOnline={isOnline} selectionPath={selectionPath} />;
       case AppView.MIND_MAP: return <MindMapGenerator topics={examTopics} language={language} isOnline={isOnline} />;
       case AppView.GUESS_PAPER: return <GuessPaperGenerator topics={examTopics} language={language} isOnline={isOnline} />;
       case AppView.RESULT_TRACKER: return <ResultTracker selection={{ selectedExam, selectedSubCategory, selectedTier }} language={language} isOnline={isOnline} />;
       case AppView.ADMIT_CARD_TRACKER: return <AdmitCardTracker selection={{ selectedExam, selectedSubCategory, selectedTier }} language={language} isOnline={isOnline} />;
       case AppView.APPLICATION_TRACKER: return <ApplicationTracker />;
+      case AppView.AI_STUDY_PLAN: return <StudyPlanner setView={setView} setPreselectedTopic={setPreselectedTopic} selectionPath={selectionPath} availableTopics={examTopics} language={language} isOnline={isOnline} />;
+      case AppView.TEACH_SHORTCUTS: return <TeachShortcuts language={language} isOnline={isOnline} />;
       case AppView.HOME:
       default: return <Dashboard />;
     }
@@ -269,11 +333,12 @@ const App: React.FC = () => {
     }, []);
 
     const allTools = [
+      { view: AppView.QUIZ, icon: <BeakerIcon className="w-6 h-6" />, title: 'Quiz Generator', desc: 'Create custom quizzes.', disabled: !isExamSelected },
       { view: AppView.INTERVIEW, icon: <UserGroupIcon className="w-6 h-6" />, title: 'Mock Interview', desc: 'Practice with an AI interviewer.', disabled: selectionLevel === '10th Class (CBSE)' },
       { view: AppView.SYLLABUS_TRACKER, icon: <ClipboardListIcon className="w-6 h-6" />, title: 'Syllabus Tracker', desc: 'Generate and track syllabus progress.', disabled: !selectionPath },
-      { view: AppView.CURRENT_AFFAIRS, icon: <GlobeAltIcon className="w-6 h-6" />, title: 'Current Affairs', desc: 'Get daily news summaries.', disabled: !selectionPath || selectionLevel === '10th Class (CBSE)' },
       { view: AppView.MIND_MAP, icon: <RectangleGroupIcon className="w-6 h-6" />, title: 'Mind Maps', desc: 'Visualize complex topics.', disabled: !isExamSelected },
       { view: AppView.GUESS_PAPER, icon: <DocumentSparklesIcon className="w-6 h-6" />, title: 'Guess Paper', desc: 'AI-predicted exam questions.', disabled: !isExamSelected },
+      { view: AppView.TEACH_SHORTCUTS, icon: <LightBulbIcon className="w-6 h-6" />, title: 'Aptitude Shortcuts', desc: 'Learn problem-solving tricks.', disabled: false },
       { view: AppView.RESULT_TRACKER, icon: <TrophyIcon className="w-6 h-6" />, title: 'Result Tracker', desc: 'Check real-time result status.', disabled: !isExamSelected || selectionLevel === '10th Class (CBSE)' },
       { view: AppView.ADMIT_CARD_TRACKER, icon: <CalendarDaysIcon className="w-6 h-6" />, title: 'Admit Card Tracker', desc: 'Track admit card availability.', disabled: !isExamSelected || selectionLevel === '10th Class (CBSE)' },
       { view: AppView.APPLICATION_TRACKER, icon: <KeyIcon className="w-6 h-6" />, title: 'Application Tracker', desc: 'Save application credentials.', disabled: selectionLevel === '10th Class (CBSE)' },
@@ -308,19 +373,21 @@ const App: React.FC = () => {
               </div>
             </Card>
 
-            <Card className="!p-6 bg-indigo-50 border-indigo-200">
-                <div className="flex flex-col sm:flex-row sm:items-center">
-                    <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-100 rounded-full mr-4 mb-3 sm:mb-0">
-                        <AcademicCapIcon className="w-7 h-7 text-indigo-600" />
+            <Card className="!p-6 bg-indigo-50 border-indigo-200 hover:shadow-xl hover:border-indigo-300 transition-all duration-300">
+                <button onClick={() => setView(AppView.AI_STUDY_PLAN)} className="w-full text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-indigo-100 rounded-full mr-4 mb-3 sm:mb-0">
+                            <SparklesIcon className="w-7 h-7 text-indigo-600" />
+                        </div>
+                        <div className="flex-grow">
+                            <h3 className="text-xl font-bold text-slate-800">Your Personalized AI Study Plan</h3>
+                            <p className="text-slate-600 mt-1">Get a custom weekly plan based on your progress and weak areas.</p>
+                        </div>
+                        <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0">
+                           <span className="px-5 py-2.5 rounded-lg font-semibold bg-indigo-600 text-white shadow-md">Generate Plan</span>
+                        </div>
                     </div>
-                    <div className="flex-grow">
-                        <h3 className="text-xl font-bold text-slate-800">AI Topic Tutorials</h3>
-                        <p className="text-slate-600 mt-1">Break down complex subjects into easy-to-learn micro-topics with AI-guided tutorials.</p>
-                    </div>
-                    <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0">
-                        <Button onClick={() => setView(AppView.STUDY)}>Start Exploring</Button>
-                    </div>
-                </div>
+                </button>
             </Card>
   
             <div className="mt-6">
@@ -445,7 +512,7 @@ const App: React.FC = () => {
     
     return (
       <Card>
-          <h2 className="text-2xl font-bold text-slate-900">Welcome!</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Welcome, {user ? user.name.split(' ')[0] : 'Guest'}!</h2>
           <p className="text-slate-600 mt-1 mb-6">Let's get started by selecting your preparation path.</p>
           
           <div className="space-y-6">
@@ -480,7 +547,7 @@ const App: React.FC = () => {
   
   const navItems = [
     { view: AppView.HOME, label: "Dashboard", icon: <HomeIcon className="w-6 h-6" /> },
-    { view: AppView.STUDY, label: "Study", icon: <BookOpenIcon className="w-6 h-6" />, disabled: !isExamSelected },
+    { view: AppView.STUDY, label: "Explore", icon: <BookOpenIcon className="w-6 h-6" />, disabled: !isExamSelected },
     { view: AppView.LEARNING_TRACKER, label: "Insights", icon: <ChartPieIcon className="w-6 h-6" /> },
   ];
 
@@ -502,20 +569,37 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col h-full w-full">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg shadow-sm">
-          <div className="flex items-center justify-between p-4 h-16">
+          <div className="flex items-center justify-between p-2 sm:p-4 h-16">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-1 text-slate-500">
                 <Bars3Icon className="w-6 h-6" />
             </button>
-            <div className="text-sm font-semibold text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-full truncate max-w-[200px] sm:max-w-xs md:max-w-md" title={selectionPath}>
+            <div className="text-sm font-semibold text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-full truncate max-w-[150px] sm:max-w-xs md:max-w-md" title={selectionPath}>
               {selectionPath ? selectionPath : 'No Exam Selected'}
             </div>
-             <Select 
-                label=""
-                options={LANGUAGES}
-                value={language}
-                onChange={e => setLanguage(e.target.value)}
-                className="text-sm !py-2 !px-3"
-            />
+             <div className="flex items-center gap-2 sm:gap-4">
+                 <Select 
+                    label=""
+                    options={LANGUAGES}
+                    value={language}
+                    onChange={e => setLanguage(e.target.value)}
+                    className="text-sm !py-2 !px-3 max-w-[120px] sm:max-w-xs"
+                />
+                 {authInitialized && (
+                    user ? (
+                        <div className="flex items-center gap-2 group relative">
+                            <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+                            <button onClick={handleLogout} className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-indigo-600 px-2 py-1 rounded-md hover:bg-slate-100">
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <Button onClick={handleLogin} variant="secondary">Login with Google</Button>
+                            {authError && <p role="alert" className="absolute top-full right-0 mt-1 w-48 text-xs text-red-600 text-right">{authError}</p>}
+                        </div>
+                    )
+                 )}
+             </div>
           </div>
         </header>
 

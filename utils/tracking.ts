@@ -1,6 +1,7 @@
 
 
 import type { LearningProgress, QuizResult, SyllabusProgress, SyllabusTopic, ApplicationRecord, StudyMaterial, LastSelection } from '../types';
+import { auth } from '../firebase';
 
 const TRACKING_KEY = 'clubOfCompetitionLearningTracker';
 const SYLLABUS_TRACKING_KEY = 'clubOfCompetitionSyllabusTracker';
@@ -8,13 +9,21 @@ const APPLICATION_TRACKER_KEY = 'clubOfCompetitionApplicationTracker';
 const STUDY_NOTES_CACHE_KEY = 'clubOfCompetitionStudyNotesCache';
 const API_CACHE_KEY = 'clubOfCompetitionApiCache';
 const LAST_SELECTION_KEY = 'clubOfCompetitionLastSelection';
-// Fix: Add QUIZ_USAGE_KEY to fix import errors in QuizGenerator.tsx.
 const QUIZ_USAGE_KEY = 'clubOfCompetitionQuizUsage';
 
 const API_CACHE_MAX_SIZE = 100;
 const API_CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// --- API Cache Functions ---
+
+// --- Scoped Key Helper ---
+const getScopedKey = (baseKey: string): string => {
+    const user = auth.currentUser;
+    const scope = user ? user.uid : 'guest';
+    return `${baseKey}_${scope}`;
+};
+
+
+// --- API Cache Functions (Global, not user-scoped) ---
 interface CacheEntry<T> {
     timestamp: number;
     data: T;
@@ -47,14 +56,16 @@ const getDefaultData = (): LearningProgress => ({ studiedTopics: [], quizHistory
 
 export const getTrackingData = (): LearningProgress => {
     try {
-        const data = localStorage.getItem(TRACKING_KEY);
+        const scopedKey = getScopedKey(TRACKING_KEY);
+        const data = localStorage.getItem(scopedKey);
         return data ? JSON.parse(data) : getDefaultData();
     } catch (error) { return getDefaultData(); }
 };
 
 const saveData = (data: LearningProgress) => {
     try {
-        localStorage.setItem(TRACKING_KEY, JSON.stringify(data));
+        const scopedKey = getScopedKey(TRACKING_KEY);
+        localStorage.setItem(scopedKey, JSON.stringify(data));
     } catch (error) { console.error("Failed to save tracking data", error); }
 };
 
@@ -73,7 +84,6 @@ export const markTopicAsStudied = (topic: string) => {
     }
 };
 
-// Fix: Add getQuizUsageToday and logQuizGeneration functions to fix import errors in QuizGenerator.tsx.
 // --- Quiz Usage Tracker Functions ---
 interface QuizUsage {
     date: string; // YYYY-MM-DD
@@ -82,7 +92,8 @@ interface QuizUsage {
 
 export const getQuizUsageToday = (): number => {
     try {
-        const usageStr = localStorage.getItem(QUIZ_USAGE_KEY);
+        const scopedKey = getScopedKey(QUIZ_USAGE_KEY);
+        const usageStr = localStorage.getItem(scopedKey);
         if (!usageStr) return 0;
         
         const usage: QuizUsage = JSON.parse(usageStr);
@@ -100,7 +111,8 @@ export const getQuizUsageToday = (): number => {
 
 export const logQuizGeneration = (questionsGenerated: number) => {
     try {
-        const usageStr = localStorage.getItem(QUIZ_USAGE_KEY);
+        const scopedKey = getScopedKey(QUIZ_USAGE_KEY);
+        const usageStr = localStorage.getItem(scopedKey);
         const today = new Date().toISOString().split('T')[0];
         let count = questionsGenerated;
         
@@ -112,7 +124,7 @@ export const logQuizGeneration = (questionsGenerated: number) => {
         }
         
         const newUsage: QuizUsage = { date: today, count };
-        localStorage.setItem(QUIZ_USAGE_KEY, JSON.stringify(newUsage));
+        localStorage.setItem(scopedKey, JSON.stringify(newUsage));
     } catch (error) {
         console.error("Failed to log quiz generation", error);
     }
@@ -121,7 +133,8 @@ export const logQuizGeneration = (questionsGenerated: number) => {
 // --- Syllabus Tracker Functions ---
 export const getSyllabusProgress = (): SyllabusProgress => {
     try {
-        const data = localStorage.getItem(SYLLABUS_TRACKING_KEY);
+        const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
+        const data = localStorage.getItem(scopedKey);
         return data ? JSON.parse(data) : {};
     } catch (error) { return {}; }
 };
@@ -130,14 +143,16 @@ export const saveSyllabusProgress = (syllabusKey: string, checkedIds: string[], 
     try {
         const allProgress = getSyllabusProgress();
         allProgress[syllabusKey] = { checkedIds, syllabus };
-        localStorage.setItem(SYLLABUS_TRACKING_KEY, JSON.stringify(allProgress));
+        const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
+        localStorage.setItem(scopedKey, JSON.stringify(allProgress));
     } catch (error) { console.error("Failed to save syllabus progress", error); }
 };
 
 // --- Application Tracker Functions ---
 export const getApplicationRecords = (): ApplicationRecord[] => {
     try {
-        const data = localStorage.getItem(APPLICATION_TRACKER_KEY);
+        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+        const data = localStorage.getItem(scopedKey);
         return data ? JSON.parse(data) : [];
     } catch (error) { return []; }
 };
@@ -146,21 +161,24 @@ export const saveApplicationRecord = (record: Omit<ApplicationRecord, 'id'>) => 
     try {
         const records = getApplicationRecords();
         records.unshift({ ...record, id: new Date().toISOString() });
-        localStorage.setItem(APPLICATION_TRACKER_KEY, JSON.stringify(records));
+        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+        localStorage.setItem(scopedKey, JSON.stringify(records));
     } catch (error) { console.error("Failed to save application record", error); }
 };
 
 export const deleteApplicationRecord = (id: string) => {
     try {
         const records = getApplicationRecords().filter(r => r.id !== id);
-        localStorage.setItem(APPLICATION_TRACKER_KEY, JSON.stringify(records));
+        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+        localStorage.setItem(scopedKey, JSON.stringify(records));
     } catch (error) { console.error("Failed to delete application record", error); }
 };
 
 // --- Study Notes Cache Functions ---
 export const getStudyNotesFromCache = (topic: string, language: string): StudyMaterial | null => {
     try {
-        const cacheStr = localStorage.getItem(STUDY_NOTES_CACHE_KEY);
+        const scopedKey = getScopedKey(STUDY_NOTES_CACHE_KEY);
+        const cacheStr = localStorage.getItem(scopedKey);
         if (!cacheStr) return null;
         return JSON.parse(cacheStr)[`${topic}-${language}`] || null;
     } catch (error) { return null; }
@@ -168,16 +186,17 @@ export const getStudyNotesFromCache = (topic: string, language: string): StudyMa
 
 export const saveStudyNotesToCache = (topic: string, language: string, material: StudyMaterial) => {
     try {
-        const cacheStr = localStorage.getItem(STUDY_NOTES_CACHE_KEY);
+        const scopedKey = getScopedKey(STUDY_NOTES_CACHE_KEY);
+        const cacheStr = localStorage.getItem(scopedKey);
         const cache = cacheStr ? JSON.parse(cacheStr) : {};
         cache[`${topic}-${language}`] = material;
         const keys = Object.keys(cache);
         if (keys.length > 50) delete cache[keys[0]];
-        localStorage.setItem(STUDY_NOTES_CACHE_KEY, JSON.stringify(cache));
+        localStorage.setItem(scopedKey, JSON.stringify(cache));
     } catch (error) { console.error("Failed to save study notes", error); }
 };
 
-// --- Last Selection Persistence ---
+// --- Last Selection Persistence (Global) ---
 export const getLastSelection = (): LastSelection | null => {
     try {
         const data = localStorage.getItem(LAST_SELECTION_KEY);

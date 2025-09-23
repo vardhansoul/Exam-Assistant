@@ -4,16 +4,19 @@ import type { Chat } from '@google/genai';
 
 export enum AppView {
   HOME = 'HOME',
-  STUDY = 'STUDY',
+  STUDY = 'STUDY', // This will remain for TopicExplorer
+  STUDY_HELPER = 'STUDY_HELPER',
+  QUIZ = 'QUIZ',
   INTERVIEW = 'INTERVIEW',
   LEARNING_TRACKER = 'LEARNING_TRACKER',
   SYLLABUS_TRACKER = 'SYLLABUS_TRACKER',
   RESULT_TRACKER = 'RESULT_TRACKER',
   ADMIT_CARD_TRACKER = 'ADMIT_CARD_TRACKER',
   APPLICATION_TRACKER = 'APPLICATION_TRACKER',
-  CURRENT_AFFAIRS = 'CURRENT_AFFAIRS',
   MIND_MAP = 'MIND_MAP',
   GUESS_PAPER = 'GUESS_PAPER',
+  AI_STUDY_PLAN = 'AI_STUDY_PLAN',
+  TEACH_SHORTCUTS = 'TEACH_SHORTCUTS',
 }
 
 export interface ChatMessage {
@@ -23,7 +26,6 @@ export interface ChatMessage {
 
 export type InterviewChat = Chat;
 
-// Fix: Add Quiz and QuizQuestion types to fix import errors in Quiz.tsx and QuizGenerator.tsx.
 export interface QuizQuestion {
   question: string;
   questionEnglish?: string;
@@ -98,18 +100,6 @@ export interface ExamByQualification {
     description: string;
 }
 
-export interface GroundingChunk {
-  web: {
-    uri: string;
-    title: string;
-  };
-}
-
-export interface GroundedSummary {
-  text: string;
-  sources: GroundingChunk[];
-}
-
 export interface MindMapNode {
   name: string;
   children?: MindMapNode[];
@@ -129,8 +119,8 @@ export interface PerformanceSummary {
     totalQuizzes: number;
     averageScore: number;
     topicsStudied: number;
-    topicsMastered: number;
-    weakTopics: number;
+    masteredTopics: string[];
+    weakTopics: string[];
     studyStreak: number;
 }
 
@@ -140,7 +130,20 @@ export interface RankPrediction {
     recommendations: string[];
 }
 
-// Fix: Add DailyBriefingMCQ and DailyBriefingData types to fix import errors in DailyBriefing.tsx.
+// --- Study Plan Types ---
+export interface StudyPlanTask {
+  day: string;
+  topic: string;
+  activity: 'Study Notes' | 'Take Quiz';
+  reason: string;
+}
+
+export interface StudyPlan {
+    title: string;
+    plan: StudyPlanTask[];
+}
+
+// Added DailyBriefing types to fix errors in DailyBriefing.tsx
 export interface DailyBriefingMCQ {
   question: string;
   options: string[];
@@ -150,6 +153,19 @@ export interface DailyBriefingMCQ {
 export interface DailyBriefingData {
   summary: string;
   mcqs: DailyBriefingMCQ[];
+}
+
+// Added GroundedSummary types to fix errors in CurrentAffairsAnalyst.tsx
+export interface GroundingSource {
+    web: {
+        uri: string;
+        title: string;
+    };
+}
+
+export interface GroundedSummary {
+    text: string;
+    sources: GroundingSource[];
 }
 
 // --- Static Exam Data Structure ---
@@ -187,4 +203,11 @@ export interface LastSelection {
   selectedExam: string;
   selectedSubCategory: string;
   selectedTier: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  picture: string;
 }
