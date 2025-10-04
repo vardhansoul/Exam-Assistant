@@ -1,21 +1,27 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { generateMicroTopics, generateStudyNotes, generateStoryForTopic, getSpecificErrorMessage } from '../services/geminiService';
-import { getStudyNotesFromCache, markTopicAsStudied } from '../utils/tracking';
-import type { StudyMaterial } from '../types';
+import { generateMicroTopics, generateStudyNotes, getSpecificErrorMessage } from '../services/geminiService';
+import { getStudyNotesFromCache, markTopicAsStudied, setApiCache } from '../utils/tracking';
+// FIX: Add User to imports to resolve type error.
+import type { StudyMaterial, User } from '../types';
+import type { PopupConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
-import Select from './Select';
+import PopupSelector from './PopupSelector';
 
 
 interface TopicExplorerProps {
     topics: string[];
     language: string;
     isOnline: boolean;
+    showPopup: (config: PopupConfig) => void;
+    // FIX: Add user prop to track studied topics correctly.
+    user: User | null;
 }
 
-const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnline }) => {
+const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnline, showPopup, user }) => {
     const [mainTopic, setMainTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
     const [microTopics, setMicroTopics] = useState<string[] | null>(null);
     const [selectedMicroTopic, setSelectedMicroTopic] = useState<string | null>(null);
@@ -23,12 +29,8 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
     const [isLoadingTopics, setIsLoadingTopics] = useState<boolean>(false);
     const [isLoadingTutorial, setIsLoadingTutorial] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [stories, setStories] = useState<string[]>([]);
-    const [isStoryLoading, setIsStoryLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        // If the available topics change and the currently selected topic is no longer in the list,
-        // update the selection to the first available topic.
         if (topics.length > 0 && !topics.includes(mainTopic)) {
             setMainTopic(topics[0]);
         } else if (topics.length === 0) {
@@ -59,8 +61,6 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
         setSelectedMicroTopic(topic);
         setIsLoadingTutorial(true);
         setTutorialContent(null);
-        setStories([]);
-        setIsStoryLoading(false);
         setError(null);
 
         if (!isOnline) {
@@ -76,26 +76,24 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
         }
 
         try {
-            markTopicAsStudied(topic);
+            // FIX: Pass the user's UID to mark the topic as studied for the correct profile.
+            markTopicAsStudied(topic, user?.uid || null);
             const notes = await generateStudyNotes(topic, language);
             setTutorialContent(notes);
+            // FIX: Save the fetched notes to the local cache for offline access.
+            setApiCache(`study-notes-v3-${topic}-${language}`, notes);
         } catch (err) {
             setError(`Could not load tutorial for ${topic}. Reason: ${getSpecificErrorMessage(err)}`);
         }
         setIsLoadingTutorial(false);
     };
-
-    const handleGenerateStory = async () => {
-        if (!selectedMicroTopic || !isOnline) return;
-        setIsStoryLoading(true);
-        try {
-            const generatedStory = await generateStoryForTopic(selectedMicroTopic, language);
-            setStories(prevStories => [...prevStories, generatedStory]);
-        } catch (err) {
-            const errorMessage = getSpecificErrorMessage(err);
-            setStories(prevStories => [...prevStories, `Error: ${errorMessage}`]);
-        }
-        setIsStoryLoading(false);
+    
+    const handleTopicSelect = () => {
+        showPopup({
+            title: 'Select a Subject',
+            options: topics.map(t => ({ value: t, label: t })),
+            onSelect: setMainTopic,
+        });
     };
 
     const formatNotes = (text: string) => {
@@ -117,7 +115,7 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
             }
             if (line.includes('**')) {
                 const parts = line.split('**');
-                return <p key={index}>{parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part)}</p>
+                return <p key={index}>{parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part)}</p>;
             }
             return <p key={index} className="my-1">{line}</p>;
         });
@@ -129,7 +127,13 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
             <p className="text-gray-600 mb-6">Select a broad subject, and the AI will break it down into smaller, manageable topics for you to study.</p>
             {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mb-4">{error}</p>}
             <div className="space-y-4">
-                <Select label="Select Subject" options={topics} value={mainTopic} onChange={e => setMainTopic(e.target.value)} disabled={topics.length === 0} />
+                <PopupSelector
+                    label="Select Subject"
+                    value={mainTopic}
+                    placeholder="Select a subject..."
+                    onClick={handleTopicSelect}
+                    disabled={topics.length === 0}
+                />
             </div>
             <div className="mt-8">
                 <Button onClick={handleExploreTopics} className="w-full" disabled={!isOnline || isLoadingTopics || topics.length === 0}>
@@ -196,31 +200,6 @@ const TopicExplorer: React.FC<TopicExplorerProps> = ({ topics, language, isOnlin
                                         )}
                                         <div className="prose max-w-none">
                                             {formatNotes(tutorialContent.notes)}
-                                        </div>
-                                        <div className="mt-6 border-t pt-4">
-                                            {!isStoryLoading && (
-                                                <div className="text-center">
-                                                    <Button onClick={handleGenerateStory} variant="secondary" disabled={!isOnline || isStoryLoading}>
-                                                        {stories.length === 0 ? 'Teach with a Story' : 'Teach with Another Story'}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            {isStoryLoading && (
-                                                <div className="text-center">
-                                                    <LoadingSpinner />
-                                                    <p className="mt-2 text-gray-500">Crafting a memorable story...</p>
-                                                </div>
-                                            )}
-                                            {stories.length > 0 && (
-                                                <div className="mt-4">
-                                                    <h3 className="text-xl font-bold mt-2 mb-3 text-center">Stories to Remember</h3>
-                                                    {stories.map((story, index) => (
-                                                        <div key={index} className={`prose max-w-none text-left p-4 rounded-md bg-white mt-4 ${index > 0 ? 'border-t' : ''}`}>
-                                                            {formatNotes(story)}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
                                         </div>
                                    </>
                                )}

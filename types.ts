@@ -1,6 +1,5 @@
-
-
 import type { Chat } from '@google/genai';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 export enum AppView {
   HOME = 'HOME',
@@ -13,10 +12,16 @@ export enum AppView {
   RESULT_TRACKER = 'RESULT_TRACKER',
   ADMIT_CARD_TRACKER = 'ADMIT_CARD_TRACKER',
   APPLICATION_TRACKER = 'APPLICATION_TRACKER',
-  MIND_MAP = 'MIND_MAP',
   GUESS_PAPER = 'GUESS_PAPER',
   AI_STUDY_PLAN = 'AI_STUDY_PLAN',
   TEACH_SHORTCUTS = 'TEACH_SHORTCUTS',
+  EXAM_DETAILS_VIEWER = 'EXAM_DETAILS_VIEWER',
+  JOB_NOTIFICATIONS = 'JOB_NOTIFICATIONS',
+  DOUBT_SOLVER = 'DOUBT_SOLVER',
+  STORY_TUTOR = 'STORY_TUTOR',
+  MIND_MAP = 'MIND_MAP',
+  CURRENT_AFFAIRS = 'CURRENT_AFFAIRS',
+  DAILY_BRIEFING = 'DAILY_BRIEFING',
 }
 
 export interface ChatMessage {
@@ -51,9 +56,30 @@ export interface LearningProgress {
   quizHistory: QuizResult[];
 }
 
+export interface PracticeQuestion {
+  question: string;
+  answer: string;
+}
+
 export interface StudyMaterial {
   notes: string;
+  summary: string;
+  story: string;
+  practiceQuestions: PracticeQuestion[];
   imageUrl: string | null;
+}
+
+export interface DeepDiveQuizQuestion {
+  question: string;
+  answer: string;
+}
+
+export interface DeepDiveMaterial {
+  coreConcepts: string[];
+  realWorldExample: string;
+  commonMistakes: string[];
+  quickQuiz: DeepDiveQuizQuestion[];
+  relatedTopics: string[];
 }
 
 export interface ExamDetail {
@@ -76,6 +102,7 @@ export interface SyllabusTopic {
 export interface SyllabusProgress {
   [syllabusKey: string]: {
     checkedIds: string[];
+    // FIX: Add syllabus to progress to calculate completion on dashboard
     syllabus: SyllabusTopic[];
   };
 }
@@ -98,11 +125,6 @@ export interface ExamByQualification {
     examName: string;
     examCategory: string;
     description: string;
-}
-
-export interface MindMapNode {
-  name: string;
-  children?: MindMapNode[];
 }
 
 export interface GuessQuestion {
@@ -130,6 +152,30 @@ export interface RankPrediction {
     recommendations: string[];
 }
 
+// FIX: Added missing types for DailyBriefing and CurrentAffairsAnalyst features.
+export interface DailyBriefingMCQ {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
+
+export interface DailyBriefingData {
+  summary: string;
+  mcqs: DailyBriefingMCQ[];
+}
+
+export interface GroundingSource {
+    web: {
+        uri: string;
+        title: string;
+    };
+}
+
+export interface GroundedSummary {
+    text: string;
+    sources: GroundingSource[];
+}
+
 // --- Study Plan Types ---
 export interface StudyPlanTask {
   day: string;
@@ -143,29 +189,12 @@ export interface StudyPlan {
     plan: StudyPlanTask[];
 }
 
-// Added DailyBriefing types to fix errors in DailyBriefing.tsx
-export interface DailyBriefingMCQ {
-  question: string;
-  options: string[];
-  correctAnswer: string;
-}
-
-export interface DailyBriefingData {
-  summary: string;
-  mcqs: DailyBriefingMCQ[];
-}
-
-// Added GroundedSummary types to fix errors in CurrentAffairsAnalyst.tsx
-export interface GroundingSource {
-    web: {
-        uri: string;
-        title: string;
-    };
-}
-
-export interface GroundedSummary {
-    text: string;
-    sources: GroundingSource[];
+export interface JobNotification {
+  postName: string;
+  organization: string;
+  vacancies: string;
+  lastDate: string;
+  link: string;
 }
 
 // --- Static Exam Data Structure ---
@@ -205,9 +234,24 @@ export interface LastSelection {
   selectedTier: string;
 }
 
+// Added MindMapNode to fix errors in MindMapGenerator.tsx
+export interface MindMapNode {
+  name: string;
+  children?: MindMapNode[];
+}
+// FIX: Added missing UserProfile type for admin features.
 export interface UserProfile {
-  id: string;
+  uid: string;
   name: string;
   email: string;
-  picture: string;
+  role: 'admin' | 'user';
+  hasApiAccess: boolean;
+  createdAt?: { toDate: () => Date }; // Firestore Timestamp
+}
+
+export type User = FirebaseUser & UserProfile;
+
+export interface Notification {
+  message: string;
+  type: 'success' | 'error';
 }

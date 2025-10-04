@@ -1,15 +1,13 @@
 
-
-import type { LearningProgress, QuizResult, SyllabusProgress, SyllabusTopic, ApplicationRecord, StudyMaterial, LastSelection } from '../types';
-import { auth } from '../firebase';
+import type { LearningProgress, QuizResult, SyllabusProgress, ApplicationRecord, LastSelection, StudyMaterial, SyllabusTopic } from '../types';
+import { db, doc, getDoc, setDoc, collection, query, getDocs, deleteDoc } from '../firebase';
 
 const TRACKING_KEY = 'clubOfCompetitionLearningTracker';
 const SYLLABUS_TRACKING_KEY = 'clubOfCompetitionSyllabusTracker';
 const APPLICATION_TRACKER_KEY = 'clubOfCompetitionApplicationTracker';
-const STUDY_NOTES_CACHE_KEY = 'clubOfCompetitionStudyNotesCache';
 const API_CACHE_KEY = 'clubOfCompetitionApiCache';
 const LAST_SELECTION_KEY = 'clubOfCompetitionLastSelection';
-const QUIZ_USAGE_KEY = 'clubOfCompetitionQuizUsage';
+
 
 const API_CACHE_MAX_SIZE = 100;
 const API_CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -17,8 +15,8 @@ const API_CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // --- Scoped Key Helper ---
 const getScopedKey = (baseKey: string): string => {
-    const user = auth.currentUser;
-    const scope = user ? user.uid : 'guest';
+    // This function creates a key for localStorage for non-logged-in users.
+    const scope = 'guest';
     return `${baseKey}_${scope}`;
 };
 
@@ -54,147 +52,158 @@ export const isCacheStale = (timestamp: number, staleMs: number = API_CACHE_STAL
 // --- Learning Tracker Functions ---
 const getDefaultData = (): LearningProgress => ({ studiedTopics: [], quizHistory: [] });
 
-export const getTrackingData = (): LearningProgress => {
+export const getTrackingData = async (uid: string | null): Promise<LearningProgress> => {
+    if (!uid) {
+        try {
+            const scopedKey = getScopedKey(TRACKING_KEY);
+            const data = localStorage.getItem(scopedKey);
+            return data ? JSON.parse(data) : getDefaultData();
+        } catch (error) { return getDefaultData(); }
+    }
+    // Firestore logic
     try {
-        const scopedKey = getScopedKey(TRACKING_KEY);
-        const data = localStorage.getItem(scopedKey);
-        return data ? JSON.parse(data) : getDefaultData();
-    } catch (error) { return getDefaultData(); }
+        const docRef = doc(db, 'users', uid, 'tracking', 'learning');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? (docSnap.data() as LearningProgress) : getDefaultData();
+    } catch (error) {
+        console.error("Failed to fetch tracking data from Firestore:", error);
+        return getDefaultData();
+    }
 };
 
-const saveData = (data: LearningProgress) => {
+const saveData = async (data: LearningProgress, uid: string | null) => {
+    if (!uid) {
+        try {
+            const scopedKey = getScopedKey(TRACKING_KEY);
+            localStorage.setItem(scopedKey, JSON.stringify(data));
+        } catch (error) { console.error("Failed to save tracking data to localStorage", error); }
+        return;
+    }
+    // Firestore logic
     try {
-        const scopedKey = getScopedKey(TRACKING_KEY);
-        localStorage.setItem(scopedKey, JSON.stringify(data));
-    } catch (error) { console.error("Failed to save tracking data", error); }
+        const docRef = doc(db, 'users', uid, 'tracking', 'learning');
+        await setDoc(docRef, data);
+    } catch (error) {
+        console.error("Failed to save tracking data to Firestore:", error);
+    }
 };
 
-export const saveQuizResult = (result: QuizResult) => {
-    const data = getTrackingData();
+export const saveQuizResult = async (result: QuizResult, uid: string | null) => {
+    const data = await getTrackingData(uid);
     data.quizHistory.unshift(result);
     if (data.quizHistory.length > 50) data.quizHistory.pop();
-    saveData(data);
+    await saveData(data, uid);
 };
 
-export const markTopicAsStudied = (topic: string) => {
-    const data = getTrackingData();
+export const markTopicAsStudied = async (topic: string, uid: string | null) => {
+    const data = await getTrackingData(uid);
     if (!data.studiedTopics.includes(topic)) {
         data.studiedTopics.push(topic);
-        saveData(data);
+        await saveData(data, uid);
     }
 };
 
-// --- Quiz Usage Tracker Functions ---
-interface QuizUsage {
-    date: string; // YYYY-MM-DD
-    count: number;
-}
-
-export const getQuizUsageToday = (): number => {
-    try {
-        const scopedKey = getScopedKey(QUIZ_USAGE_KEY);
-        const usageStr = localStorage.getItem(scopedKey);
-        if (!usageStr) return 0;
-        
-        const usage: QuizUsage = JSON.parse(usageStr);
-        const today = new Date().toISOString().split('T')[0];
-        
-        if (usage.date === today) {
-            return usage.count;
-        }
-        
-        return 0; // It's a new day
-    } catch (error) {
-        return 0;
-    }
-};
-
-export const logQuizGeneration = (questionsGenerated: number) => {
-    try {
-        const scopedKey = getScopedKey(QUIZ_USAGE_KEY);
-        const usageStr = localStorage.getItem(scopedKey);
-        const today = new Date().toISOString().split('T')[0];
-        let count = questionsGenerated;
-        
-        if (usageStr) {
-            const usage: QuizUsage = JSON.parse(usageStr);
-            if (usage.date === today) {
-                count += usage.count;
-            }
-        }
-        
-        const newUsage: QuizUsage = { date: today, count };
-        localStorage.setItem(scopedKey, JSON.stringify(newUsage));
-    } catch (error) {
-        console.error("Failed to log quiz generation", error);
-    }
-};
 
 // --- Syllabus Tracker Functions ---
-export const getSyllabusProgress = (): SyllabusProgress => {
+export const getSyllabusProgress = async (uid: string | null): Promise<SyllabusProgress> => {
+    if (!uid) { // Guest user
+        try {
+            const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
+            const data = localStorage.getItem(scopedKey);
+            return data ? JSON.parse(data) : {};
+        } catch (error) { return {}; }
+    }
+    // Logged-in user
     try {
-        const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
-        const data = localStorage.getItem(scopedKey);
-        return data ? JSON.parse(data) : {};
-    } catch (error) { return {}; }
+        const docRef = doc(db, 'users', uid, 'tracking', 'syllabus');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? (docSnap.data() as SyllabusProgress) : {};
+    } catch (error) {
+        console.error("Failed to fetch syllabus progress from Firestore:", error);
+        return {};
+    }
 };
 
-export const saveSyllabusProgress = (syllabusKey: string, checkedIds: string[], syllabus: SyllabusTopic[]) => {
+export const saveSyllabusProgress = async (syllabusKey: string, checkedIds: string[], syllabus: SyllabusTopic[], uid: string | null) => {
+    if (!uid) { // Guest user
+        try {
+            const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
+            const allProgressStr = localStorage.getItem(scopedKey);
+            const allProgress = allProgressStr ? JSON.parse(allProgressStr) : {};
+            allProgress[syllabusKey] = { checkedIds, syllabus };
+            localStorage.setItem(scopedKey, JSON.stringify(allProgress));
+        } catch (error) { console.error("Failed to save syllabus progress to localStorage", error); }
+        return;
+    }
+    // Logged-in user
     try {
-        const allProgress = getSyllabusProgress();
-        allProgress[syllabusKey] = { checkedIds, syllabus };
-        const scopedKey = getScopedKey(SYLLABUS_TRACKING_KEY);
-        localStorage.setItem(scopedKey, JSON.stringify(allProgress));
-    } catch (error) { console.error("Failed to save syllabus progress", error); }
+        const docRef = doc(db, 'users', uid, 'tracking', 'syllabus');
+        await setDoc(docRef, { [syllabusKey]: { checkedIds, syllabus } }, { merge: true });
+    } catch (error) {
+        console.error("Failed to save syllabus progress to Firestore:", error);
+    }
 };
+
 
 // --- Application Tracker Functions ---
-export const getApplicationRecords = (): ApplicationRecord[] => {
+export const getApplicationRecords = async (uid: string | null): Promise<ApplicationRecord[]> => {
+    if (!uid) { // Guest
+        try {
+            const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+            const data = localStorage.getItem(scopedKey);
+            return data ? JSON.parse(data) : [];
+        } catch (error) { return []; }
+    }
+    // Logged-in
     try {
-        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
-        const data = localStorage.getItem(scopedKey);
-        return data ? JSON.parse(data) : [];
-    } catch (error) { return []; }
+        const recordsCol = collection(db, 'users', uid, 'applications');
+        const q = query(recordsCol);
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => d.data() as ApplicationRecord);
+    } catch (error) {
+        console.error("Failed to fetch application records from Firestore:", error);
+        return [];
+    }
 };
 
-export const saveApplicationRecord = (record: Omit<ApplicationRecord, 'id'>) => {
+export const saveApplicationRecord = async (record: Omit<ApplicationRecord, 'id'>, uid: string | null) => {
+    const newRecord = { ...record, id: new Date().toISOString() };
+    if (!uid) { // Guest
+        try {
+            const records = await getApplicationRecords(null);
+            records.unshift(newRecord);
+            const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+            localStorage.setItem(scopedKey, JSON.stringify(records));
+        } catch (error) { console.error("Failed to save application record locally", error); }
+        return;
+    }
+    // Logged-in
     try {
-        const records = getApplicationRecords();
-        records.unshift({ ...record, id: new Date().toISOString() });
-        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
-        localStorage.setItem(scopedKey, JSON.stringify(records));
-    } catch (error) { console.error("Failed to save application record", error); }
+        const docRef = doc(db, 'users', uid, 'applications', newRecord.id);
+        await setDoc(docRef, newRecord);
+    } catch (error) {
+        console.error("Failed to save application record to Firestore:", error);
+    }
 };
 
-export const deleteApplicationRecord = (id: string) => {
+export const deleteApplicationRecord = async (id: string, uid: string | null) => {
+    if (!uid) { // Guest
+        try {
+            const records = (await getApplicationRecords(null)).filter(r => r.id !== id);
+            const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
+            localStorage.setItem(scopedKey, JSON.stringify(records));
+        } catch (error) { console.error("Failed to delete application record locally", error); }
+        return;
+    }
+    // Logged-in
     try {
-        const records = getApplicationRecords().filter(r => r.id !== id);
-        const scopedKey = getScopedKey(APPLICATION_TRACKER_KEY);
-        localStorage.setItem(scopedKey, JSON.stringify(records));
-    } catch (error) { console.error("Failed to delete application record", error); }
+        const docRef = doc(db, 'users', uid, 'applications', id);
+        await deleteDoc(docRef);
+    } catch (error) {
+        console.error("Failed to delete application record from Firestore:", error);
+    }
 };
 
-// --- Study Notes Cache Functions ---
-export const getStudyNotesFromCache = (topic: string, language: string): StudyMaterial | null => {
-    try {
-        const scopedKey = getScopedKey(STUDY_NOTES_CACHE_KEY);
-        const cacheStr = localStorage.getItem(scopedKey);
-        if (!cacheStr) return null;
-        return JSON.parse(cacheStr)[`${topic}-${language}`] || null;
-    } catch (error) { return null; }
-};
-
-export const saveStudyNotesToCache = (topic: string, language: string, material: StudyMaterial) => {
-    try {
-        const scopedKey = getScopedKey(STUDY_NOTES_CACHE_KEY);
-        const cacheStr = localStorage.getItem(scopedKey);
-        const cache = cacheStr ? JSON.parse(cacheStr) : {};
-        cache[`${topic}-${language}`] = material;
-        const keys = Object.keys(cache);
-        if (keys.length > 50) delete cache[keys[0]];
-        localStorage.setItem(scopedKey, JSON.stringify(cache));
-    } catch (error) { console.error("Failed to save study notes", error); }
-};
 
 // --- Last Selection Persistence (Global) ---
 export const getLastSelection = (): LastSelection | null => {
@@ -208,4 +217,10 @@ export const saveLastSelection = (selection: LastSelection) => {
     try {
         localStorage.setItem(LAST_SELECTION_KEY, JSON.stringify(selection));
     } catch (error) { console.error("Failed to save last selection", error); }
+};
+
+export const getStudyNotesFromCache = (topic: string, language: string): StudyMaterial | null => {
+    const cacheKey = `study-notes-v3-${topic}-${language}`;
+    const cachedEntry = getApiCache<StudyMaterial>(cacheKey);
+    return cachedEntry ? cachedEntry.data : null;
 };

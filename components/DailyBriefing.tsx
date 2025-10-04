@@ -1,11 +1,10 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { generateDailyBriefing, getSpecificErrorMessage } from '../services/geminiService';
 import type { DailyBriefingData, DailyBriefingMCQ } from '../types';
 import Card from './Card';
 import LoadingSpinner from './LoadingSpinner';
-import { CheckCircleIcon } from './icons/CheckCircleIcon';
-import { XCircleIcon } from './icons/XCircleIcon';
 
 
 interface DailyBriefingProps {
@@ -108,8 +107,6 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ language, isOnline }) => 
                 className={`w-full text-left p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-between disabled:cursor-default ${buttonClasses}`}
               >
                 <span>{option}</span>
-                {isSubmitted && isCorrect && <CheckCircleIcon className="w-5 h-5 text-green-600" />}
-                {isSubmitted && isSelected && !isCorrect && <XCircleIcon className="w-5 h-5 text-red-600" />}
               </button>
             );
           })}

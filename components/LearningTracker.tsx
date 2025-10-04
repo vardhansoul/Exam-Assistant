@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTrackingData } from '../utils/tracking';
 import { predictRank, getSpecificErrorMessage } from '../services/geminiService';
-import type { LearningProgress, QuizResult, PerformanceSummary, RankPrediction } from '../types';
+import type { LearningProgress, QuizResult, PerformanceSummary, RankPrediction, User } from '../types';
 import Card from './Card';
 import LoadingSpinner from './LoadingSpinner';
-import { FireIcon } from './icons/FireIcon';
 import Button from './Button';
 
 interface WeakArea {
@@ -26,17 +25,56 @@ interface TopicStats {
 interface LearningTrackerProps {
     topics: string[];
     selectionPath: string;
+    user: User | null;
 }
 
-const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath }) => {
+const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath, user }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [progress, setProgress] = useState<LearningProgress>({ studiedTopics: [], quizHistory: [] });
+    const [isLoadingProgress, setIsLoadingProgress] = useState(true);
     const [masteredTopics, setMasteredTopics] = useState<Set<string>>(new Set());
     const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
     const [benchmarkData, setBenchmarkData] = useState<TopicStats[]>([]);
     const [rankPrediction, setRankPrediction] = useState<RankPrediction | null>(null);
     const [isRankLoading, setIsRankLoading] = useState(false);
     const [rankError, setRankError] = useState<string|null>(null);
+    const [adminClickCount, setAdminClickCount] = useState(0);
+
+    useEffect(() => {
+        if (adminClickCount >= 7) {
+            window.location.href = '/admin.html';
+        }
+    }, [adminClickCount]);
+
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoadingProgress(true);
+            const data = await getTrackingData(user?.uid || null);
+            setProgress(data);
+            
+            const topicScores: Record<string, { totalScore: number; totalAttempts: number; totalPossible: number }> = {};
+            data.quizHistory.forEach(result => {
+                if (!topicScores[result.topic]) topicScores[result.topic] = { totalScore: 0, totalAttempts: 0, totalPossible: 0 };
+                topicScores[result.topic].totalScore += result.score;
+                topicScores[result.topic].totalAttempts += 1;
+                topicScores[result.topic].totalPossible += result.totalQuestions;
+            });
+    
+            const mastered = new Set<string>();
+            const weak: WeakArea[] = [];
+            for (const topic in topicScores) {
+                const d = topicScores[topic];
+                const avg = d.totalPossible > 0 ? (d.totalScore / d.totalPossible) : 0;
+                if (d.totalAttempts >= 2 && avg >= 0.8) mastered.add(topic);
+                if (d.totalAttempts >= 2 && avg < 0.6) weak.push({ topic, averageScore: Math.round(avg * 100), attempts: d.totalAttempts });
+            }
+            setMasteredTopics(mastered);
+            setWeakAreas(weak.sort((a, b) => a.averageScore - b.averageScore));
+            setIsLoadingProgress(false);
+        };
+
+        loadData();
+    }, [user]);
 
     const performanceSummary = useMemo((): PerformanceSummary => {
         const totalQuizzes = progress.quizHistory.length;
@@ -53,7 +91,6 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
             }
         }
 
-        // Ensure `masteredTopics` and `weakTopics` are string arrays to match the PerformanceSummary type.
         return {
             totalQuizzes, averageScore,
             topicsStudied: progress.studiedTopics.length,
@@ -63,30 +100,6 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
         };
     }, [progress, masteredTopics, weakAreas]);
 
-    useEffect(() => {
-        const data = getTrackingData();
-        setProgress(data);
-
-        const topicScores: Record<string, { totalScore: number; totalAttempts: number; totalPossible: number }> = {};
-        data.quizHistory.forEach(result => {
-            if (!topicScores[result.topic]) topicScores[result.topic] = { totalScore: 0, totalAttempts: 0, totalPossible: 0 };
-            topicScores[result.topic].totalScore += result.score;
-            topicScores[result.topic].totalAttempts += 1;
-            topicScores[result.topic].totalPossible += result.totalQuestions;
-        });
-
-        const mastered = new Set<string>();
-        const weak: WeakArea[] = [];
-        for (const topic in topicScores) {
-            const d = topicScores[topic];
-            const avg = d.totalPossible > 0 ? (d.totalScore / d.totalPossible) : 0;
-            if (d.totalAttempts >= 2 && avg >= 0.8) mastered.add(topic);
-            if (d.totalAttempts >= 2 && avg < 0.6) weak.push({ topic, averageScore: Math.round(avg * 100), attempts: d.totalAttempts });
-        }
-        setMasteredTopics(mastered);
-        setWeakAreas(weak.sort((a, b) => a.averageScore - b.averageScore));
-    }, []);
-    
     useEffect(() => {
         if (topics.length > 0 && progress) {
             const stats: TopicStats[] = topics.map(topic => {
@@ -114,35 +127,37 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     }, [performanceSummary, selectionPath]);
 
     const DashboardTab = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <InfoCard title="Average Score" value={`${performanceSummary.averageScore}%`} />
-                    <InfoCard title="Study Streak" value={`${performanceSummary.studyStreak} Days`} icon={<FireIcon className="w-5 h-5" />} />
-                    <InfoCard title="Topics Mastered" value={performanceSummary.masteredTopics.length} />
-                    <InfoCard title="Weak Areas" value={performanceSummary.weakTopics.length} />
+        isLoadingProgress ? <LoadingSpinner /> : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <InfoCard title="Average Score" value={`${performanceSummary.averageScore}%`} />
+                        <InfoCard title="Study Streak" value={`${performanceSummary.studyStreak} Days`} />
+                        <InfoCard title="Topics Mastered" value={performanceSummary.masteredTopics.length} />
+                        <InfoCard title="Weak Areas" value={performanceSummary.weakTopics.length} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-3">Weak Areas</h3>
+                        {weakAreas.length === 0 ? <p className="text-center text-slate-500 bg-green-50 p-4 rounded-lg text-sm">No consistent weak areas found. Great job!</p> : (
+                            <div className="space-y-2">
+                                {weakAreas.map(area => (
+                                    <div key={area.topic} className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-semibold text-slate-800 text-sm">{area.topic}</p>
+                                            <p className="text-sm font-bold text-orange-600">Avg: {area.averageScore}%</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-slate-800 mb-3">Weak Areas</h3>
-                    {weakAreas.length === 0 ? <p className="text-center text-slate-500 bg-green-50 p-4 rounded-lg text-sm">No consistent weak areas found. Great job!</p> : (
-                        <div className="space-y-2">
-                            {weakAreas.map(area => (
-                                <div key={area.topic} className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
-                                    <div className="flex justify-between items-center">
-                                        <p className="font-semibold text-slate-800 text-sm">{area.topic}</p>
-                                        <p className="text-sm font-bold text-orange-600">Avg: {area.averageScore}%</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <h3 className="text-lg font-bold text-slate-800 mb-3">Progress Heatmap (Last 4 Months)</h3>
+                    <ProgressHeatmap quizHistory={progress.quizHistory} />
                 </div>
             </div>
-            <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-3">Progress Heatmap (Last 4 Months)</h3>
-                <ProgressHeatmap quizHistory={progress.quizHistory} />
-            </div>
-        </div>
+        )
     );
     
     const BenchmarksTab = () => (
@@ -164,7 +179,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                         <div className="mt-2 pt-2 border-t border-slate-200 grid grid-cols-2 gap-4 text-center">
                             <div>
                                 <p className="text-xs text-slate-500">Community Studied</p>
-                                <p className="font-bold text-indigo-700 text-lg">{item.usersStudied.toLocaleString()}</p>
+                                <p className="font-bold text-teal-700 text-lg">{item.usersStudied.toLocaleString()}</p>
                             </div>
                              <div>
                                 <p className="text-xs text-slate-500">Community Mastered</p>
@@ -186,7 +201,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                 <div className="space-y-6">
                     <div>
                         <p className="text-lg font-semibold text-slate-600">Predicted Performance Bracket</p>
-                        <p className="text-4xl font-extrabold text-indigo-600 my-2">{rankPrediction.predictedRank}</p>
+                        <p className="text-3xl sm:text-4xl font-extrabold text-teal-600 my-2">{rankPrediction.predictedRank}</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg text-left">
                         <h4 className="font-bold text-slate-800 mb-2">AI Analysis</h4>
@@ -198,13 +213,17 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                             {rankPrediction.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
                         </ul>
                     </div>
-                    <Button variant="secondary" onClick={() => setRankPrediction(null)}>Get New Prediction</Button>
+                    <Button variant="secondary" onClick={() => setRankPrediction(null)}>
+                        Get New Prediction
+                    </Button>
                 </div>
             ) : (
                 <div className="space-y-4">
                     <h3 className="text-xl font-bold text-slate-800">Get Your AI Rank Prediction</h3>
                     <p className="text-slate-500">The AI will analyze your performance data to give you a simulated rank and actionable feedback for the <strong>{selectionPath}</strong> exam.</p>
-                    <Button onClick={handleGetRankPrediction} disabled={!selectionPath}>Analyze My Performance</Button>
+                    <Button onClick={handleGetRankPrediction} disabled={!selectionPath}>
+                        Analyze My Performance
+                    </Button>
                 </div>
             )}
         </div>
@@ -219,13 +238,13 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     return (
         <Card>
             <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-200 pb-4 mb-6">
-                <h2 className="text-2xl font-bold text-slate-800">Progress & Insights</h2>
+                <h2 className="text-2xl font-bold text-slate-800 cursor-pointer" onClick={() => setAdminClickCount(c => c + 1)}>Progress & Insights</h2>
                 <div className="flex w-full sm:w-auto mt-4 sm:mt-0 rounded-lg bg-slate-200 p-1">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
+                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-teal-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
                         >
                             {tab.label}
                         </button>
@@ -240,13 +259,10 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     );
 };
 
-const InfoCard: React.FC<{title: string; value: string | number; icon?: React.ReactNode}> = ({ title, value, icon }) => (
-    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div className="flex items-center">
-            {icon && <div className="mr-2 text-slate-500">{icon}</div>}
-            <h4 className="text-sm font-semibold text-slate-600">{title}</h4>
-        </div>
-        <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+const InfoCard: React.FC<{title: string; value: string | number; }> = ({ title, value }) => (
+    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
+        <h4 className="text-sm font-semibold text-stone-600">{title}</h4>
+        <p className="text-2xl font-bold text-stone-800 mt-1">{value}</p>
     </div>
 );
 
@@ -275,33 +291,35 @@ const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory 
     });
 
     const getColor = (count: number) => {
-        if (count === 0) return 'bg-slate-200/70';
-        if (count <= 2) return 'bg-indigo-300';
-        if (count <= 4) return 'bg-indigo-500';
-        return 'bg-indigo-700';
+        if (count === 0) return 'bg-stone-200/70';
+        if (count <= 2) return 'bg-teal-300';
+        if (count <= 4) return 'bg-teal-500';
+        return 'bg-teal-700';
     };
 
     return (
-        <div className="bg-slate-50 p-4 rounded-lg">
-            <div className="grid grid-flow-col grid-rows-7 gap-1">
-                {days.map((day, index) => {
-                    const dateString = day.toISOString().split('T')[0];
-                    const count = activityByDate.get(dateString) || 0;
-                    return (
-                        <div 
-                            key={index} 
-                            className={`w-4 h-4 rounded-sm ${getColor(count)}`}
-                            title={`${dateString}: ${count} quiz(zes)`}
-                        />
-                    );
-                })}
+        <div className="bg-stone-50 p-4 rounded-lg">
+            <div className="overflow-x-auto pb-2">
+              <div className="grid grid-flow-col grid-rows-7 gap-1 w-max">
+                  {days.map((day, index) => {
+                      const dateString = day.toISOString().split('T')[0];
+                      const count = activityByDate.get(dateString) || 0;
+                      return (
+                          <div 
+                              key={index} 
+                              className={`w-4 h-4 rounded-sm ${getColor(count)}`}
+                              title={`${dateString}: ${count} quiz(zes)`}
+                          />
+                      );
+                  })}
+              </div>
             </div>
-             <div className="flex justify-end items-center gap-2 mt-2 text-xs text-slate-500">
+             <div className="flex justify-end items-center gap-2 mt-2 text-xs text-stone-500">
                 <span>Less</span>
-                <div className="w-3 h-3 rounded-sm bg-slate-200/70 border border-slate-300"></div>
-                <div className="w-3 h-3 rounded-sm bg-indigo-300"></div>
-                <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
-                <div className="w-3 h-3 rounded-sm bg-indigo-700"></div>
+                <div className="w-3 h-3 rounded-sm bg-stone-200/70 border border-stone-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-teal-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-teal-500"></div>
+                <div className="w-3 h-3 rounded-sm bg-teal-700"></div>
                 <span>More</span>
             </div>
         </div>

@@ -1,5 +1,7 @@
 {
   "name": "Club of Competition",
   "description": "An AI-powered application to help users prepare for competitive exams through generated quizzes, study materials, and mock interviews.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

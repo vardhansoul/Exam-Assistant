@@ -1,18 +1,21 @@
+
+
 import React, { useState } from 'react';
 import { generateShortcuts, getSpecificErrorMessage } from '../services/geminiService';
 import { APTITUDE_TOPICS } from '../constants';
+import type { PopupConfig } from '../App';
 import Card from './Card';
 import Button from './Button';
-import Select from './Select';
+import PopupSelector from './PopupSelector';
 import LoadingSpinner from './LoadingSpinner';
-import { LightBulbIcon } from './icons/LightBulbIcon';
 
 interface TeachShortcutsProps {
   language: string;
   isOnline: boolean;
+  showPopup: (config: PopupConfig) => void;
 }
 
-const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline }) => {
+const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline, showPopup }) => {
   const [topic, setTopic] = useState<string>(APTITUDE_TOPICS[0]);
   const [shortcuts, setShortcuts] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -35,6 +38,14 @@ const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline }) =
     setIsLoading(false);
   };
 
+  const handleTopicSelect = () => {
+    showPopup({
+        title: 'Select a Topic',
+        options: APTITUDE_TOPICS.map(t => ({ value: t, label: t })),
+        onSelect: setTopic,
+    });
+  };
+
   const formatText = (text: string) => {
     return text.split('\n').map((line, index) => {
       if (line.startsWith('###')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.replace('###', '').trim()}</h3>;
@@ -52,17 +63,20 @@ const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline }) =
     <div className="max-w-3xl mx-auto">
       <Card>
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto flex items-center justify-center bg-amber-100 rounded-full mb-4">
-            <LightBulbIcon className="w-8 h-8 text-amber-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800">Aptitude & Reasoning Shortcuts</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Aptitude & Reasoning Shortcuts</h2>
           <p className="text-slate-500 mt-2">Select a topic to get AI-generated shortcuts, tricks, and formulas.</p>
         </div>
 
         <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="w-full flex-grow">
-              <Select label="Select Topic" options={APTITUDE_TOPICS} value={topic} onChange={e => setTopic(e.target.value)} disabled={isLoading} />
+              <PopupSelector 
+                label="Select Topic"
+                value={topic}
+                placeholder="Select a topic..."
+                onClick={handleTopicSelect}
+                disabled={isLoading}
+              />
             </div>
             <Button onClick={handleGenerate} disabled={isLoading || !isOnline} className="w-full sm:w-auto flex-shrink-0 !py-3">
               {isLoading ? 'Generating...' : 'Get Shortcuts'}

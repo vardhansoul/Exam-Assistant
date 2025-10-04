@@ -1,12 +1,11 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage, GroundedSummary, InterviewChat } from '../types';
-import { generateGroundedSummary, createCurrentAffairsChat, getSpecificErrorMessage } from '../services/geminiService';
+import { generateGroundedSummary, createCurrentAffairsChat, getSpecificErrorMessage, sendMessageToChat } from '../services/geminiService';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { GlobeAltIcon } from './icons/GlobeAltIcon';
-import { PaperAirplaneIcon } from './icons/PaperAirplaneIcon';
 
 interface CurrentAffairsAnalystProps {
     language: string;
@@ -90,7 +89,7 @@ const CurrentAffairsAnalyst: React.FC<CurrentAffairsAnalystProps> = ({ language,
         const newMessages: ChatMessage[] = [...messages, { role: 'user', content: chatInput }];
         setMessages(newMessages); setChatInput(''); setIsChatLoading(true);
         try {
-            const response = await chatSessionRef.current!.sendMessage({ message: chatInput });
+            const response = await sendMessageToChat(chatSessionRef.current!, chatInput);
             setMessages([...newMessages, { role: 'model', content: response.text }]);
         } catch (err) {
             setMessages([...newMessages, { role: 'system', content: getSpecificErrorMessage(err) }]);
@@ -101,7 +100,7 @@ const CurrentAffairsAnalyst: React.FC<CurrentAffairsAnalystProps> = ({ language,
         <div className="max-w-2xl mx-auto">
             <Card>
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-slate-800">Current Affairs Analyst</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Current Affairs Analyst</h2>
                     <p className="text-slate-500 mt-2">Get AI-powered news summaries relevant to your exam.</p>
                 </div>
                 {error && <div className="bg-red-100 text-red-700 p-3 rounded-md my-4">{error}</div>}
@@ -133,7 +132,7 @@ const CurrentAffairsAnalyst: React.FC<CurrentAffairsAnalystProps> = ({ language,
             <Card>
                 <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Analysis Complete</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Analysis Complete</h2>
                         <p className="text-sm text-slate-500">{frequency} Briefing{topic && ` on ${topic}`}</p>
                     </div>
                     <Button onClick={() => setSummary(null)} variant="secondary">New Analysis</Button>
@@ -151,7 +150,6 @@ const CurrentAffairsAnalyst: React.FC<CurrentAffairsAnalystProps> = ({ language,
                         <ul className="space-y-2 text-sm">
                             {summary.sources.map((source, index) => (
                                 <li key={index} className="flex items-start gap-2 p-2 bg-white rounded-md">
-                                    <GlobeAltIcon className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                                     <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all" title={source.web.title}>
                                         {source.web.title || source.web.uri}
                                     </a>
@@ -174,7 +172,7 @@ const CurrentAffairsAnalyst: React.FC<CurrentAffairsAnalystProps> = ({ language,
                             </div>
                             <form onSubmit={handleSendMessage} className="flex gap-2 mt-4 sticky bottom-0 bg-slate-50 py-2">
                                 <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask a question..." className="flex-grow p-2 border border-slate-300 rounded-md" disabled={isChatLoading || !isOnline} />
-                                <Button type="submit" className="!p-2.5" disabled={isChatLoading || !isOnline || !chatInput.trim()}><PaperAirplaneIcon className="w-5 h-5" /></Button>
+                                <Button type="submit" className="!p-2.5" disabled={isChatLoading || !isOnline || !chatInput.trim()}>Send</Button>
                             </form>
                         </div>
                     )}

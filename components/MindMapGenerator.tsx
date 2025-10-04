@@ -1,22 +1,27 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { generateMindMap, getSpecificErrorMessage } from '../services/geminiService';
 import type { MindMapNode } from '../types';
+import type { PopupConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
-import Select from './Select';
+import PopupSelector from './PopupSelector';
 
 interface MindMapGeneratorProps {
   topics: string[];
   language: string;
   isOnline: boolean;
+  showPopup: (config: PopupConfig) => void;
 }
 
 const MindMapNodeDisplay: React.FC<{ node: MindMapNode; level?: number }> = ({ node, level = 0 }) => {
   const colors = [
-    'bg-indigo-600 text-white', 'bg-sky-500 text-white',
-    'bg-emerald-500 text-white', 'bg-amber-500 text-white',
+    'bg-teal-600 text-white',
+    'bg-sky-500 text-white',
+    'bg-emerald-500 text-white',
+    'bg-amber-500 text-white',
     'bg-rose-500 text-white',
   ];
   const nodeColor = colors[level % colors.length];
@@ -41,7 +46,7 @@ const MindMapNodeDisplay: React.FC<{ node: MindMapNode; level?: number }> = ({ n
 };
 
 
-const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, isOnline }) => {
+const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, isOnline, showPopup }) => {
   const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
   const [mindMapData, setMindMapData] = useState<MindMapNode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -65,7 +70,7 @@ const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, i
       setIsLoading(false);
       return;
     }
-
+    
     try {
       const data = await generateMindMap(topic, language);
       setMindMapData(data);
@@ -74,19 +79,33 @@ const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, i
     }
     setIsLoading(false);
   };
+  
+  const handleTopicSelect = () => {
+    showPopup({
+        title: 'Select a Topic to Visualize',
+        options: topics.map(t => ({ value: t, label: t })),
+        onSelect: setTopic,
+    });
+  };
 
   return (
     <div className="max-w-3xl mx-auto">
       <Card>
         <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Mind Map Generator</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Mind Map Generator</h2>
             <p className="text-slate-500 mt-2">Visually explore connections between topics with AI.</p>
         </div>
         
         <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex flex-col sm:flex-row gap-4 items-end">
                 <div className="w-full flex-grow">
-                  <Select label="Select a topic to visualize" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0} />
+                  <PopupSelector 
+                    label="Select a topic to visualize"
+                    value={topic}
+                    placeholder="Select a topic..."
+                    onClick={handleTopicSelect}
+                    disabled={topics.length === 0}
+                  />
                 </div>
                 <Button onClick={handleGenerateMap} disabled={isLoading || topics.length === 0 || !isOnline} className="w-full sm:w-auto flex-shrink-0 !py-3">
                   {isLoading ? 'Generating...' : (isOnline ? 'Generate Map' : 'Offline')}

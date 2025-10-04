@@ -14,7 +14,7 @@ const Select: React.FC<SelectProps> = ({ label, options, placeholder, ...props }
       <div className="relative">
         <select
           {...props}
-          className="appearance-none w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-100"
+          className="appearance-none w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:bg-gray-100"
         >
           {placeholder && <option value="" disabled>{placeholder}</option>}
           {options.map(option => (

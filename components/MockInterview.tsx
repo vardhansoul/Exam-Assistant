@@ -1,21 +1,22 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { ChatMessage, InterviewChat } from '../types';
-import { createInterviewSession, generateSyllabusInfo, getSpecificErrorMessage } from '../services/geminiService';
+import type { PopupConfig } from '../App';
+import { createInterviewSession, generateSyllabusInfo, getSpecificErrorMessage, sendMessageToChat } from '../services/geminiService';
 import { JOB_ROLES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
-import Select from './Select';
-import { PaperAirplaneIcon } from './icons/PaperAirplaneIcon';
-import { UserGroupIcon } from './icons/UserGroupIcon';
+import PopupSelector from './PopupSelector';
 
 interface MockInterviewProps {
     language: string;
     isOnline: boolean;
+    showPopup: (config: PopupConfig) => void;
 }
 
-const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => {
+const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline, showPopup }) => {
     const [jobRole, setJobRole] = useState(JOB_ROLES[0]);
     const [hasStarted, setHasStarted] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -62,7 +63,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
         chatRef.current = createInterviewSession(jobRole, language);
         
         try {
-            const initialResponse = await chatRef.current.sendMessage({ message: "Start the interview." });
+            const initialResponse = await sendMessageToChat(chatRef.current, "Start the interview.");
             setMessages([{ role: 'model', content: initialResponse.text }]);
         } catch(e) {
             setMessages([{ role: 'system', content: getSpecificErrorMessage(e) }]);
@@ -82,7 +83,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
         setIsLoading(true);
 
         try {
-            const response = await chatRef.current.sendMessage({ message: userInput });
+            const response = await sendMessageToChat(chatRef.current, userInput);
             setMessages([...newMessages, { role: 'model', content: response.text }]);
         } catch (error) {
             setMessages([...newMessages, { role: 'system', content: getSpecificErrorMessage(error) }]);
@@ -91,6 +92,14 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
         }
     };
     
+    const handleJobRoleSelect = () => {
+        showPopup({
+            title: 'Select Job Role',
+            options: JOB_ROLES.map(r => ({ value: r, label: r })),
+            onSelect: setJobRole,
+        });
+    };
+
     const formatMessageContent = (content: string) => {
         const parts = content.split(/(\*.*?\*)|(_.*?_)/g).filter(Boolean);
         return parts.map((part, index) => {
@@ -117,14 +126,16 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
              <div className="max-w-2xl mx-auto">
                  <Card>
                     <div className="text-center">
-                        <div className="w-16 h-16 mx-auto flex items-center justify-center bg-indigo-100 rounded-full mb-4">
-                            <UserGroupIcon className="w-8 h-8 text-indigo-600"/>
-                        </div>
                         <h2 className="text-2xl font-bold text-slate-800">Mock Interview Practice</h2>
                         <p className="text-slate-500 mt-2">Select a job role to start your AI-powered practice session.</p>
                     </div>
                     <div className="max-w-md mx-auto my-6">
-                        <Select label="Select Job Role" options={JOB_ROLES} value={jobRole} onChange={e => setJobRole(e.target.value)} />
+                        <PopupSelector
+                            label="Select Job Role"
+                            value={jobRole}
+                            placeholder="Select a job role..."
+                            onClick={handleJobRoleSelect}
+                        />
                     </div>
                     
                     <div className="mt-6 border-t pt-6">
@@ -136,7 +147,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
 
                     <div className="text-center mt-8">
                         <Button onClick={startInterview} disabled={isSyllabusLoading || !isOnline} className="!py-3 w-full sm:w-auto">
-                            {isOnline ? 'Start Interview' : 'You are Offline'}
+                           {isOnline ? 'Start Interview' : 'You are Offline'}
                         </Button>
                     </div>
                 </Card>
@@ -146,21 +157,21 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
     
     return (
         <div className="max-w-3xl mx-auto">
-            <Card className="flex flex-col h-[calc(100vh_-_10rem)] max-h-[700px] p-0 overflow-hidden">
-                <div className="p-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-800">Interview: {jobRole}</h2>
+            <Card className="flex flex-col h-[calc(100vh_-_10rem)] max-h-[700px] p-0 overflow-hidden !border-t-0">
+                <div className="p-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0 gap-4">
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-bold text-slate-800 truncate">Interview: {jobRole}</h2>
                         <p className="text-xs text-slate-500">AI Practice Session</p>
                     </div>
-                    <Button onClick={() => setHasStarted(false)} variant="secondary" className="!px-3 !py-1.5 text-xs">End Session</Button>
+                    <Button onClick={() => setHasStarted(false)} variant="secondary" className="!px-3 !py-1.5 text-xs flex-shrink-0">End Session</Button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-4 sm:p-6 bg-slate-50">
                     <div className="space-y-6">
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>}
+                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>}
                                 <div className={`rounded-2xl p-3 max-w-md shadow-sm text-sm ${
-                                    msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' :
+                                    msg.role === 'user' ? 'bg-teal-600 text-white rounded-br-none' :
                                     msg.role === 'system' ? 'bg-red-100 text-red-800 rounded-bl-none' :
                                     'bg-white text-slate-800 rounded-bl-none border border-slate-200'
                                 }`}>
@@ -170,7 +181,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
                         ))}
                         {isLoading && messages.length > 0 && 
                             <div className="flex items-start gap-3 justify-start">
-                                <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                                <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
                                 <div className="rounded-2xl p-3 shadow-sm bg-white border border-slate-200">
                                     <div className="animate-pulse flex space-x-1">
                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
@@ -189,11 +200,11 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline }) => 
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
                         placeholder={isOnline ? "Your answer..." : "You are offline"}
-                        className="flex-grow p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 disabled:bg-slate-100 transition"
+                        className="flex-grow p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-300 focus:border-teal-500 disabled:bg-slate-100 transition"
                         disabled={isLoading || !isOnline}
                     />
                     <Button type="submit" disabled={isLoading || !userInput.trim() || !isOnline} className="!p-3.5">
-                        <PaperAirplaneIcon className="w-5 h-5" />
+                        Send
                     </Button>
                 </form>
             </Card>

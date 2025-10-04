@@ -1,7 +1,5 @@
-
-
 // Define cache names for versioning
-const STATIC_CACHE_NAME = 'club-of-competition-static-v1';
+const STATIC_CACHE_NAME = 'club-of-competition-static-v4';
 const DYNAMIC_CACHE_NAME = 'club-of-competition-dynamic-v1';
 
 // List of assets to be cached on installation
@@ -12,54 +10,38 @@ const ASSETS_TO_CACHE = [
   '/metadata.json',
   '/types.ts',
   '/constants.ts',
+  '/firebase.ts',
   '/services/geminiService.ts',
   '/utils/tracking.ts',
   '/App.tsx',
   // Components
-  '/components/LoadingSpinner.tsx',
-  '/components/Card.tsx',
-  '/components/Button.tsx',
-  '/components/Select.tsx',
-  '/components/TopicExplorer.tsx',
-  '/components/MockInterview.tsx',
-  '/components/MindMapGenerator.tsx',
-  '/components/GuessPaperGenerator.tsx',
-  '/components/LearningTracker.tsx',
-  '/components/SyllabusTracker.tsx',
-  '/components/StatusTracker.tsx',
-  '/components/ResultTracker.tsx',
   '/components/AdmitCardTracker.tsx',
   '/components/ApplicationTracker.tsx',
+  '/components/Button.tsx',
+  '/components/Card.tsx',
+  '/components/CurrentAffairsAnalyst.tsx',
+  '/components/DailyBriefing.tsx',
+  '/components/DoubtSolver.tsx',
+  '/components/ExamDetailsViewer.tsx',
+  '/components/GuessPaperGenerator.tsx',
+  '/components/Input.tsx',
+  '/components/JobNotificationsViewer.tsx',
+  '/components/LearningTracker.tsx',
+  '/components/LoadingSpinner.tsx',
+  '/components/MindMapGenerator.tsx',
+  '/components/MockInterview.tsx',
+  '/components/PopupSelector.tsx',
+  '/components/Quiz.tsx',
+  '/components/QuizGenerator.tsx',
+  '/components/ResultTracker.tsx',
+  '/components/SelectionPopup.tsx',
+  '/components/StatusTracker.tsx',
+  '/components/StoryTutor.tsx',
+  '/components/StudyHelper.tsx',
+  '/components/StudyPlanner.tsx',
+  '/components/SyllabusTracker.tsx',
   '/components/TeachShortcuts.tsx',
-  // New Icons
-  '/components/icons/AcademicCapIcon.tsx',
-  '/components/icons/ArrowLeftIcon.tsx',
-  '/components/icons/ArrowPathIcon.tsx',
-  '/components/icons/Bars3Icon.tsx',
-  '/components/icons/BeakerIcon.tsx',
-  '/components/icons/BookOpenIcon.tsx',
-  '/components/icons/CalendarDaysIcon.tsx',
-  '/components/icons/ChartPieIcon.tsx',
-  '/components/icons/CheckBadgeIcon.tsx',
-  '/components/icons/ChevronDownIcon.tsx',
-  '/components/icons/ChevronRightIcon.tsx',
-  '/components/icons/ClipboardCheckIcon.tsx',
-  '/components/icons/ClipboardListIcon.tsx',
-  '/components/icons/ClockIcon.tsx',
-  '/components/icons/DocumentSparklesIcon.tsx',
-  '/components/icons/ExclamationTriangleIcon.tsx',
-  '/components/icons/FireIcon.tsx',
-  '/components/icons/HomeIcon.tsx',
-  '/components/icons/InformationCircleIcon.tsx',
-  '/components/icons/KeyIcon.tsx',
-  '/components/icons/LightBulbIcon.tsx',
-  '/components/icons/PaperAirplaneIcon.tsx',
-  '/components/icons/RectangleGroupIcon.tsx',
-  '/components/icons/TrashIcon.tsx',
-  '/components/icons/TrendingUpIcon.tsx',
-  '/components/icons/TrophyIcon.tsx',
-  '/components/icons/UserGroupIcon.tsx',
-  '/components/icons/XMarkIcon.tsx',
+  '/components/TopicExplorer.tsx',
   // CDNs
   'https://cdn.tailwindcss.com',
   'https://aistudiocdn.com/@google/genai@^1.16.0',
@@ -73,12 +55,15 @@ self.addEventListener('install', (event) => {
       console.log('Service Worker: Caching App Shell');
       return Promise.all(
         ASSETS_TO_CACHE.map(assetUrl => {
+            // Use 'reload' to bypass HTTP cache and ensure we get the latest version from the network.
             const request = new Request(assetUrl, { cache: 'reload' });
             return cache.add(request).catch(err => console.warn(`Failed to cache ${assetUrl}:`, err));
         })
       );
     })
   );
+  // Force the waiting service worker to become the active service worker.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -100,6 +85,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // Network-first for API calls, then cache fallback
   if (url.hostname.includes('googleapis.com')) {
     event.respondWith(
       fetch(event.request)
@@ -110,12 +96,18 @@ self.addEventListener('fetch', (event) => {
           });
           return response;
         })
-        .catch(() => caches.match(event.request.url))
+        .catch(() => caches.match(event.request.url).then(res => res || Promise.reject('No cache match')))
     );
-  } else {
+  } else { // Cache-first for local assets
     event.respondWith(
       caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
+        return response || fetch(event.request).then(fetchRes => {
+          // Optionally, cache new assets dynamically
+          return caches.open(DYNAMIC_CACHE_NAME).then(cache => {
+            cache.put(event.request.url, fetchRes.clone());
+            return fetchRes;
+          });
+        });
       })
     );
   }

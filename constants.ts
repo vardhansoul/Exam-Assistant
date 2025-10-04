@@ -1,20 +1,30 @@
+
 import type { ExamData } from './types';
 
 export const SELECTION_LEVELS: string[] = [
     'National Level',
     'State Level',
     'Exams by Qualification',
-    '10th Class (CBSE)',
+    'School Syllabus (NCERT)',
 ];
 
-export const CBSE_10_SUBJECTS: string[] = [
-    'Mathematics',
-    'Science (Physics, Chemistry, Biology)',
-    'Social Science (History, Civics, Geography, Economics)',
-    'English (Language & Literature)',
-    'Hindi (Course A/B)',
-    'Computer Applications',
+export const SCHOOL_CLASSES: string[] = [
+    'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'
 ];
+
+export const SCHOOL_STREAMS: string[] = ['Science', 'Commerce', 'Arts'];
+
+export const SCHOOL_SUBJECTS: Record<string, string[]> = {
+    'junior': ['Mathematics', 'Science', 'Social Science', 'English', 'Hindi', 'Sanskrit'],
+    'secondary': ['Mathematics', 'Science (Physics, Chemistry, Biology)', 'Social Science (History, Civics, Geography, Economics)', 'English', 'Hindi'],
+    'Class 11_Science': ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English Core', 'Computer Science'],
+    'Class 11_Commerce': ['Accountancy', 'Business Studies', 'Economics', 'English Core', 'Mathematics'],
+    'Class 11_Arts': ['History', 'Geography', 'Political Science', 'Economics', 'Sociology', 'English Core'],
+    'Class 12_Science': ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English Core', 'Computer Science'],
+    'Class 12_Commerce': ['Accountancy', 'Business Studies', 'Economics', 'English Core', 'Mathematics'],
+    'Class 12_Arts': ['History', 'Geography', 'Political Science', 'Economics', 'Sociology', 'English Core'],
+};
+
 
 export interface StateInfo {
     name: string;
@@ -249,6 +259,19 @@ export const EXAM_DATA: ExamData = {
             { name: 'KVS (Kendriya Vidyalaya Sangathan) Recruitment' },
             { name: 'NVS (Navodaya Vidyalaya Samiti) Recruitment' },
         ]
+    },
+    {
+      name: 'Engineering Entrance (JEE)',
+      subCategories: [
+        { name: 'JEE Main' },
+        { name: 'JEE Advanced' },
+      ],
+    },
+    {
+      name: 'Medical Entrance (NEET)',
+      subCategories: [
+        { name: 'NEET-UG' },
+      ],
     },
     {
       name: 'PSU & Other National Agencies',

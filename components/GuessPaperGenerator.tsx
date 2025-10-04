@@ -1,16 +1,19 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { generateGuessPaper, getSpecificErrorMessage } from '../services/geminiService';
 import type { GuessPaper } from '../types';
+import type { PopupConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
-import Select from './Select';
+import PopupSelector from './PopupSelector';
 
 interface GuessPaperGeneratorProps {
   topics: string[];
   language: string;
   isOnline: boolean;
+  showPopup: (config: PopupConfig) => void;
 }
 
 const QuestionCard: React.FC<{ question: string; answer: string; index: number }> = ({ question, answer, index }) => {
@@ -47,7 +50,7 @@ const QuestionCard: React.FC<{ question: string; answer: string; index: number }
     );
 };
 
-const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, language, isOnline }) => {
+const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, language, isOnline, showPopup }) => {
   const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
   const [guessPaper, setGuessPaper] = useState<GuessPaper | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -78,13 +81,21 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
     }
     setIsLoading(false);
   };
+  
+  const handleTopicSelect = () => {
+    showPopup({
+        title: 'Select a Topic',
+        options: topics.map(t => ({ value: t, label: t })),
+        onSelect: setTopic,
+    });
+  };
 
   return (
     <div className="max-w-3xl mx-auto">
         <Card>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-200 pb-4 mb-6">
             <div className="text-center sm:text-left">
-                <h2 className="text-2xl font-bold text-slate-800">Guess Paper Generator</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Guess Paper Generator</h2>
                 <p className="text-slate-500 mt-1">Get AI-predicted questions with detailed answers.</p>
             </div>
             {guessPaper && (
@@ -99,7 +110,13 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
                 <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                         <div className="w-full flex-grow">
-                          <Select label="Select a topic" options={topics} value={topic} onChange={e => setTopic(e.target.value)} disabled={topics.length === 0} />
+                          <PopupSelector 
+                            label="Select a topic"
+                            value={topic}
+                            placeholder="Select a topic..."
+                            onClick={handleTopicSelect}
+                            disabled={topics.length === 0}
+                          />
                         </div>
                         <Button onClick={handleGeneratePaper} disabled={isLoading || topics.length === 0 || !isOnline} className="w-full sm:w-auto flex-shrink-0 !py-3">
                           {isLoading ? 'Generating...' : 'Generate Paper'}
@@ -116,7 +133,7 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
             </>
           ) : (
             <div className="mt-6">
-                <h3 className="text-2xl font-bold text-center text-indigo-700 mb-6">{guessPaper.title}</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-center text-indigo-700 mb-6">{guessPaper.title}</h3>
                 <div className="space-y-6 bg-slate-50 p-4 sm:p-6 rounded-lg border border-slate-200">
                     {guessPaper.questions.map((q, index) => (
                         <QuestionCard key={index} question={q.question} answer={q.answer} index={index} />
