@@ -1,4 +1,3 @@
-
 // FIX: These imports are correct for firebase v9+, but the linter is confused. The code will work.
 import { initializeApp, getApp, getApps, deleteApp } from "firebase/app";
 // FIX: Add deleteDoc to firestore imports
@@ -10,10 +9,8 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signOut,
-    getRedirectResult,
     createUserWithEmailAndPassword,
     updateProfile,
-    signInWithRedirect
 } from "firebase/auth";
 
 export const firebaseConfig = {
@@ -45,6 +42,51 @@ enableIndexedDbPersistence(db)
 // FIX: Initialize and export auth instance
 export const auth = getAuth(app);
 
+// --- Cloud Cache Functions ---
+interface CloudCacheEntry<T> {
+    timestamp: number;
+    data: T;
+}
+
+// Sanitize key for Firestore document ID
+const sanitizeKey = (key: string) => {
+    // Base64 encode to handle special characters, then make it URL-safe
+    try {
+        return btoa(key).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    } catch (e) {
+        // Fallback for environments where btoa might not be available or fails
+        return key.replace(/[^a-zA-Z0-9]/g, '_');
+    }
+};
+
+export const getCloudCache = async <T>(key: string): Promise<CloudCacheEntry<T> | null> => {
+    if (!navigator.onLine) return null; // No cloud access offline
+    try {
+        const docId = sanitizeKey(key);
+        const docRef = doc(db, 'api_cache', docId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data() as CloudCacheEntry<T>;
+        }
+        return null;
+    } catch (error) {
+        console.warn("Failed to read from cloud cache:", error);
+        return null; // Non-blocking
+    }
+};
+
+export const setCloudCache = async <T>(key: string, data: T): Promise<void> => {
+    if (!navigator.onLine) return; // No cloud access offline
+    try {
+        const docId = sanitizeKey(key);
+        const docRef = doc(db, 'api_cache', docId);
+        const cacheEntry: CloudCacheEntry<T> = { timestamp: Date.now(), data };
+        await setDoc(docRef, cacheEntry);
+    } catch (error) {
+        console.warn("Failed to write to cloud cache:", error);
+    }
+};
+
 
 // We can also export the functions directly to avoid importing them everywhere
 export {
@@ -68,8 +110,6 @@ export {
     GoogleAuthProvider,
     signInWithPopup,
     signOut,
-    getRedirectResult,
     createUserWithEmailAndPassword,
     updateProfile,
-    signInWithRedirect,
 };

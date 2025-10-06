@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { auth, db, onAuthStateChanged, signOut, getDoc, doc, getRedirectResult } from './firebase';
+import { auth, db, onAuthStateChanged, signOut, getDoc, doc } from './firebase';
 import type { UserProfile } from './types';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
@@ -10,12 +10,6 @@ const AdminApp: React.FC = () => {
     const [userState, setUserState] = useState<'loading' | 'admin' | 'guest' | 'access-denied'>('loading');
 
     useEffect(() => {
-        // Handle redirect results from Google Sign-In first
-        getRedirectResult(auth).catch((err) => {
-            console.error("Admin Google Sign-In Redirect Error:", err);
-            // This prevents unhandled promise rejections. The UI can show an error message if needed.
-        });
-
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 setUserState('guest');
@@ -75,7 +69,7 @@ const AdminApp: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100">
             <h1 className="text-2xl font-bold text-slate-800 mb-4">
-                Club of Competition - <span className="text-teal-600">Admin Panel</span>
+                Club of Competition - <span className="text-indigo-600">Admin Panel</span>
             </h1>
             <div className="w-full max-w-6xl">
               {renderContent()}

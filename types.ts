@@ -3,7 +3,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 
 export enum AppView {
   HOME = 'HOME',
-  STUDY = 'STUDY', // This will remain for TopicExplorer
+  EXPLORE = 'EXPLORE',
   STUDY_HELPER = 'STUDY_HELPER',
   QUIZ = 'QUIZ',
   INTERVIEW = 'INTERVIEW',

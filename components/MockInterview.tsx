@@ -169,9 +169,9 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline, showP
                     <div className="space-y-6">
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>}
+                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>}
                                 <div className={`rounded-2xl p-3 max-w-md shadow-sm text-sm ${
-                                    msg.role === 'user' ? 'bg-teal-600 text-white rounded-br-none' :
+                                    msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' :
                                     msg.role === 'system' ? 'bg-red-100 text-red-800 rounded-bl-none' :
                                     'bg-white text-slate-800 rounded-bl-none border border-slate-200'
                                 }`}>
@@ -181,7 +181,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline, showP
                         ))}
                         {isLoading && messages.length > 0 && 
                             <div className="flex items-start gap-3 justify-start">
-                                <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                                <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
                                 <div className="rounded-2xl p-3 shadow-sm bg-white border border-slate-200">
                                     <div className="animate-pulse flex space-x-1">
                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
@@ -200,7 +200,7 @@ const MockInterview: React.FC<MockInterviewProps> = ({ language, isOnline, showP
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
                         placeholder={isOnline ? "Your answer..." : "You are offline"}
-                        className="flex-grow p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-300 focus:border-teal-500 disabled:bg-slate-100 transition"
+                        className="flex-grow p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 disabled:bg-slate-100 transition"
                         disabled={isLoading || !isOnline}
                     />
                     <Button type="submit" disabled={isLoading || !userInput.trim() || !isOnline} className="!p-3.5">

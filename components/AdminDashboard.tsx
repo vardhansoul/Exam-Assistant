@@ -21,7 +21,7 @@ const Tabs: React.FC<{ tabs: { id: string, label: string }[], activeTab: string,
                     onClick={() => setActiveTab(tab.id)}
                     className={`${
                         activeTab === tab.id
-                            ? 'border-teal-500 text-teal-600'
+                            ? 'border-indigo-500 text-indigo-600'
                             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                     } whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm transition-colors`}
                 >

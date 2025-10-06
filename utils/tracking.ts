@@ -1,4 +1,3 @@
-
 import type { LearningProgress, QuizResult, SyllabusProgress, ApplicationRecord, LastSelection, StudyMaterial, SyllabusTopic } from '../types';
 import { db, doc, getDoc, setDoc, collection, query, getDocs, deleteDoc } from '../firebase';
 
@@ -22,7 +21,7 @@ const getScopedKey = (baseKey: string): string => {
 
 
 // --- API Cache Functions (Global, not user-scoped) ---
-interface CacheEntry<T> {
+export interface CacheEntry<T> {
     timestamp: number;
     data: T;
 }
@@ -32,19 +31,44 @@ export const getApiCache = <T>(key: string): CacheEntry<T> | null => {
         const cacheStr = localStorage.getItem(API_CACHE_KEY);
         if (!cacheStr) return null;
         const cache = JSON.parse(cacheStr);
-        return cache[key] || null;
-    } catch (error) { return null; }
+        const entry = cache[key];
+        
+        // If entry exists, update its position to mark it as recently used for LRU
+        if (entry) {
+            delete cache[key];
+            cache[key] = entry;
+            localStorage.setItem(API_CACHE_KEY, JSON.stringify(cache));
+        }
+        
+        return entry || null;
+    } catch (error) { 
+        console.warn("Failed to read from API cache", error);
+        return null; 
+    }
 };
 
 export const setApiCache = <T>(key: string, data: T) => {
     try {
         const cacheStr = localStorage.getItem(API_CACHE_KEY);
         const cache = cacheStr ? JSON.parse(cacheStr) : {};
+        
+        // If key already exists, delete it to move it to the end (most recent)
+        if (cache[key]) {
+            delete cache[key];
+        }
+        
         cache[key] = { timestamp: Date.now(), data };
+        
         const keys = Object.keys(cache);
-        if (keys.length > API_CACHE_MAX_SIZE) delete cache[keys[0]];
+        if (keys.length > API_CACHE_MAX_SIZE) {
+            // Delete the least recently used item (the first one in the object)
+            delete cache[keys[0]];
+        }
+        
         localStorage.setItem(API_CACHE_KEY, JSON.stringify(cache));
-    } catch (error) { console.error("Failed to write to API cache", error); }
+    } catch (error) { 
+        console.error("Failed to write to API cache", error); 
+    }
 };
 
 export const isCacheStale = (timestamp: number, staleMs: number = API_CACHE_STALE_MS): boolean => (Date.now() - timestamp) > staleMs;

@@ -76,9 +76,9 @@ const JobNotificationsViewer: React.FC<JobNotificationsViewerProps> = ({ languag
                 href={job.link} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="block p-4 bg-white border border-slate-200 rounded-lg hover:border-teal-400 hover:shadow-md transition-all duration-200"
+                className="block p-4 bg-white border border-slate-200 rounded-lg hover:border-indigo-400 hover:shadow-md transition-all duration-200"
               >
-                <h3 className="font-bold text-teal-700 truncate">{job.postName}</h3>
+                <h3 className="font-bold text-indigo-700 truncate">{job.postName}</h3>
                 <p className="text-sm font-semibold text-slate-700">{job.organization}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2">
                   <span><strong>Vacancies:</strong> {job.vacancies}</span>

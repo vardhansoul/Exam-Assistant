@@ -25,7 +25,7 @@ const QuizItem: React.FC<{ question: string; answer: string }> = ({ question, an
   return (
     <div className="p-3 bg-white rounded-md border mt-2 shadow-sm">
       <p className="font-semibold text-slate-700">{question}</p>
-      <button onClick={() => setShowAnswer(!showAnswer)} className="text-sm text-teal-600 font-bold mt-2 hover:underline">
+      <button onClick={() => setShowAnswer(!showAnswer)} className="text-sm text-indigo-600 font-bold mt-2 hover:underline">
         {showAnswer ? 'Hide' : 'Show'} Answer
       </button>
       {showAnswer && <p className="mt-2 text-slate-700 bg-slate-100 p-2 rounded">{answer}</p>}
@@ -36,8 +36,8 @@ const QuizItem: React.FC<{ question: string; answer: string }> = ({ question, an
 
 const DeepDiveDisplay: React.FC<{ material: DeepDiveMaterial, topic: string }> = ({ material, topic }) => {
   return (
-    <div className="mt-8 pt-6 border-t-4 border-teal-500 bg-slate-50 rounded-b-xl">
-      <h3 className="text-2xl font-bold text-center text-teal-700">Deep Dive: {topic}</h3>
+    <div className="mt-8 pt-6 border-t-4 border-indigo-500 bg-slate-50 rounded-b-xl">
+      <h3 className="text-2xl font-bold text-center text-indigo-700">Deep Dive: {topic}</h3>
       
       <div className="mt-6 p-4 space-y-6">
         <div>
@@ -69,7 +69,7 @@ const DeepDiveDisplay: React.FC<{ material: DeepDiveMaterial, topic: string }> =
         <div>
           <h4 className="text-lg font-bold text-slate-800 mb-2">Related Topics</h4>
           <div className="flex flex-wrap gap-2">
-            {material.relatedTopics.map((t, i) => <span key={i} className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-semibold">{t}</span>)}
+            {material.relatedTopics.map((t, i) => <span key={i} className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-semibold">{t}</span>)}
           </div>
         </div>
       </div>
@@ -183,8 +183,8 @@ const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline, p
     <div className="max-w-3xl mx-auto">
       <Card>
         <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-800">AI Study Helper</h2>
-            <p className="text-slate-500 mt-2">Generate a complete learning package for any topic.</p>
+            <h2 className="text-2xl font-bold text-slate-800">Study Hub</h2>
+            <p className="text-slate-500 mt-2">Generate a complete learning package for your chosen topic.</p>
         </div>
         
         <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -244,9 +244,9 @@ const StudyHelper: React.FC<StudyHelperProps> = ({ topics, language, isOnline, p
             )}
             
             {!isDeepDiveLoading && !deepDiveMaterial && (
-              <div className="mt-8 text-center p-4 bg-teal-50 rounded-lg border-2 border-dashed border-teal-200">
-                  <h4 className="font-bold text-teal-800">Need more clarity?</h4>
-                  <p className="text-teal-700 text-sm mt-1">Go beyond the notes for 100% understanding.</p>
+              <div className="mt-8 text-center p-4 bg-indigo-50 rounded-lg border-2 border-dashed border-indigo-200">
+                  <h4 className="font-bold text-indigo-800">Need more clarity?</h4>
+                  <p className="text-indigo-700 text-sm mt-1">Go beyond the notes for 100% understanding.</p>
                   <Button
                       onClick={handleGenerateDeepDive}
                       disabled={!isOnline || isDeepDiveLoading}

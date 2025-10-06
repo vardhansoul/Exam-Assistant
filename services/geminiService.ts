@@ -1,13 +1,23 @@
 
+
 import { GoogleGenAI, Type, Chat, GenerateContentResponse, Modality } from "@google/genai";
 import type { ExamDetailGroup, SyllabusTopic, ExamStatusUpdate, StudyMaterial, ExamByQualification, GuessPaper, PerformanceSummary, RankPrediction, Quiz, StudyPlan, DeepDiveMaterial, JobNotification, MindMapNode, DailyBriefingData, GroundedSummary, GroundingSource, ChatMessage, QuizQuestion, PracticeQuestion, DeepDiveQuizQuestion } from '../types';
 import { getApiCache, setApiCache, isCacheStale } from '../utils/tracking';
+import { getCloudCache, setCloudCache } from '../firebase';
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable is not set.");
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// --- Caching Strategy ---
+interface MemoryCacheEntry<T> {
+    timestamp: number;
+    data: T;
+}
+const memoryCache = new Map<string, MemoryCacheEntry<any>>();
+
 
 const parseJsonResponse = <T>(text: string): T => {
     const markdownMatch = text.match(/```(json)?\n?([\s\S]*?)\n?```/);
@@ -54,20 +64,53 @@ const parseJsonResponse = <T>(text: string): T => {
 
 async function getCachedData<T>(key: string, fetcher: () => Promise<T>, staleMs?: number): Promise<T> {
     const isOnline = navigator.onLine;
-    const cachedEntry = getApiCache<T>(key);
 
-    if (cachedEntry) {
-        if (!isOnline || !isCacheStale(cachedEntry.timestamp, staleMs)) {
-            return cachedEntry.data;
+    // 1. Check in-memory cache (fastest, for current session)
+    if (memoryCache.has(key)) {
+        const entry = memoryCache.get(key)!;
+        if (!isCacheStale(entry.timestamp, staleMs)) {
+            return entry.data;
         }
     }
 
+    // 2. Check local storage cache (for repeat sessions & offline)
+    const localEntry = getApiCache<T>(key);
+    if (localEntry) {
+        if (!isOnline || !isCacheStale(localEntry.timestamp, staleMs)) {
+            memoryCache.set(key, localEntry); // Hydrate memory cache
+            return localEntry.data;
+        }
+    }
+
+    // If we reach here, we need to go to the network.
     if (!isOnline) {
+        // We have no fresh local data and are offline
         throw new Error("You are offline and this data has not been downloaded.");
     }
 
+    // 3. Check cloud cache (shared across users)
+    try {
+        const cloudEntry = await getCloudCache<T>(key);
+        if (cloudEntry && !isCacheStale(cloudEntry.timestamp, staleMs)) {
+            // Found in cloud, save to local caches for future offline access and speed
+            setApiCache(key, cloudEntry.data); 
+            memoryCache.set(key, { timestamp: cloudEntry.timestamp, data: cloudEntry.data });
+            return cloudEntry.data;
+        }
+    } catch (e) {
+        console.warn("Could not check cloud cache, proceeding to API call.", e);
+        // Fall through to API call if cloud cache fails
+    }
+
+    // 4. Fetch from API (last resort)
     const freshData = await fetcher();
+    
+    // Save to all caches for future use
     setApiCache(key, freshData);
+    memoryCache.set(key, { timestamp: Date.now(), data: freshData });
+    // Don't await this, let it happen in the background
+    setCloudCache(key, freshData);
+
     return freshData;
 }
 
@@ -336,34 +379,39 @@ export const generateMicroTopics = async (mainTopic: string, language: string): 
 
 export const generateSyllabus = async (selectedExam: string, language: string): Promise<SyllabusTopic[]> => {
     const prompt = `Generate a detailed, hierarchical syllabus for the exam: "${selectedExam}". The output must be a JSON array of topic objects. Each object must have a unique "id" (string), a "title" (string), an optional "details" (string), and an optional "children" array of topic objects for sub-topics. Create a deep, well-structured hierarchy. Respond in ${language}.`;
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        id: { type: Type.STRING },
-                        title: { type: Type.STRING },
-                        details: { type: Type.STRING },
-                        children: {
-                            type: Type.ARRAY,
-                            items: { $ref: "#" } // Self-referencing for recursive structure
+    return getCachedData(
+        `syllabus-v2-${selectedExam}-${language}`,
+        async () => {
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                id: { type: Type.STRING },
+                                title: { type: Type.STRING },
+                                details: { type: Type.STRING },
+                                children: {
+                                    type: Type.ARRAY,
+                                    items: { $ref: "#" } // Self-referencing for recursive structure
+                                },
+                            },
+                            required: ["id", "title"],
                         },
                     },
-                    required: ["id", "title"],
                 },
-            },
-        },
-    });
-    return parseJsonResponse<SyllabusTopic[]>(response.text);
+            });
+            return parseJsonResponse<SyllabusTopic[]>(response.text);
+        }
+    );
 };
 
 export const generateStatusUpdate = async (exam: string, subCategory: string, tier: string, language: string, type: 'Result' | 'Admit Card'): Promise<ExamStatusUpdate> => {
-    const prompt = `Check the latest status for the ${type} of the ${exam} ${subCategory} ${tier ? `(${tier})` : ''} exam. Provide the current status, a brief detail, and if possible, the official link. Respond in ${language}.`;
+    const prompt = `Check the latest status for the ${type} of the ${exam} ${subCategory} ${tier ? `(${tier})` : ''} exam. Provide the current status, a brief detail, and if possible, the official link. Respond in ${language}. The entire output must be a single JSON object with "status", "details", and an optional "link" key.`;
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,

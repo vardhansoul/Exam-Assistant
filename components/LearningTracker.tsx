@@ -179,7 +179,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                         <div className="mt-2 pt-2 border-t border-slate-200 grid grid-cols-2 gap-4 text-center">
                             <div>
                                 <p className="text-xs text-slate-500">Community Studied</p>
-                                <p className="font-bold text-teal-700 text-lg">{item.usersStudied.toLocaleString()}</p>
+                                <p className="font-bold text-indigo-700 text-lg">{item.usersStudied.toLocaleString()}</p>
                             </div>
                              <div>
                                 <p className="text-xs text-slate-500">Community Mastered</p>
@@ -201,7 +201,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                 <div className="space-y-6">
                     <div>
                         <p className="text-lg font-semibold text-slate-600">Predicted Performance Bracket</p>
-                        <p className="text-3xl sm:text-4xl font-extrabold text-teal-600 my-2">{rankPrediction.predictedRank}</p>
+                        <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600 my-2">{rankPrediction.predictedRank}</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg text-left">
                         <h4 className="font-bold text-slate-800 mb-2">AI Analysis</h4>
@@ -244,7 +244,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-teal-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
+                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
                         >
                             {tab.label}
                         </button>
@@ -292,9 +292,9 @@ const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory 
 
     const getColor = (count: number) => {
         if (count === 0) return 'bg-stone-200/70';
-        if (count <= 2) return 'bg-teal-300';
-        if (count <= 4) return 'bg-teal-500';
-        return 'bg-teal-700';
+        if (count <= 2) return 'bg-indigo-300';
+        if (count <= 4) return 'bg-indigo-500';
+        return 'bg-indigo-700';
     };
 
     return (
@@ -317,9 +317,9 @@ const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory 
              <div className="flex justify-end items-center gap-2 mt-2 text-xs text-stone-500">
                 <span>Less</span>
                 <div className="w-3 h-3 rounded-sm bg-stone-200/70 border border-stone-300"></div>
-                <div className="w-3 h-3 rounded-sm bg-teal-300"></div>
-                <div className="w-3 h-3 rounded-sm bg-teal-500"></div>
-                <div className="w-3 h-3 rounded-sm bg-teal-700"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
+                <div className="w-3 h-3 rounded-sm bg-indigo-700"></div>
                 <span>More</span>
             </div>
         </div>

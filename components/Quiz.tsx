@@ -68,10 +68,10 @@ const Quiz: React.FC<QuizProps> = ({ quiz, topic, onFinish, user }) => {
       <Card className="text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Quiz Completed!</h2>
         <p className="text-gray-600 mb-8">Topic: {topic}</p>
-        <p className="text-5xl sm:text-7xl font-extrabold text-teal-600 mb-2">{score} <span className="text-3xl sm:text-4xl text-gray-500">/ {quiz.questions.length}</span></p>
+        <p className="text-5xl sm:text-7xl font-extrabold text-indigo-600 mb-2">{score} <span className="text-3xl sm:text-4xl text-gray-500">/ {quiz.questions.length}</span></p>
         <p className="text-xl sm:text-2xl font-semibold mb-8 text-gray-700">{percentage}%</p>
         <div className="w-full bg-slate-200 rounded-full h-4 mb-8 overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-400 to-teal-500 h-4 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+            <div className="bg-gradient-to-r from-indigo-400 to-indigo-500 h-4 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
         </div>
         <Button onClick={onFinish}>Try Another Quiz</Button>
       </Card>
@@ -82,7 +82,7 @@ const Quiz: React.FC<QuizProps> = ({ quiz, topic, onFinish, user }) => {
     <Card>
       <div className="mb-6 border-b border-gray-200 pb-4">
         <p className="text-sm text-gray-500">Topic: {topic}</p>
-        <p className="text-sm font-medium text-teal-600">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
+        <p className="text-sm font-medium text-indigo-600">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
       </div>
       <div>
         <h3 className="text-xl font-semibold text-gray-800 mt-1">{currentQuestion.question}</h3>
@@ -97,8 +97,8 @@ const Quiz: React.FC<QuizProps> = ({ quiz, topic, onFinish, user }) => {
           const areDifferent = englishOption && option.toLowerCase() !== englishOption.toLowerCase();
 
           const buttonClasses = isSelected
-            ? 'bg-teal-100 border-teal-500 ring-2 ring-teal-300 text-teal-800'
-            : 'bg-white hover:bg-teal-50/70 border-gray-300';
+            ? 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-300 text-indigo-800'
+            : 'bg-white hover:bg-indigo-50/70 border-gray-300';
 
           return (
             <button

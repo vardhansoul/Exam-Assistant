@@ -38,7 +38,7 @@ const SyllabusNode: React.FC<{
               id={topic.id}
               checked={isChecked}
               onChange={handleToggleCheck}
-              className="h-4 w-4 rounded border-slate-400 text-teal-600 focus:ring-teal-500"
+              className="h-4 w-4 rounded border-slate-400 text-indigo-600 focus:ring-indigo-500"
               aria-label={`Mark topic ${topic.title} as ${isChecked ? 'incomplete' : 'complete'}`}
             />
             <div className="ml-3 flex-grow">
@@ -49,7 +49,7 @@ const SyllabusNode: React.FC<{
             </div>
              <button 
                 onClick={(e) => { e.stopPropagation(); onTeachWithStory(topic.title); }} 
-                className="ml-auto p-1 rounded-full text-slate-400 hover:bg-teal-100 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                className="ml-auto p-1 rounded-full text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                 title={`Teach "${topic.title}" with a story`}
                 aria-label={`Teach "${topic.title}" with a story`}
             >
@@ -199,13 +199,13 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
                 <div>
                     <div className="mb-4">
                         <div className="flex justify-between mb-1">
-                            <span className="text-base font-medium text-teal-700">Completion</span>
-                            <span className="text-sm font-medium text-teal-700">
+                            <span className="text-base font-medium text-indigo-700">Completion</span>
+                            <span className="text-sm font-medium text-indigo-700">
                                 {`${checkedIds.size} / ${totalTopics} topics (${Math.round(progressPercentage)}%)`}
                             </span>
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
-                           <div className="bg-gradient-to-r from-teal-400 to-teal-600 h-4 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+                           <div className="bg-gradient-to-r from-indigo-400 to-indigo-600 h-4 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
                         </div>
                     </div>
                     <div className="p-4 border rounded-lg bg-slate-50 max-h-[60vh] overflow-y-auto">

@@ -115,7 +115,7 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
                   key={level}
                   onClick={() => setDifficulty(level)}
                   disabled={!isOnline}
-                  className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${difficulty === level ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-600 hover:bg-slate-300/50'}`}
+                  className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${difficulty === level ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:bg-slate-300/50'}`}
                 >
                   {level}
                 </button>
@@ -124,7 +124,7 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
           </div>
 
           <div>
-            <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700">Number of Questions: <span className="font-bold text-teal-700">{numQuestions}</span></label>
+            <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700">Number of Questions: <span className="font-bold text-indigo-700">{numQuestions}</span></label>
             <input
               id="num-questions"
               type="range"
@@ -132,7 +132,7 @@ const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnlin
               max="10"
               value={numQuestions}
               onChange={e => setNumQuestions(Number(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2 accent-teal-600"
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2 accent-indigo-600"
               disabled={!isOnline}
             />
           </div>

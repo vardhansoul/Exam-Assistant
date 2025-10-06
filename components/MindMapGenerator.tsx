@@ -18,7 +18,7 @@ interface MindMapGeneratorProps {
 
 const MindMapNodeDisplay: React.FC<{ node: MindMapNode; level?: number }> = ({ node, level = 0 }) => {
   const colors = [
-    'bg-teal-600 text-white',
+    'bg-indigo-600 text-white',
     'bg-sky-500 text-white',
     'bg-emerald-500 text-white',
     'bg-amber-500 text-white',

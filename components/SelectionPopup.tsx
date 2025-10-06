@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 
 interface Option {
@@ -58,7 +54,7 @@ const SelectionPopup: React.FC<SelectionPopupProps> = ({ isOpen, onClose, title,
                     placeholder="Search options..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500"
                 />
             </div>
         )}
@@ -69,7 +65,7 @@ const SelectionPopup: React.FC<SelectionPopupProps> = ({ isOpen, onClose, title,
               <button
                 key={option.value}
                 onClick={() => onSelect(option.value)}
-                className="w-full h-full p-4 text-left bg-slate-50 rounded-lg border border-slate-200 hover:border-teal-400 hover:bg-teal-50 transition-all duration-200"
+                className="w-full h-full p-4 text-left bg-slate-50 rounded-lg border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200"
               >
                 <p className="font-semibold text-slate-700">{option.label}</p>
                 {option.subtitle && <p className="text-xs text-slate-500 mt-1">{option.subtitle}</p>}

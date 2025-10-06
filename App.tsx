@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic, User, Notification } from './types';
+import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic, User, Notification, UserProfile } from './types';
 import { LANGUAGES, QUALIFICATION_CATEGORIES, SELECTION_LEVELS, INDIAN_STATES, EXAM_DATA, SCHOOL_CLASSES, SCHOOL_STREAMS, SCHOOL_SUBJECTS } from './constants';
 import { generateExamsByQualification, getSpecificErrorMessage, generateTopicsForExam, generateExamDetails } from './services/geminiService';
 import { getLastSelection, saveLastSelection, getSyllabusProgress, getTrackingData } from './utils/tracking';
-import { auth, db, onAuthStateChanged, signOut, getDoc, doc, setDoc, serverTimestamp, getRedirectResult, GoogleAuthProvider, signInWithRedirect } from './firebase';
+import { auth, db, onAuthStateChanged, signOut, getDoc, doc, setDoc, serverTimestamp, GoogleAuthProvider, signInWithPopup, updateDoc } from './firebase';
 import TopicExplorer from './components/TopicExplorer';
 import StudyHelper from './components/StudyHelper';
 import QuizGenerator from './components/QuizGenerator';
@@ -42,6 +43,8 @@ export type PopupConfig = {
     options: { value: string; label: string; subtitle?: string }[];
     onSelect: (value: string) => void;
 };
+
+const ADMIN_EMAILS = ['govardhanm622@gmail.com', 'govardhan.opc@gmail.com'];
 
 
 const App: React.FC = () => {
@@ -91,24 +94,27 @@ const App: React.FC = () => {
   });
   
    useEffect(() => {
-    getRedirectResult(auth).catch(error => {
-        console.error("Login redirect error:", error);
-        setNotification({ message: 'Login failed. Please try again.', type: 'error' });
-    });
-    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, "users", firebaseUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setUser({ ...firebaseUser, ...userDoc.data() } as User);
+          const userData = userDoc.data() as UserProfile;
+          // Self-heal: if an admin email is in the DB but not as admin, promote them.
+          if (firebaseUser.email && ADMIN_EMAILS.includes(firebaseUser.email) && userData.role !== 'admin') {
+            await updateDoc(userDocRef, { role: 'admin' });
+            setUser({ ...firebaseUser, ...userData, role: 'admin' } as User);
+          } else {
+            setUser({ ...firebaseUser, ...userData } as User);
+          }
         } else {
           // Create a profile for a new user
+          const isAdmin = firebaseUser.email ? ADMIN_EMAILS.includes(firebaseUser.email) : false;
           const newUserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             name: firebaseUser.displayName,
-            role: 'user',
+            role: isAdmin ? 'admin' : 'user',
             hasApiAccess: true, // Default access
             createdAt: serverTimestamp(),
           };
@@ -133,11 +139,14 @@ const App: React.FC = () => {
     setNotification(null);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithRedirect(auth, provider);
-      // Page will redirect, no need to set isLoggingIn back to false here.
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the rest.
     } catch (err) {
       console.error("Login initiation failed:", err);
-      setNotification({ message: 'Login failed to start. Please try again.', type: 'error' });
+      if ((err as any).code !== 'auth/popup-closed-by-user') {
+        setNotification({ message: 'Login failed. Please try again.', type: 'error' });
+      }
+    } finally {
       setIsLoggingIn(false);
     }
   };
@@ -354,7 +363,7 @@ const App: React.FC = () => {
 
   const MainContent = () => {
     switch (view) {
-      case AppView.STUDY: return <TopicExplorer topics={examTopics} language={language} isOnline={isOnline} showPopup={showPopup} user={user as User | null} />;
+      case AppView.EXPLORE: return <TopicExplorer topics={examTopics} language={language} isOnline={isOnline} showPopup={showPopup} user={user as User | null} />;
       case AppView.STUDY_HELPER: return <StudyHelper topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} showPopup={showPopup} user={user as User | null} />;
       case AppView.QUIZ: return <QuizGenerator topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} showPopup={showPopup} user={user as User | null} />;
       case AppView.LEARNING_TRACKER: return <LearningTracker topics={examTopics} selectionPath={selectionPath} user={user as User | null} />;
@@ -394,8 +403,8 @@ const App: React.FC = () => {
                 <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
                     <defs>
                         <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#2dd4bf" />
-                            <stop offset="100%" stopColor="#0d9488" />
+                            <stop offset="0%" stopColor="#818cf8" />
+                            <stop offset="100%" stopColor="#4f46e5" />
                         </linearGradient>
                     </defs>
                     <circle className="text-slate-200" strokeWidth={strokeWidth} stroke="currentColor" fill="transparent" r={radius} cx={size/2} cy={size/2} />
@@ -412,7 +421,7 @@ const App: React.FC = () => {
                         style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
                     />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl font-extrabold text-teal-700">{Math.round(percentage)}<span className="text-sm sm:text-base font-bold text-slate-500 mt-1">%</span></span>
+                <span className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl font-extrabold text-indigo-700">{Math.round(percentage)}<span className="text-sm sm:text-base font-bold text-slate-500 mt-1">%</span></span>
             </div>
         );
     };
@@ -431,14 +440,14 @@ const App: React.FC = () => {
     <button 
       onClick={() => setView(view)} 
       disabled={disabled}
-      className="group w-full text-left p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:border-teal-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:border-slate-200"
+      className="group w-full text-left p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:border-slate-200"
     >
       <div className="flex items-start">
         <div className="flex-grow">
           <h4 className="font-bold text-slate-900">{title}</h4>
           <p className="text-xs text-slate-500 mt-1">{desc}</p>
         </div>
-        <span className="text-slate-400 group-hover:text-teal-500 transition-colors">→</span>
+        <span className="text-slate-400 group-hover:text-indigo-500 transition-colors">→</span>
       </div>
     </button>
   );
@@ -478,28 +487,23 @@ const App: React.FC = () => {
     const totalTopics = useMemo(() => countTopics(currentSyllabusProgress.syllabus), [currentSyllabusProgress.syllabus, countTopics]);
     const progressPercentage = totalTopics > 0 ? (currentSyllabusProgress.checkedIds.length / totalTopics) * 100 : 0;
 
-    const studyTools = [
-      { view: AppView.STUDY_HELPER, title: 'AI Study Helper', desc: 'Notes, summaries, and deep dives.', disabled: !isExamSelected },
-      { view: AppView.QUIZ, title: 'Quiz Generator', desc: 'Create custom quizzes on any topic.', disabled: !isExamSelected },
-      { view: AppView.GUESS_PAPER, title: 'Guess Paper', desc: 'AI-predicted exam questions.', disabled: !isExamSelected },
-      { view: AppView.MIND_MAP, title: 'Mind Map Generator', desc: 'Visually explore topic connections.', disabled: !isExamSelected },
+    const learningTools = [
+      { view: AppView.STUDY_HELPER, title: 'Study Hub', desc: 'Notes, summaries, and deep dives.' },
+      { view: AppView.QUIZ, title: 'Quiz Generator', desc: 'Create custom quizzes on any topic.' },
       { view: AppView.INTERVIEW, title: 'Mock Interview', desc: 'Practice with an AI interviewer.', disabled: isSchoolSyllabus },
-      { view: AppView.TEACH_SHORTCUTS, title: 'Aptitude Shortcuts', desc: 'Learn problem-solving tricks.', disabled: isSchoolSyllabus },
-      { view: AppView.DOUBT_SOLVER, title: 'Doubt Solver', desc: 'Get answers from a photo.', disabled: false },
+      { view: AppView.DOUBT_SOLVER, title: 'Doubt Solver', desc: 'Get answers from a photo.' },
     ];
     
-    const trackingTools = [
-        { view: AppView.SYLLABUS_TRACKER, title: 'Syllabus Tracker', desc: 'Generate and track your syllabus.', disabled: !isExamSelected },
-        { view: AppView.AI_STUDY_PLAN, title: 'AI Study Plan', desc: 'Get a personalized study plan.', disabled: !isExamSelected },
+    const progressTools = [
+        { view: AppView.SYLLABUS_TRACKER, title: 'Syllabus Tracker', desc: 'Generate and track your syllabus.' },
+        { view: AppView.AI_STUDY_PLAN, title: 'AI Study Plan', desc: 'Get a personalized study plan.' },
         { view: AppView.APPLICATION_TRACKER, title: 'Application Tracker', desc: 'Save application credentials.', disabled: isSchoolSyllabus },
     ];
 
     const infoTools = [
       { view: AppView.JOB_NOTIFICATIONS, title: 'Job Notifications', desc: 'Latest govt job openings.', disabled: isSchoolSyllabus },
-      { view: AppView.CURRENT_AFFAIRS, title: 'Current Affairs', desc: 'AI-powered news analysis.', disabled: false },
-      { view: AppView.EXAM_DETAILS_VIEWER, title: isSchoolSyllabus ? 'Learning Objectives' : 'Eligibility & Details', desc: isSchoolSyllabus ? 'See key concepts for the subject.' : 'Check criteria, patterns, and more.', disabled: !isExamSelected },
-      { view: AppView.RESULT_TRACKER, title: 'Result Tracker', desc: 'Check real-time result status.', disabled: !isExamSelected || isSchoolSyllabus },
-      { view: AppView.ADMIT_CARD_TRACKER, title: 'Admit Card Tracker', desc: 'Track admit card availability.', disabled: !isExamSelected || isSchoolSyllabus },
+      { view: AppView.CURRENT_AFFAIRS, title: 'Current Affairs', desc: 'AI-powered news analysis.' },
+      { view: AppView.EXAM_DETAILS_VIEWER, title: isSchoolSyllabus ? 'Learning Objectives' : 'Eligibility & Details', desc: isSchoolSyllabus ? 'See key concepts for the subject.' : 'Check criteria, patterns, and more.' },
     ];
 
     return (
@@ -508,7 +512,7 @@ const App: React.FC = () => {
           <ExamSelectionWizard />
         ) : (
           <>
-            <div className="p-6 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl shadow-lg shadow-teal-500/30">
+            <div className="p-6 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/30">
                 <h2 className="text-3xl font-bold">Welcome back!</h2>
                 <p className="opacity-80 mt-1">Your dashboard for <span className="font-semibold">{selectionPath}</span></p>
                 <button onClick={handleResetSelection} className="text-sm font-semibold opacity-80 hover:opacity-100 mt-2">Change Exam →</button>
@@ -524,7 +528,7 @@ const App: React.FC = () => {
                    <StatCard label="Avg. Quiz Score" value={`${performanceStats.averageScore}%`} />
                    <StatCard label="Topics Studied" value={performanceStats.topicsStudied} />
                    <div className="sm:col-span-2">
-                     <button onClick={() => setView(AppView.DAILY_BRIEFING)} className="w-full h-full text-left p-4 bg-teal-600 text-white rounded-xl shadow-lg shadow-teal-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                     <button onClick={() => setView(AppView.DAILY_BRIEFING)} className="w-full h-full text-left p-4 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                         <div className="flex items-center">
                             <div className="flex-grow">
                                 <h3 className="text-lg font-bold">Today's AI Briefing</h3>
@@ -536,23 +540,23 @@ const App: React.FC = () => {
                 </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Study & Practice</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Start Learning</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {studyTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} />)}
+                  {learningTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
                 </div>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Track & Analyze</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Track Your Progress</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {trackingTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} />)}
+                  {progressTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
                 </div>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Information Hub</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Stay Informed</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {infoTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} />)}
+                  {infoTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
                 </div>
               </div>
             </div>
@@ -565,7 +569,7 @@ const App: React.FC = () => {
   const ExamSelectionWizard = () => {
     
     const SelectionCard: React.FC<{title: string; subtitle?: string; onClick: () => void;}> = ({ title, subtitle, onClick }) => (
-      <button onClick={onClick} className="w-full h-full p-4 text-center bg-white rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-teal-400 flex flex-col justify-center">
+      <button onClick={onClick} className="w-full h-full p-4 text-center bg-white rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 flex flex-col justify-center">
         <h4 className="font-bold text-slate-800 text-base leading-tight">{title}</h4>
         {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
       </button>
@@ -763,7 +767,7 @@ const App: React.FC = () => {
     
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
-          <div className="p-8 text-center bg-teal-50 rounded-t-2xl border-b border-slate-200/80">
+          <div className="p-8 text-center bg-indigo-50 rounded-t-2xl border-b border-slate-200/80">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-4">Start Your Journey!</h2>
               <p className="text-slate-600 mt-2 max-w-xl mx-auto">Select your exam category to unlock personalized tools and AI-powered study assistance.</p>
           </div>
@@ -788,8 +792,8 @@ const App: React.FC = () => {
     const isActive = view === currentView;
     const baseClasses = `flex transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative`;
     const activeClasses = isSidebar 
-      ? 'bg-teal-50 text-teal-600 font-semibold' 
-      : 'text-teal-600';
+      ? 'bg-indigo-50 text-indigo-600 font-semibold' 
+      : 'text-indigo-600';
     const inactiveClasses = isSidebar 
       ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' 
       : 'text-slate-500 hover:bg-slate-100';
@@ -799,16 +803,16 @@ const App: React.FC = () => {
     
     return (
       <button onClick={() => { setView(view); setIsSidebarOpen(false); }} disabled={disabled} className={`${baseClasses} ${layoutClasses} ${isActive ? activeClasses : inactiveClasses}`}>
-        {isActive && isSidebar && <div className="absolute left-0 top-2 bottom-2 w-1 bg-teal-500 rounded-r-full"></div>}
+        {isActive && isSidebar && <div className="absolute left-0 top-2 bottom-2 w-1 bg-indigo-500 rounded-r-full"></div>}
         <span className={`text-sm font-semibold ${isSidebar ? 'ml-3' : ''}`}>{label}</span>
-        {isActive && !isSidebar && <div className="absolute bottom-0 left-4 right-4 h-1 bg-teal-500 rounded-t-full"></div>}
+        {isActive && !isSidebar && <div className="absolute bottom-0 left-4 right-4 h-1 bg-indigo-500 rounded-t-full"></div>}
       </button>
     );
   };
   
   const navItems = [
     { view: AppView.HOME, label: "Dashboard" },
-    { view: AppView.STUDY_HELPER, label: "Study", disabled: !isExamSelected },
+    { view: AppView.EXPLORE, label: "Explore", disabled: !isExamSelected },
     { view: AppView.LEARNING_TRACKER, label: "Insights" },
   ];
   
@@ -846,7 +850,7 @@ const App: React.FC = () => {
       {/* Sidebar for md and up */}
       <aside className={`fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
         <div className="flex items-center justify-between p-4 border-b border-slate-200 h-16">
-          <div className="text-xl font-bold text-slate-800 hover:text-teal-700 transition-colors text-left">
+          <div className="text-xl font-bold text-slate-800 hover:text-indigo-700 transition-colors text-left">
               Club of Competition
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-500 hover:text-slate-800">
@@ -872,13 +876,13 @@ const App: React.FC = () => {
                   </button>
               )}
             </div>
-            <div className="flex-shrink min-w-0 text-sm font-semibold text-teal-800 bg-teal-100/80 px-3 py-1.5 rounded-full flex items-center gap-2" title={selectionPath}>
+            <div className="flex-shrink min-w-0 text-sm font-semibold text-indigo-800 bg-indigo-100/80 px-3 py-1.5 rounded-full flex items-center gap-2" title={selectionPath}>
               <span className="truncate">{selectionPath ? selectionPath : 'No Exam Selected'}</span>
             </div>
              <div className="flex items-center gap-2 sm:gap-4">
                  <button 
                     onClick={handleLanguageButtonClick} 
-                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-teal-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                     aria-label={`Change language, current is ${language}`}
                  >
                     <span>{getLanguageAbbreviation(language)}</span>
@@ -889,7 +893,7 @@ const App: React.FC = () => {
                            <UserCircleIcon className="w-7 h-7 text-slate-500"/>
                         </button>
                         <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 p-1 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-10">
-                            <div className="px-2 py-1.5 text-sm text-slate-600 border-b mb-1 truncate">{user.displayName || user.email}</div>
+                            <div className="px-2 py-1.5 text-sm text-slate-600 border-b mb-1 truncate">{user.name || user.email}</div>
                             <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-2 py-1.5 text-sm text-slate-700 rounded-md hover:bg-slate-100">
                                 <ArrowRightOnRectangleIcon className="w-4 h-4" />
                                 <span>Logout</span>

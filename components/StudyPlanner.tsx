@@ -100,15 +100,15 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ setView, setPreselectedTopi
 
                 {studyPlan && (
                     <div className="mt-8">
-                        <h3 className="text-xl font-bold text-center text-teal-700 mb-6">{studyPlan.title}</h3>
+                        <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">{studyPlan.title}</h3>
                         <div className="space-y-4">
                             {studyPlan.plan.map((task, index) => (
-                                <div key={index} className="p-4 bg-slate-50 border-l-4 border-teal-500 rounded-r-lg">
+                                <div key={index} className="p-4 bg-slate-50 border-l-4 border-indigo-500 rounded-r-lg">
                                     <p className="text-sm font-semibold text-slate-500">{task.day}</p>
                                     <p className="text-lg font-bold text-slate-800 mt-1">{task.topic}</p>
                                     <p className="text-sm text-slate-600 mt-2 italic">"{task.reason}"</p>
                                     <div className="mt-4">
-                                        <button onClick={() => handleTaskClick(task.topic, task.activity)} className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-teal-600 text-white hover:bg-teal-700 transition-all duration-300 transform hover:-translate-y-0.5">
+                                        <button onClick={() => handleTaskClick(task.topic, task.activity)} className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-0.5">
                                             {task.activity === 'Study Notes' ? <BookOpenIcon className="w-4 h-4" /> : <BeakerIcon className="w-4 h-4" />}
                                             <span>{task.activity}</span>
                                         </button>

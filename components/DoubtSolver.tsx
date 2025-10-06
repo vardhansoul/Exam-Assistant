@@ -107,7 +107,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                             </div>
                         ) : (
                             <div 
-                                className="w-full h-64 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-center p-4 bg-slate-50 hover:border-teal-400 hover:bg-teal-50/50 transition-colors"
+                                className="w-full h-64 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-center p-4 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors"
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
                                     e.preventDefault();
@@ -136,7 +136,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="e.g., Explain this formula, or how to solve step 2."
-                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 disabled:bg-slate-100 transition"
+                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 disabled:bg-slate-100 transition"
                             rows={3}
                             disabled={!image}
                          />

@@ -40,7 +40,7 @@ const ExamDetailsViewer: React.FC<ExamDetailsViewerProps> = ({ selectionPath, de
           <div className="space-y-6">
             {details.map(group => (
               <div key={group.groupTitle} className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                <h3 className="text-lg font-bold text-teal-700 mb-4">{group.groupTitle}</h3>
+                <h3 className="text-lg font-bold text-indigo-700 mb-4">{group.groupTitle}</h3>
                 <div className="space-y-3">
                   {group.details.map(detail => (
                     <div key={detail.criteria} className="flex flex-col sm:flex-row text-sm">
