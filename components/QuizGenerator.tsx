@@ -1,147 +1,228 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { DIFFICULTY_LEVELS } from '../constants';
-import { generateQuiz, getSpecificErrorMessage } from '../services/geminiService';
-import type { Quiz as QuizType, User } from '../types';
-import type { PopupConfig } from '../App';
+import { generateQuiz } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
+import { logActivity, getComponentState, saveComponentState } from '../utils/tracking';
+import type { Quiz as QuizType, User, HistoryType } from '../types';
+import { AppView } from '../types';
+import type { PopupConfig } from '../types';
 import Quiz from './Quiz';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
 import PopupSelector from './PopupSelector';
+import ErrorMessage from './ErrorMessage';
 
 interface QuizGeneratorProps {
     topics: string[];
     language: string;
     isOnline: boolean;
-    preselectedTopic?: string | null;
-    onClearPreselectedTopic?: () => void;
+    topic: string | null;
+    onTopicChange: (topic: string) => void;
     showPopup: (config: PopupConfig) => void;
     user: User | null;
+    selectionPath: string;
+    canAccessPremium: boolean;
+    requestAuth: () => void;
+    isSyllabusLoading?: boolean;
+    onRefresh?: () => void;
+    onSetBackHandler?: (handler: (() => boolean) | null) => void;
 }
 
-const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline, preselectedTopic, onClearPreselectedTopic, showPopup, user }) => {
-  const [topic, setTopic] = useState<string>(() => preselectedTopic || (topics.length > 0 ? topics[0] : ''));
+const STORAGE_KEY = 'quiz_active_state';
+
+const QuizGenerator: React.FC<QuizGeneratorProps> = ({ topics, language, isOnline, topic, onTopicChange, showPopup, user, selectionPath, canAccessPremium, requestAuth, isSyllabusLoading, onRefresh, onSetBackHandler }) => {
   const [difficulty, setDifficulty] = useState<string>(DIFFICULTY_LEVELS[1]); // Default to Medium
-  const [numQuestions, setNumQuestions] = useState<number>(5);
-  const [quiz, setQuiz] = useState<QuizType | null>(null);
+  const [numQuestions, setNumQuestions] = useState<number>(10);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Initialize quiz from saved state if available
+  const [quiz, setQuiz] = useState<QuizType | null>(() => {
+      const saved = getComponentState<{quiz: QuizType, topic: string}>(STORAGE_KEY);
+      if (saved && saved.topic) {
+          // Sync the parent topic state
+          onTopicChange(saved.topic);
+          return saved.quiz;
+      }
+      return null;
+  });
 
   useEffect(() => {
-    // Clear the preselected topic on mount so it's not sticky
-    if (preselectedTopic && onClearPreselectedTopic) {
-        onClearPreselectedTopic();
+    if (topics.length > 0 && (!topic || !topics.includes(topic))) {
+        // If we have a saved quiz, don't overwrite topic immediately unless it's invalid
+        const saved = getComponentState<{quiz: QuizType, topic: string}>(STORAGE_KEY);
+        if (!saved) {
+            onTopicChange(topics[0]);
+        }
+    } else if (topics.length === 0 && topic) {
+        onTopicChange('');
     }
-  }, [preselectedTopic, onClearPreselectedTopic]);
+  }, [topics, topic, onTopicChange]);
 
+  // Persist Quiz State
   useEffect(() => {
-    if (topics.length > 0 && !topics.includes(topic)) {
-      setTopic(topics[0]);
+      if (quiz && topic) {
+          saveComponentState(STORAGE_KEY, { quiz, topic });
+      } else if (!quiz) {
+          saveComponentState(STORAGE_KEY, null);
+      }
+  }, [quiz, topic]);
+
+  // Auto-fetch topics if missing and online
+  useEffect(() => {
+    if (topics.length === 0 && !isSyllabusLoading && isOnline && onRefresh) {
+        onRefresh();
     }
-  }, [topics, topic]);
+  }, [topics.length, isSyllabusLoading, isOnline, onRefresh]);
+
+  // Register back handler when quiz is active
+  useEffect(() => {
+    if (onSetBackHandler) {
+        if (quiz) {
+            onSetBackHandler(() => {
+                setQuiz(null); // Go back to setup
+                return true;
+            });
+        } else {
+            onSetBackHandler(null);
+        }
+    }
+    return () => { if (onSetBackHandler) onSetBackHandler(null); };
+  }, [quiz, onSetBackHandler]);
+
 
   const handleGenerateQuiz = async () => {
-    if (!isOnline) {
-      setError("You are offline. Please connect to generate a quiz.");
+    if (!topic || !isOnline) return;
+    if (!canAccessPremium) {
+      requestAuth();
       return;
     }
+
     setIsLoading(true);
     setError(null);
     setQuiz(null);
+
+    logActivity(user?.uid || null, {
+        type: 'QUIZ_STARTED' as HistoryType,
+        description: `Started a ${difficulty} quiz on "${topic}"`,
+        view: AppView.QUIZ,
+        context: { topic }
+    });
+
     try {
-        const generatedQuiz = await generateQuiz(topic, difficulty, numQuestions, language);
-        setQuiz(generatedQuiz);
-    } catch (err) {
-        setError(getSpecificErrorMessage(err));
+      const generatedQuiz = await generateQuiz(topic, difficulty, numQuestions, language, selectionPath);
+      setQuiz(generatedQuiz);
+    } catch (e) {
+      setError(getSpecificErrorMessage(e));
     }
     setIsLoading(false);
-  };
-  
-  const resetQuiz = () => {
-    setQuiz(null);
-    setError(null);
   };
 
   const handleTopicSelect = () => {
     showPopup({
-        title: 'Select a Topic',
+        title: 'Select a Topic for the Quiz',
         options: topics.map(t => ({ value: t, label: t })),
-        onSelect: setTopic,
+        onSelect: onTopicChange,
     });
   };
 
-  if (isLoading) {
+  const handleDifficultySelect = () => {
+    showPopup({
+        title: 'Select Difficulty',
+        options: DIFFICULTY_LEVELS.map(d => ({ value: d, label: d })),
+        onSelect: setDifficulty,
+    });
+  };
+  
+  if (!canAccessPremium) {
     return (
-      <Card className="text-center">
-        <h2 className="text-xl font-semibold text-slate-700 mb-4">Generating Quiz...</h2>
-        <p className="text-slate-500 mb-6">The AI is crafting questions for {topic}.</p>
-        <LoadingSpinner />
-      </Card>
+        <div className="max-w-2xl mx-auto">
+            <Card className="text-center">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to generate quizzes.</p>
+                <div className="mt-6">
+                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                </div>
+            </Card>
+        </div>
     );
   }
 
   if (quiz) {
-    return <Quiz quiz={quiz} topic={topic} onFinish={resetQuiz} user={user} />;
+    return (
+      <div className="max-w-3xl mx-auto">
+        <Quiz 
+            quiz={quiz} 
+            topic={topic || ''} 
+            onFinish={() => setQuiz(null)} 
+            user={user} 
+            language={language}
+            // Add a unique key for the quiz progress itself (handled inside Quiz component)
+            persistenceKey={`quiz_progress_${topic}`} 
+        />
+      </div>
+    );
+  }
+
+  if (topics.length === 0) {
+      return (
+          <div className="max-w-2xl mx-auto">
+              <Card className="text-center py-10">
+                  {isSyllabusLoading ? (
+                      <>
+                        <LoadingSpinner />
+                        <p className="text-slate-500 dark:text-slate-400 mt-4">Preparing your quiz topics...</p>
+                      </>
+                  ) : (
+                      <>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Ready to Quiz?</h2>
+                        <p className="text-slate-500 dark:text-slate-400 mb-6">To generate the perfect quiz, we just need to load your syllabus for <strong>{selectionPath}</strong> first.</p>
+                        <Button onClick={onRefresh} variant="secondary" disabled={!isOnline}>
+                            {isOnline ? 'Load Syllabus & Start' : 'You are Offline'}
+                        </Button>
+                      </>
+                  )}
+              </Card>
+          </div>
+      );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
         <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Custom Quiz Generator</h2>
-            <p className="text-slate-500 mt-2">Test your knowledge on a specific topic.</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Quiz Generator</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Test your knowledge with a COC AI-generated quiz.</p>
         </div>
-
-        {error && <p className="text-red-600 bg-red-100 p-3 rounded-md my-6 text-sm font-medium">{error}</p>}
         
-        <div className="space-y-6 mt-6">
-          <PopupSelector 
-            label="Select Topic" 
-            value={topic} 
-            placeholder="Select a topic..." 
-            onClick={handleTopicSelect} 
-            disabled={topics.length === 0 || !isOnline}
-          />
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Difficulty
-            </label>
-            <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg">
-              {DIFFICULTY_LEVELS.map(level => (
-                <button
-                  key={level}
-                  onClick={() => setDifficulty(level)}
-                  disabled={!isOnline}
-                  className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${difficulty === level ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:bg-slate-300/50'}`}
-                >
-                  {level}
-                </button>
-              ))}
+        <div className="mt-6 space-y-6">
+            <PopupSelector label="Topic" value={topic || ''} placeholder="Select a topic..." onClick={handleTopicSelect} disabled={topics.length === 0} />
+            <PopupSelector label="Difficulty" value={difficulty} placeholder="Select difficulty..." onClick={handleDifficultySelect} />
+             <div>
+                <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Number of Questions: <span className="font-bold text-indigo-700 dark:text-indigo-400">{numQuestions}</span>
+                </label>
+                <input
+                    id="num-questions"
+                    type="range"
+                    min="5" max="20" step="1"
+                    value={numQuestions}
+                    onChange={(e) => setNumQuestions(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer mt-2 accent-indigo-600"
+                />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700">Number of Questions: <span className="font-bold text-indigo-700">{numQuestions}</span></label>
-            <input
-              id="num-questions"
-              type="range"
-              min="1"
-              max="10"
-              value={numQuestions}
-              onChange={e => setNumQuestions(Number(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2 accent-indigo-600"
-              disabled={!isOnline}
-            />
-          </div>
         </div>
+
         <div className="mt-8">
-          <Button onClick={handleGenerateQuiz} className="w-full !py-3" disabled={isLoading || topics.length === 0 || !isOnline}>
-            {isLoading ? 'Generating...' : (!isOnline ? 'You are Offline' : 'Generate Quiz')}
+          <Button onClick={handleGenerateQuiz} disabled={isLoading || !topic || !isOnline} className="w-full !py-3">
+            {isLoading ? 'Generating Quiz...' : 'Start Quiz'}
           </Button>
         </div>
+        
+        {isLoading && <div className="mt-4 flex justify-center"><LoadingSpinner /></div>}
+        <ErrorMessage message={error} onRetry={handleGenerateQuiz} />
       </Card>
     </div>
   );

@@ -1,15 +1,25 @@
 
-
-import React, { useState, useRef } from 'react';
-import { solveImageQuery, getSpecificErrorMessage } from '../services/geminiService';
+import React, { useState, useRef, useEffect } from 'react';
+import { solveImageQuery } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
+import { logActivity, getComponentState, saveComponentState } from '../utils/tracking';
+import type { User, HistoryType } from '../types';
+import { AppView } from '../types';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
+import ContentRenderer from './ContentRenderer';
+import ErrorMessage from './ErrorMessage';
 
 interface DoubtSolverProps {
   language: string;
   isOnline: boolean;
+  user: User | null;
+  canAccessPremium: boolean;
+  requestAuth: () => void;
 }
+
+const STORAGE_KEY = 'doubt_solver_state';
 
 const fileToGenerativePart = async (file: File) => {
     const base64EncodedDataPromise = new Promise<string>((resolve) => {
@@ -28,13 +38,26 @@ const fileToGenerativePart = async (file: File) => {
     };
 };
 
-const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
+const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline, user, canAccessPremium, requestAuth }) => {
     const [image, setImage] = useState<{ preview: string; file: File } | null>(null);
-    const [prompt, setPrompt] = useState('');
-    const [response, setResponse] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Initialize text fields from storage
+    const [prompt, setPrompt] = useState(() => {
+        const saved = getComponentState<{prompt: string, response: string | null}>(STORAGE_KEY);
+        return saved?.prompt || '';
+    });
+    const [response, setResponse] = useState<string | null>(() => {
+        const saved = getComponentState<{prompt: string, response: string | null}>(STORAGE_KEY);
+        return saved?.response || null;
+    });
+
+    // Persist state
+    useEffect(() => {
+        saveComponentState(STORAGE_KEY, { prompt, response });
+    }, [prompt, response]);
 
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -49,10 +72,21 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
     };
 
     const handleSolveDoubt = async () => {
+        if (!canAccessPremium) {
+            requestAuth();
+            return;
+        }
         if (!image || !isOnline) return;
         setIsLoading(true);
         setError(null);
         setResponse(null);
+
+        logActivity(user?.uid || null, {
+            type: 'DOUBT_SOLVED' as HistoryType,
+            description: 'Used the Doubt Solver',
+            view: AppView.DOUBT_SOLVER,
+            context: {}
+        });
 
         try {
             const { base64, mimeType } = await fileToGenerativePart(image.file);
@@ -66,32 +100,33 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
         }
     };
     
-    const formatResponse = (text: string) => {
-        return text.split('\n').map((line, index) => {
-            if (line.startsWith('###')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.replace('###', '').trim()}</h3>;
-            if (line.startsWith('##')) return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{line.replace('##', '').trim()}</h2>;
-            if (line.startsWith('* ')) return <li key={index} className="ml-5 list-disc">{line.replace('* ', '').trim()}</li>;
-            if (line.includes('**')) {
-                const parts = line.split('**');
-                return <p key={index} className="my-1">{parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part)}</p>;
-            }
-            return <p key={index} className="my-1">{line || '\u00A0'}</p>;
-        });
-    };
-
     const clearImage = () => {
         setImage(null);
-        setResponse(null);
-        setError(null);
+        // Note: We don't clear response/prompt on image clear to prevent accidental data loss,
+        // but user can clear them manually or upload new image.
         if(fileInputRef.current) fileInputRef.current.value = "";
     };
+    
+    if (!canAccessPremium) {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <Card className="text-center">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Doubt Solver.</p>
+                    <div className="mt-6">
+                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto">
             <Card>
                 <div className="text-center">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">AI Doubt Solver</h2>
-                    <p className="text-slate-500 mt-2">Stuck on a question? Take a photo and get an instant AI explanation.</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800">COC AI Doubt Solver</h2>
+                    <p className="text-slate-500 mt-2">Stuck on a question? Take a photo and get an instant COC AI explanation.</p>
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -118,7 +153,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                             >
                                 <p className="font-semibold text-slate-600">Drag & drop an image</p>
                                 <p className="text-sm text-slate-500">or</p>
-                                <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="mt-2">
+                                <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="mt-2" disabled={!isOnline}>
                                     Browse Files
                                 </Button>
                                 <input
@@ -128,6 +163,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                                     className="hidden"
                                     accept="image/*"
                                     capture="environment"
+                                    disabled={!isOnline}
                                 />
                             </div>
                         )}
@@ -138,7 +174,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                             placeholder="e.g., Explain this formula, or how to solve step 2."
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 disabled:bg-slate-100 transition"
                             rows={3}
-                            disabled={!image}
+                            disabled={!image && !response} // Allow editing if response exists
                          />
                          <Button onClick={handleSolveDoubt} disabled={!image || isLoading || !isOnline} className="w-full !py-3">
                             {isLoading ? 'Analyzing...' : (isOnline ? 'Solve My Doubt' : 'You are Offline')}
@@ -152,14 +188,12 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ language, isOnline }) => {
                             {isLoading && (
                                 <div className="flex flex-col justify-center items-center h-full text-center">
                                     <LoadingSpinner />
-                                    <p className="mt-4 text-slate-600">AI is thinking...</p>
+                                    <p className="mt-4 text-slate-600">COC AI is thinking...</p>
                                 </div>
                             )}
-                            {error && <p className="text-red-600 bg-red-100 p-3 rounded-md text-sm font-medium">{error}</p>}
+                            <ErrorMessage message={error} onRetry={handleSolveDoubt} />
                             {response && (
-                                <div className="prose prose-slate max-w-none">
-                                    {formatResponse(response)}
-                                </div>
+                                <ContentRenderer content={response} className="prose prose-slate max-w-none" />
                             )}
                             {!isLoading && !response && !error && (
                                 <div className="flex justify-center items-center h-full">

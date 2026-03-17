@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
-import { generateStatusUpdate, getSpecificErrorMessage } from '../services/geminiService';
+import { generateStatusUpdate } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
 import type { ExamStatusUpdate } from '../types';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 
 interface Selection {
     selectedExam: string;
@@ -17,10 +19,11 @@ interface StatusTrackerProps {
   selection: Selection;
   language: string;
   isOnline: boolean;
+  isTrial?: boolean;
 }
 
 
-const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, language, isOnline }) => {
+const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, language, isOnline, isTrial }) => {
   const { selectedExam, selectedSubCategory, selectedTier } = selection;
   const [statusUpdate, setStatusUpdate] = useState<ExamStatusUpdate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +36,8 @@ const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, l
     setError(null);
     setStatusUpdate(null);
     try {
-      const update = await generateStatusUpdate(selectedExam, selectedSubCategory, selectedTier, language, trackerType);
+      // Pass isTrial to service
+      const update = await generateStatusUpdate(selectedExam, selectedSubCategory, selectedTier, language, trackerType, isTrial);
       setStatusUpdate(update);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -73,7 +77,7 @@ const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, l
                 </Button>
             </div>
 
-            {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-6">{error}</p>}
+            <ErrorMessage message={error} />
             
             {isLoading && !statusUpdate && <div className="mt-6"><LoadingSpinner /></div>}
 
@@ -100,6 +104,20 @@ const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, l
                     </div>
                     )}
                 </Card>
+                {statusUpdate.sources && statusUpdate.sources.length > 0 && (
+                    <div className="mt-6">
+                        <h4 className="text-md font-bold text-slate-700 mb-2">Sources</h4>
+                        <ul className="space-y-2 text-sm">
+                            {statusUpdate.sources.map((source, index) => (
+                                <li key={index} className="flex items-start gap-2 p-2 bg-slate-100 rounded-md">
+                                    <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all" title={source.web.title}>
+                                        {source.web.title || source.web.uri}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
                 </div>
             )}
         </>

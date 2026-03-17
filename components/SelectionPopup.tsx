@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 
 interface Option {
@@ -38,55 +37,52 @@ const SelectionPopup: React.FC<SelectionPopupProps> = ({ isOpen, onClose, title,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
-        <header className="p-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
-          <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100">
-            X
+    <div className="fixed inset-0 bg-white dark:bg-slate-800 z-50 flex flex-col animate-slide-up">
+      <div className="flex flex-col h-full w-full">
+        <header className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h3>
+          <button onClick={onClose} className="p-2 rounded-full text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </header>
         
         {options.length > 10 && (
-            <div className="p-4 border-b border-slate-200 flex-shrink-0">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <input
                     type="text"
                     placeholder="Search options..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500"
+                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 text-lg"
                 />
             </div>
         )}
 
         <div className="overflow-y-auto p-4 flex-grow">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOptions.map(option => (
               <button
                 key={option.value}
                 onClick={() => onSelect(option.value)}
-                className="w-full h-full p-4 text-left bg-slate-50 rounded-lg border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200"
+                className="w-full h-full p-6 text-left bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all duration-200 shadow-sm"
               >
-                <p className="font-semibold text-slate-700">{option.label}</p>
-                {option.subtitle && <p className="text-xs text-slate-500 mt-1">{option.subtitle}</p>}
+                <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{option.label}</p>
+                {option.subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{option.subtitle}</p>}
               </button>
             ))}
             {filteredOptions.length === 0 && (
-                <p className="text-slate-500 text-center col-span-full py-8">No options found.</p>
+                <p className="text-slate-500 dark:text-slate-400 text-center col-span-full py-20 text-lg">No options found.</p>
             )}
           </div>
         </div>
       </div>
        <style>{`
-            @keyframes fade-in {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
             @keyframes slide-up {
-                from { transform: translateY(20px); opacity: 0; }
+                from { transform: translateY(100%); opacity: 0; }
                 to { transform: translateY(0); opacity: 1; }
             }
-            .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
             .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
         `}</style>
     </div>

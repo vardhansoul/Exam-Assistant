@@ -50,46 +50,46 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ user }) => {
   return (
     <div className="max-w-4xl mx-auto">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Application Tracker</h2>
-          <p className="text-slate-500 mt-2">Securely save your application details {user ? "to your account" : "locally on your device"}.</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Application Tracker</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Securely save your application details {user ? "to your account" : "locally on your device"}.</p>
         </div>
 
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg text-sm text-yellow-800">
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-6 rounded-r-lg text-sm text-yellow-800 dark:text-yellow-200">
             <strong>Privacy Note:</strong> All data is stored {user ? "in your secure cloud profile" : "only on your device. Clearing browser data will delete these records"}.
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
                  <Card>
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">Add New Record</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Add New Record</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Input id="examName" label="Exam Name" value={examName} onChange={(e) => setExamName(e.target.value)} required />
                         <Input id="regId" label="Registration ID / Roll No." value={registrationId} onChange={(e) => setRegistrationId(e.target.value)} required />
                         <Input id="password" label="Password / DOB" value={password} onChange={(e) => setPassword(e.target.value)} />
                         <div>
-                           <label htmlFor="notes" className="block text-sm font-medium text-slate-700">Notes</label>
-                           <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"></textarea>
+                           <label htmlFor="notes" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>
+                           <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-600 focus:border-indigo-500 dark:focus:border-indigo-600 sm:text-sm"></textarea>
                         </div>
                         <Button type="submit" className="w-full !py-2.5">Save Record</Button>
                     </form>
                 </Card>
             </div>
             <div className="lg:col-span-2">
-                 <h3 className="text-lg font-bold text-slate-800 mb-4">Saved Applications</h3>
+                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Saved Applications</h3>
                 {isLoading ? <p>Loading...</p> : records.length === 0 ? (
-                  <p className="text-slate-500 text-center bg-white p-6 rounded-xl border border-slate-200">No saved records found.</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-center bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">No saved records found.</p>
                 ) : (
                   <div className="space-y-4">
                     {records.map(record => (
-                      <div key={record.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                      <div key={record.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-bold text-teal-700">{record.examName}</h4>
-                            <p className="text-sm text-slate-600 mt-1 break-all"><span className="font-semibold">ID/Roll:</span> {record.registrationId}</p>
-                            {record.password && <p className="text-sm text-slate-600 break-all"><span className="font-semibold">Password:</span> {record.password}</p>}
-                            {record.notes && <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap"><span className="font-semibold">Notes:</span><br/>{record.notes}</p>}
+                            <h4 className="font-bold text-teal-700 dark:text-teal-400">{record.examName}</h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 break-all"><span className="font-semibold">ID/Roll:</span> {record.registrationId}</p>
+                            {record.password && <p className="text-sm text-slate-600 dark:text-slate-300 break-all"><span className="font-semibold">Password:</span> {record.password}</p>}
+                            {record.notes && <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap"><span className="font-semibold">Notes:</span><br/>{record.notes}</p>}
                           </div>
-                          <button onClick={() => handleDelete(record.id)} className="p-2 rounded-full hover:bg-red-100 text-slate-500 hover:text-red-600 transition">
+                          <button onClick={() => handleDelete(record.id)} className="p-2 rounded-full hover:bg-red-100 text-slate-500 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition">
                               Delete
                           </button>
                         </div>

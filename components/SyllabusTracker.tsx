@@ -1,12 +1,14 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { generateSyllabus, getSpecificErrorMessage } from '../services/geminiService';
-import { getSyllabusProgress, saveSyllabusProgress } from '../utils/tracking';
-import type { SyllabusTopic, User } from '../types';
+import { generateSyllabus } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
+import { getSyllabusProgress, saveSyllabusProgress, getBookmarkedTopics, saveBookmarkedTopics, getTrackingData, markTopicAsStudied, unmarkTopicAsStudied } from '../utils/tracking';
+import type { SyllabusTopic, User, SyllabusProgress, LearningProgress } from '../types';
 import Card from './Card';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
+import PrinterIcon from './icons/PrinterIcon';
 
 
 const SyllabusNode: React.FC<{
@@ -14,10 +16,13 @@ const SyllabusNode: React.FC<{
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
   onTeachWithStory: (topicTitle: string) => void;
-}> = ({ topic, checkedIds, onToggle, onTeachWithStory }) => {
+  bookmarkedTopics: Set<string>;
+  onToggleBookmark: (topicTitle: string) => void;
+}> = ({ topic, checkedIds, onToggle, onTeachWithStory, bookmarkedTopics, onToggleBookmark }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isChecked = checkedIds.has(topic.id);
-  const hasChildren = topic.children && topic.children.length > 0;
+  const isBookmarked = bookmarkedTopics.has(topic.title);
+  const hasChildren = Array.isArray(topic.children) && topic.children.length > 0;
 
   const handleToggleCheck = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -25,11 +30,11 @@ const SyllabusNode: React.FC<{
   };
 
   return (
-    <div className={`ml-4 my-1 pl-4 border-l-2 ${isExpanded ? 'border-slate-300' : 'border-transparent'}`}>
+    <div className={`ml-4 my-1 pl-4 border-l-2 ${isExpanded ? 'border-slate-300 dark:border-slate-600' : 'border-transparent'} print:border-l-2 print:border-gray-300`}>
       <div className="flex items-center group">
         {hasChildren && (
-          <button onClick={() => setIsExpanded(!isExpanded)} className="p-1 rounded-full hover:bg-slate-200 mr-1">
-             <span className={`text-slate-500 transition-transform duration-200 inline-block ${!isExpanded && '-rotate-90'}`}>▼</span>
+          <button onClick={() => setIsExpanded(!isExpanded)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 mr-1 no-print">
+             <span className={`text-slate-500 dark:text-slate-400 transition-transform duration-200 inline-block ${!isExpanded && '-rotate-90'}`}>▼</span>
           </button>
         )}
         <div className="flex items-center flex-grow py-1" onClick={() => hasChildren && setIsExpanded(!isExpanded)}>
@@ -42,14 +47,21 @@ const SyllabusNode: React.FC<{
               aria-label={`Mark topic ${topic.title} as ${isChecked ? 'incomplete' : 'complete'}`}
             />
             <div className="ml-3 flex-grow">
-                <label htmlFor={topic.id} className={`font-medium cursor-pointer ${isChecked ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                <label htmlFor={topic.id} className={`font-medium cursor-pointer ${isChecked ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-800 dark:text-slate-200'} print:text-black`}>
                   {topic.title}
                 </label>
-                {topic.details && <p className="text-xs text-slate-500 mt-0.5">{topic.details}</p>}
+                {topic.details && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 print:text-gray-600">{topic.details}</p>}
             </div>
+             <button
+                onClick={(e) => { e.stopPropagation(); onToggleBookmark(topic.title); }}
+                className="p-1.5 rounded-full text-slate-400 dark:text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:text-amber-600 dark:hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs no-print"
+                title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+             >
+                {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+             </button>
              <button 
                 onClick={(e) => { e.stopPropagation(); onTeachWithStory(topic.title); }} 
-                className="ml-auto p-1 rounded-full text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                className="ml-auto p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs no-print"
                 title={`Teach "${topic.title}" with a story`}
                 aria-label={`Teach "${topic.title}" with a story`}
             >
@@ -58,9 +70,9 @@ const SyllabusNode: React.FC<{
         </div>
       </div>
       {hasChildren && (
-        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-screen' : 'max-h-0'}`}>
-          {topic.children.map(child => (
-            <SyllabusNode key={child.id} topic={child} checkedIds={checkedIds} onToggle={onToggle} onTeachWithStory={onTeachWithStory}/>
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-screen' : 'max-h-0'} print:max-h-none print:overflow-visible`}>
+          {topic.children?.map(child => (
+            <SyllabusNode key={child.id} topic={child} checkedIds={checkedIds} onToggle={onToggle} onTeachWithStory={onTeachWithStory} bookmarkedTopics={bookmarkedTopics} onToggleBookmark={onToggleBookmark}/>
           ))}
         </div>
       )}
@@ -79,6 +91,7 @@ interface SyllabusTrackerProps {
 const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, language, isOnline, onTeachWithStory, user }) => {
   const [syllabus, setSyllabus] = useState<SyllabusTopic[] | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set<string>());
+  const [bookmarkedTopics, setBookmarkedTopics] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,22 +113,51 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
     const uid = user?.uid || null;
 
     try {
-        const progress = await getSyllabusProgress(uid);
+        const [progress, bookmarks, trackingData] = await Promise.all([
+            getSyllabusProgress(uid),
+            getBookmarkedTopics(uid),
+            getTrackingData(uid),
+        ] as const);
+        
+        setBookmarkedTopics(new Set(bookmarks));
+        
         const savedProgress = progress[syllabusKey];
-        setCheckedIds(new Set(savedProgress?.checkedIds || []));
+        const globallyLearnedTitles = new Set(trackingData.studiedTopics.map(t => t.toLowerCase().trim()));
 
-        // Attempt to load syllabus from cache/progress first for speed
-        if (savedProgress?.syllabus?.length > 0 && !isRefresh) {
-            setSyllabus(savedProgress.syllabus);
+        const findLearnedIds = (nodes: SyllabusTopic[], learnedTitles: Set<string>): string[] => {
+            let ids: string[] = [];
+            for (const node of nodes) {
+                if (learnedTitles.has(node.title.toLowerCase().trim())) {
+                    ids.push(node.id);
+                }
+                if (node.children) {
+                    ids = ids.concat(findLearnedIds(node.children, learnedTitles));
+                }
+            }
+            return ids;
+        };
+
+        let currentSyllabus = savedProgress?.syllabus?.length > 0 && !isRefresh ? savedProgress.syllabus : null;
+
+        if (!currentSyllabus) {
+            const syllabusData = await generateSyllabus(selectedExam, language);
+            currentSyllabus = syllabusData;
+            if (syllabusData.length > 0) {
+                // Sanitize checkedIds from storage before saving to prevent passing malformed data.
+                const checkedIdsToSave: string[] = Array.isArray(savedProgress?.checkedIds) ? savedProgress.checkedIds.filter((id): id is string => typeof id === 'string') : [];
+                await saveSyllabusProgress(syllabusKey, checkedIdsToSave, syllabusData, uid);
+            }
         }
-
-        const syllabusData = await generateSyllabus(selectedExam, language);
-        setSyllabus(syllabusData);
-        if (syllabusData.length > 0) {
-            // Save newly generated syllabus with current progress
-            await saveSyllabusProgress(syllabusKey, Array.from(savedProgress?.checkedIds || []), syllabusData, uid);
+        
+        if (currentSyllabus && currentSyllabus.length > 0) {
+             setSyllabus(currentSyllabus);
+             const globallyLearnedIds = findLearnedIds(currentSyllabus, globallyLearnedTitles);
+             // Safely access and sanitize saved checkedIds before combining with globally learned IDs.
+             const safeSavedIds = Array.isArray(savedProgress?.checkedIds) ? savedProgress.checkedIds.filter((id): id is string => typeof id === 'string') : [];
+             const allCheckedIds = [...safeSavedIds, ...globallyLearnedIds];
+             setCheckedIds(new Set(allCheckedIds));
         } else if (!savedProgress?.syllabus?.length) {
-            setError("A syllabus could not be found or generated for this selection.");
+            setError("We couldn't load the syllabus just yet. A quick refresh usually helps!");
         }
     } catch (err) {
         setError(getSpecificErrorMessage(err));
@@ -132,38 +174,70 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
 
 
   const handleToggle = useCallback(async (id: string) => {
-    const newCheckedIds = new Set<string>(checkedIds);
-    const topicsToModify = new Set<string>();
+    const newCheckedIds = new Set(checkedIds);
     
-    const findTopicAndChildren = (topics: SyllabusTopic[], targetId: string): SyllabusTopic | null => {
+    const findTopic = (topics: SyllabusTopic[], targetId: string): SyllabusTopic | null => {
         for (const topic of topics) {
             if (topic.id === targetId) return topic;
             if (topic.children) {
-                const found = findTopicAndChildren(topic.children, targetId);
+                const found = findTopic(topic.children, targetId);
                 if (found) return found;
             }
         }
         return null;
     };
     
-    const collectAllIds = (topic: SyllabusTopic) => {
-        topicsToModify.add(topic.id);
-        if (topic.children) topic.children.forEach(collectAllIds);
+    const collectChildTopics = (startNode: SyllabusTopic): SyllabusTopic[] => {
+        let nodes = [startNode];
+        if (startNode.children) {
+            for (const child of startNode.children) {
+                nodes = nodes.concat(collectChildTopics(child));
+            }
+        }
+        return nodes;
     };
 
-    const targetTopic = findTopicAndChildren(syllabus || [], id);
-    if (targetTopic) collectAllIds(targetTopic);
-    
-    const isChecking = !newCheckedIds.has(id);
-    topicsToModify.forEach(topicId => {
-        if (isChecking) newCheckedIds.add(topicId);
-        else newCheckedIds.delete(topicId);
-    });
+    const targetTopic = findTopic(syllabus || [], id);
+    if (!targetTopic) return;
 
+    const topicsToUpdate = collectChildTopics(targetTopic);
+    const isChecking = !newCheckedIds.has(id);
+
+    // Update UI state
+    topicsToUpdate.forEach(t => {
+        if (isChecking) newCheckedIds.add(t.id);
+        else newCheckedIds.delete(t.id);
+    });
     setCheckedIds(newCheckedIds);
-    await saveSyllabusProgress(syllabusKey, Array.from(newCheckedIds), syllabus || [], user?.uid || null);
+    
+    // Update backend storage
+    const uid = user?.uid || null;
+    const updateTasks = topicsToUpdate.map(t => {
+        return isChecking ? markTopicAsStudied(t.title, uid) : unmarkTopicAsStudied(t.title, uid);
+    });
+    
+    // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
+    updateTasks.push(saveSyllabusProgress(syllabusKey, Array.from(newCheckedIds) as string[], syllabus || [], uid));
+    
+    await Promise.all(updateTasks);
+    
   }, [checkedIds, syllabus, syllabusKey, user]);
   
+  const handleToggleBookmark = useCallback(async (topicTitle: string) => {
+    const newBookmarkedTopics = new Set(bookmarkedTopics);
+    if (newBookmarkedTopics.has(topicTitle)) {
+        newBookmarkedTopics.delete(topicTitle);
+    } else {
+        newBookmarkedTopics.add(topicTitle);
+    }
+    setBookmarkedTopics(newBookmarkedTopics);
+    // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
+    await saveBookmarkedTopics(Array.from(newBookmarkedTopics) as string[], user?.uid || null);
+  }, [bookmarkedTopics, user]);
+  
+  const handlePrint = () => {
+      window.print();
+  };
 
   const countTopics = useCallback((topics: SyllabusTopic[]): number => {
     return topics.reduce((acc, topic) => acc + 1 + (topic.children ? countTopics(topic.children) : 0), 0);
@@ -173,54 +247,86 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
   const progressPercentage = totalTopics > 0 ? (checkedIds.size / totalTopics) * 100 : 0;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto print-section-wrapper">
         <Card>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center text-center sm:text-left">
             <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Syllabus Tracker</h2>
-                <p className="text-slate-500 mt-2 truncate">Track your preparation for <span className="font-semibold">{selectedExam}</span>.</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">Syllabus Tracker</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 truncate">Track your preparation for <span className="font-semibold">{selectedExam}</span>.</p>
             </div>
-             <Button 
-                onClick={() => fetchSyllabusAndProgress(true)} 
-                disabled={isLoading || !isOnline} 
-                variant="secondary" 
-                className="mt-4 sm:mt-0 !py-2 !px-3"
-             >
-                <span className="ml-2">Refresh</span>
-            </Button>
+            <div className="flex gap-2 mt-4 sm:mt-0 justify-center">
+                 <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2 no-print">
+                    <PrinterIcon className="w-4 h-4" /> Print
+                </Button>
+                 <Button 
+                    onClick={() => fetchSyllabusAndProgress(true)} 
+                    disabled={isLoading || !isOnline} 
+                    variant="secondary" 
+                    className="!py-2 !px-3 no-print"
+                 >
+                    <span className="ml-2">Refresh</span>
+                </Button>
+            </div>
           </div>
           
           <div className="mt-6">
             {isLoading ? (
-                <div className="text-center py-10"><LoadingSpinner /></div>
+                <div className="text-center py-10 no-print"><LoadingSpinner /></div>
             ) : error ? (
-                <p className="text-red-500 bg-red-100 p-3 rounded-md my-4 text-center">{error}</p>
+                <div className="text-center">
+                    <ErrorMessage message={error} onRetry={() => fetchSyllabusAndProgress(true)} />
+                </div>
             ) : syllabus && syllabus.length > 0 ? (
                 <div>
                     <div className="mb-4">
                         <div className="flex justify-between mb-1">
-                            <span className="text-base font-medium text-indigo-700">Completion</span>
-                            <span className="text-sm font-medium text-indigo-700">
+                            <span className="text-base font-medium text-indigo-700 dark:text-indigo-400">Completion</span>
+                            <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
                                 {`${checkedIds.size} / ${totalTopics} topics (${Math.round(progressPercentage)}%)`}
                             </span>
                         </div>
-                        <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
                            <div className="bg-gradient-to-r from-indigo-400 to-indigo-600 h-4 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
                         </div>
                     </div>
-                    <div className="p-4 border rounded-lg bg-slate-50 max-h-[60vh] overflow-y-auto">
+                    <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 max-h-[60vh] overflow-y-auto print:max-h-none print:overflow-visible print:border-none print:p-0 print:bg-white">
                         {syllabus.map(topic => (
-                            <SyllabusNode key={topic.id} topic={topic} checkedIds={checkedIds} onToggle={handleToggle} onTeachWithStory={onTeachWithStory} />
+                            <SyllabusNode 
+                                key={topic.id} 
+                                topic={topic} 
+                                checkedIds={checkedIds} 
+                                onToggle={handleToggle} 
+                                onTeachWithStory={onTeachWithStory}
+                                bookmarkedTopics={bookmarkedTopics}
+                                onToggleBookmark={handleToggleBookmark}
+                             />
                         ))}
                     </div>
                 </div>
             ) : (
-                 <p className="text-center text-slate-500 py-10">
-                    No syllabus available. Try refreshing or changing your exam selection.
+                 <p className="text-center text-slate-500 dark:text-slate-400 py-10">
+                    We couldn't load the syllabus just yet. A quick refresh usually helps!
                 </p>
             )}
           </div>
         </Card>
+        <style>{`
+            @media print {
+                .no-print, header, .sidebar, .mobile-taskbar, button { display: none !important; }
+                body, #root, main, .print-section-wrapper, .print-section-wrapper > div { 
+                    display: block !important; 
+                    position: static !important; 
+                    background: white !important; 
+                    margin: 0 !important; 
+                    padding: 0 !important; 
+                    width: 100% !important; 
+                    height: auto !important; 
+                    overflow: visible !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+            }
+        `}</style>
     </div>
   );
 };

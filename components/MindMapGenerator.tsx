@@ -1,20 +1,30 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { generateMindMap, getSpecificErrorMessage } from '../services/geminiService';
-import type { MindMapNode } from '../types';
-import type { PopupConfig } from '../App';
+import { generateMindMap } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
+import { logActivity, getComponentState, saveComponentState } from '../utils/tracking';
+import type { MindMapNode, User, HistoryType } from '../types';
+import { AppView } from '../types';
+import type { PopupConfig } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import Card from './Card';
 import Button from './Button';
 import PopupSelector from './PopupSelector';
+import ErrorMessage from './ErrorMessage';
 
 interface MindMapGeneratorProps {
   topics: string[];
   language: string;
   isOnline: boolean;
   showPopup: (config: PopupConfig) => void;
+  user: User | null;
+  canAccessPremium: boolean;
+  requestAuth: () => void;
+  isSyllabusLoading?: boolean;
+  onRefresh?: () => void;
 }
+
+const STORAGE_KEY = 'mindmap_active_state';
 
 const MindMapNodeDisplay: React.FC<{ node: MindMapNode; level?: number }> = ({ node, level = 0 }) => {
   const colors = [
@@ -46,31 +56,74 @@ const MindMapNodeDisplay: React.FC<{ node: MindMapNode; level?: number }> = ({ n
 };
 
 
-const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, isOnline, showPopup }) => {
+const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, isOnline, showPopup, user, canAccessPremium, requestAuth, isSyllabusLoading, onRefresh }) => {
   const [topic, setTopic] = useState<string>(topics.length > 0 ? topics[0] : '');
-  const [mindMapData, setMindMapData] = useState<MindMapNode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Initialize from storage
+  const [mindMapData, setMindMapData] = useState<MindMapNode | null>(() => {
+      const saved = getComponentState<{data: MindMapNode, topic: string}>(STORAGE_KEY);
+      if (saved && saved.topic) {
+          setTopic(saved.topic); // Will be overwritten by useEffect if topics loads later, handled below
+          return saved.data;
+      }
+      return null;
+  });
+
   useEffect(() => {
-    if (topics.length > 0 && !topics.includes(topic)) {
-      setTopic(topics[0]);
-    } else if (topics.length === 0) {
-      setTopic('');
+    // If we have a saved topic but it's not in the topics list yet (maybe list loading), that's fine.
+    // But if we don't have a saved state, default to first topic.
+    const saved = getComponentState<{data: MindMapNode, topic: string}>(STORAGE_KEY);
+    if (!saved) {
+        if (topics.length > 0 && !topics.includes(topic)) {
+            setTopic(topics[0]);
+        } else if (topics.length === 0) {
+            setTopic('');
+        }
+    } else {
+        if (!topic) setTopic(saved.topic);
     }
   }, [topics, topic]);
 
+  // Persist State
+  useEffect(() => {
+      if (mindMapData && topic) {
+          saveComponentState(STORAGE_KEY, { data: mindMapData, topic });
+      } else if (!mindMapData) {
+          saveComponentState(STORAGE_KEY, null);
+      }
+  }, [mindMapData, topic]);
+
+  // Auto-fetch topics if missing and online
+  useEffect(() => {
+    if (topics.length === 0 && !isSyllabusLoading && isOnline && onRefresh) {
+        onRefresh();
+    }
+  }, [topics.length, isSyllabusLoading, isOnline, onRefresh]);
+
   const handleGenerateMap = async () => {
+    if (!canAccessPremium) {
+        requestAuth();
+        return;
+    }
     setIsLoading(true);
     setMindMapData(null);
     setError(null);
 
     if (!isOnline) {
-      setError("You are offline. Please connect to the internet to generate a mind map.");
+      setError("It looks like we're offline. Please connect to generate a mind map.");
       setIsLoading(false);
       return;
     }
     
+    logActivity(user?.uid || null, {
+        type: 'MIND_MAP_GENERATED' as HistoryType,
+        description: `Generated a mind map for "${topic}"`,
+        view: AppView.MIND_MAP,
+        context: { topic }
+    });
+
     try {
       const data = await generateMindMap(topic, language);
       setMindMapData(data);
@@ -84,16 +137,53 @@ const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, i
     showPopup({
         title: 'Select a Topic to Visualize',
         options: topics.map(t => ({ value: t, label: t })),
-        onSelect: setTopic,
+        onSelect: (t) => { setTopic(t); setMindMapData(null); }, // Reset map when topic changes manually
     });
   };
+
+  if (!canAccessPremium) {
+    return (
+        <div className="max-w-3xl mx-auto">
+            <Card className="text-center">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Mind Map Generator.</p>
+                <div className="mt-6">
+                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                </div>
+            </Card>
+        </div>
+    );
+  }
+
+  if (topics.length === 0) {
+      return (
+          <div className="max-w-3xl mx-auto">
+              <Card className="text-center py-10">
+                  {isSyllabusLoading ? (
+                      <>
+                        <LoadingSpinner />
+                        <p className="text-slate-500 dark:text-slate-400 mt-4">Gathering topics for your visual map...</p>
+                      </>
+                  ) : (
+                      <>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Let's Get Started</h2>
+                        <p className="text-slate-500 dark:text-slate-400 mb-6">We need to load your syllabus topics first so you can create a mind map.</p>
+                        <Button onClick={onRefresh} variant="secondary" disabled={!isOnline}>
+                            {isOnline ? 'Load Topics Now' : 'You are Offline'}
+                        </Button>
+                      </>
+                  )}
+              </Card>
+          </div>
+      );
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
       <Card>
         <div className="text-center">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Mind Map Generator</h2>
-            <p className="text-slate-500 mt-2">Visually explore connections between topics with AI.</p>
+            <p className="text-slate-500 mt-2">Visually explore connections between topics with COC AI.</p>
         </div>
         
         <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -111,7 +201,7 @@ const MindMapGenerator: React.FC<MindMapGeneratorProps> = ({ topics, language, i
                   {isLoading ? 'Generating...' : (isOnline ? 'Generate Map' : 'Offline')}
                 </Button>
             </div>
-             {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-4 text-center">{error}</p>}
+             <ErrorMessage message={error} onRetry={handleGenerateMap} />
         </div>
         
         {isLoading && (

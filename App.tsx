@@ -1,945 +1,1017 @@
 
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { 
+    getDisplaySettings, saveDisplaySettings, getLastSelection, saveLastSelection, 
+    isLastSelectionValid, getUserSession, saveUserSession, startTrial, 
+    isTrialActive as checkIsTrialActive, getTrialDaysRemaining, saveVerifiedPhoneNumber, 
+    getVerifiedPhoneNumber, clearTrialData, logActivity, saveComponentState, 
+    getComponentState 
+} from './utils/tracking';
+import { 
+    generateExamDetails, generateStudyNotes, generateTutorialForTopic, 
+    fetchLatestJobNotifications, generateSyllabusForExam 
+} from './services/geminiService';
+import { 
+    onAuthStateChange, getUserDoc, handleSignOut, getUserProfile, 
+    ensureAdminPermissions, getUserDisplaySettings, saveUserDisplaySettings 
+} from './firebase';
+import { ADMIN_EMAILS, EXAM_DATA } from './constants';
+import { getSpecificErrorMessage } from './utils/errors';
+import type { 
+    User, PopupConfig, DisplaySettings, LastSelection, Syllabus, 
+    Notification, StudyMaterial, Tutorial, ExamDetailGroup, JobNotification, 
+    ExamCategory, UserSession, HistoryType 
+} from './types';
+import { AppView } from './types';
+import { App as CapacitorApp } from '@capacitor/app';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { AppView, ExamDetailGroup, ExamByQualification, SyllabusTopic, User, Notification, UserProfile } from './types';
-import { LANGUAGES, QUALIFICATION_CATEGORIES, SELECTION_LEVELS, INDIAN_STATES, EXAM_DATA, SCHOOL_CLASSES, SCHOOL_STREAMS, SCHOOL_SUBJECTS } from './constants';
-import { generateExamsByQualification, getSpecificErrorMessage, generateTopicsForExam, generateExamDetails } from './services/geminiService';
-import { getLastSelection, saveLastSelection, getSyllabusProgress, getTrackingData } from './utils/tracking';
-import { auth, db, onAuthStateChanged, signOut, getDoc, doc, setDoc, serverTimestamp, GoogleAuthProvider, signInWithPopup, updateDoc } from './firebase';
-import TopicExplorer from './components/TopicExplorer';
-import StudyHelper from './components/StudyHelper';
-import QuizGenerator from './components/QuizGenerator';
-import MockInterview from './components/MockInterview';
-import LearningTracker from './components/LearningTracker';
-import SyllabusTracker from './components/SyllabusTracker';
-import ResultTracker from './components/ResultTracker';
-import AdmitCardTracker from './components/AdmitCardTracker';
-import ApplicationTracker from './components/ApplicationTracker';
-import GuessPaperGenerator from './components/GuessPaperGenerator';
-import StudyPlanner from './components/StudyPlanner';
-import TeachShortcuts from './components/TeachShortcuts';
-import Card from './components/Card';
-import Button from './components/Button';
-import LoadingSpinner from './components/LoadingSpinner';
-import SelectionPopup from './components/SelectionPopup';
-import PopupSelector from './components/PopupSelector';
-import ExamDetailsViewer from './components/ExamDetailsViewer';
-import JobNotificationsViewer from './components/JobNotificationsViewer';
-import DoubtSolver from './components/DoubtSolver';
-import StoryTutor from './components/StoryTutor';
-import MindMapGenerator from './components/MindMapGenerator';
-import CurrentAffairsAnalyst from './components/CurrentAffairsAnalyst';
-import DailyBriefing from './components/DailyBriefing';
+// Eager imports for Shell (Critical Path)
+import Dashboard from './components/Dashboard';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import MobileTaskbar from './components/MobileTaskbar';
+import StartupLoading from './components/StartupLoading';
+import LoginPrompt from './components/LoginPrompt';
 import NotificationBanner from './components/NotificationBanner';
-import { Bars3Icon } from './components/icons/Bars3Icon';
-import { ArrowLeftIcon } from './components/icons/ArrowLeftIcon';
-import { UserCircleIcon } from './components/icons/UserCircleIcon';
-import { ArrowRightOnRectangleIcon } from './components/icons/ArrowRightOnRectangleIcon';
+import AuthModal from './components/AuthModal';
+import PhoneVerificationModal from './components/PhoneVerificationModal';
+import LoadingSpinner from './components/LoadingSpinner';
 
-
-// Popup configuration type for child components
-export type PopupConfig = {
-    title: string;
-    options: { value: string; label: string; subtitle?: string }[];
-    onSelect: (value: string) => void;
+// Retry Logic for Lazy Loading - Optimized for Speed
+const lazyRetry = (componentImport: () => Promise<any>, retriesLeft = 3) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      if (retriesLeft === 0) {
+        console.error("Chunk load failed after retries:", error);
+        throw error;
+      }
+      // Faster retry (500ms instead of 1500ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return await componentImport().catch(() => {
+          const retry = async (attempts: number): Promise<any> => {
+              try {
+                  return await componentImport();
+              } catch (e) {
+                  if (attempts === 0) throw e;
+                  await new Promise(r => setTimeout(r, 500));
+                  return retry(attempts - 1);
+              }
+          };
+          return retry(retriesLeft - 1);
+      });
+    }
+  });
 };
 
-const ADMIN_EMAILS = ['govardhanm622@gmail.com', 'govardhan.opc@gmail.com'];
+// Lazy Imports for Views (Load on demand with retry)
+const AskAiAnything = lazyRetry(() => import('./components/AskAiAnything'));
+const LearningTracker = lazyRetry(() => import('./components/LearningTracker'));
+const UserProfileComponent = lazyRetry(() => import('./components/UserProfile'));
+const TopicExplorer = lazyRetry(() => import('./components/TopicExplorer'));
+const QuizGenerator = lazyRetry(() => import('./components/QuizGenerator'));
+const MockInterview = lazyRetry(() => import('./components/MockInterview'));
+const JobNotificationsViewer = lazyRetry(() => import('./components/JobNotificationsViewer'));
+const ExamDetailsViewer = lazyRetry(() => import('./components/ExamDetailsViewer'));
+const PreviousYearQuestions = lazyRetry(() => import('./components/PreviousYearQuestions'));
+const Tools = lazyRetry(() => import('./components/Tools'));
+const CurrentAffairsAnalyst = lazyRetry(() => import('./components/CurrentAffairsAnalyst'));
+const DailyBriefing = lazyRetry(() => import('./components/DailyBriefing'));
+const MindMapGenerator = lazyRetry(() => import('./components/MindMapGenerator'));
+const GuessPaperGenerator = lazyRetry(() => import('./components/GuessPaperGenerator'));
+const StudyPlanner = lazyRetry(() => import('./components/StudyPlanner'));
+const TeachShortcuts = lazyRetry(() => import('./components/TeachShortcuts'));
+const DoubtSolver = lazyRetry(() => import('./components/DoubtSolver'));
+const ConceptLinkMap = lazyRetry(() => import('./components/ConceptLinkMap'));
+const TeachBackMode = lazyRetry(() => import('./components/TeachBackMode'));
+const SelfSummaryChallenge = lazyRetry(() => import('./components/SelfSummaryChallenge'));
+const RealLifeExamples = lazyRetry(() => import('./components/RealLifeExamples'));
+const CareerCompass = lazyRetry(() => import('./components/CareerCompass'));
+const AiResumeBuilder = lazyRetry(() => import('./components/AiResumeBuilder'));
+const FlashcardsGenerator = lazyRetry(() => import('./components/FlashcardsGenerator'));
+const ScientificCalculator = lazyRetry(() => import('./components/ScientificCalculator'));
+const AdaptiveLearningPath = lazyRetry(() => import('./components/AdaptiveLearningPath'));
+const AdminDashboard = lazyRetry(() => import('./components/AdminDashboard'));
+const StoryTutorGenerator = lazyRetry(() => import('./components/StoryTutorGenerator'));
 
+// Lazy Imports for Heavy Modals
+const ExamSelectionWizard = lazyRetry(() => import('./components/ExamSelectionWizard'));
+const SelectionPopup = lazyRetry(() => import('./components/SelectionPopup'));
+const DisplaySettingsPopup = lazyRetry(() => import('./components/DisplaySettingsPopup'));
+const StudyMaterialModal = lazyRetry(() => import('./components/StudyMaterialModal'));
+const StoryTutorModal = lazyRetry(() => import('./components/StoryTutor'));
+const TutorialModal = lazyRetry(() => import('./components/TutorialModal'));
 
 const App: React.FC = () => {
-  const [view, setView] = useState<AppView>(() => {
-    const hash = window.location.hash.replace('#', '');
-    const viewFromHash = Object.values(AppView).find(v => v === hash.toUpperCase());
-    return viewFromHash || AppView.HOME;
-  });
-  const [language, setLanguage] = useState<string>(LANGUAGES[0]);
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [user, setUser] = useState<User | null | 'loading'>('loading');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [notification, setNotification] = useState<Notification | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [appMode, setAppMode] = useState<'user' | 'admin'>('user');
+    const [isAnonymousSession, setIsAnonymousSession] = useState(false);
+    const [isTrialActive, setIsTrialActive] = useState(false);
+    const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+    const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useState<string | null>(null);
 
-  // State to link planner to tools
-  const [preselectedTopic, setPreselectedTopic] = useState<string | null>(null);
+    const [view, setView] = useState<AppView>(AppView.HOME);
+    const [history, setHistory] = useState<AppView[]>([]);
 
-  // --- Selection State ---
-  const [selectionLevel, setSelectionLevel] = useState<string>('');
-  const [selectedState, setSelectedState] = useState<string>('');
-  const [selectedQualification, setSelectedQualification] = useState<string>('');
-  const [selectedExam, setSelectedExam] = useState<string>('');
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
-  const [selectedTier, setSelectedTier] = useState<string>('');
-
-  // --- API call states ---
-  const [qualificationExams, setQualificationExams] = useState<ExamByQualification[]>([]);
-  const [isQualificationExamsLoading, setIsQualificationExamsLoading] = useState<boolean>(false);
-  const [qualificationExamsError, setQualificationExamsError] = useState<string | null>(null);
-  
-  const [dynamicExamDetails, setDynamicExamDetails] = useState<{ topics: string[]; details: ExamDetailGroup[] } | null>(null);
-  const [isDynamicDetailsLoading, setIsDynamicDetailsLoading] = useState<boolean>(false);
-  const [dynamicDetailsError, setDynamicDetailsError] = useState<string | null>(null);
-
-  // --- Popup State ---
-  const [popupState, setPopupState] = useState<{
-    isOpen: boolean;
-    title: string;
-    options: { value: string; label: string; subtitle?: string; }[];
-    onSelect: (value: string) => void;
-  }>({
-    isOpen: false,
-    title: '',
-    options: [],
-    onSelect: () => {},
-  });
-  
-   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as UserProfile;
-          // Self-heal: if an admin email is in the DB but not as admin, promote them.
-          if (firebaseUser.email && ADMIN_EMAILS.includes(firebaseUser.email) && userData.role !== 'admin') {
-            await updateDoc(userDocRef, { role: 'admin' });
-            setUser({ ...firebaseUser, ...userData, role: 'admin' } as User);
-          } else {
-            setUser({ ...firebaseUser, ...userData } as User);
-          }
-        } else {
-          // Create a profile for a new user
-          const isAdmin = firebaseUser.email ? ADMIN_EMAILS.includes(firebaseUser.email) : false;
-          const newUserProfile = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            name: firebaseUser.displayName,
-            role: isAdmin ? 'admin' : 'user',
-            hasApiAccess: true, // Default access
-            createdAt: serverTimestamp(),
-          };
-          await setDoc(userDocRef, newUserProfile);
-          setUser({ ...firebaseUser, ...newUserProfile } as User);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-  
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-    setNotification({ message: "You have been logged out.", type: 'success' });
-  };
-  
-  const handleGoogleLogin = async () => {
-    setIsLoggingIn(true);
-    setNotification(null);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle the rest.
-    } catch (err) {
-      console.error("Login initiation failed:", err);
-      if ((err as any).code !== 'auth/popup-closed-by-user') {
-        setNotification({ message: 'Login failed. Please try again.', type: 'error' });
-      }
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  useEffect(() => {
-    const currentHash = window.location.hash.replace('#', '');
-    if (view !== currentHash) {
-      window.location.hash = view;
-    }
-  }, [view]);
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      const viewFromHash = Object.values(AppView).find(v => v === hash.toUpperCase()) || AppView.HOME;
-      setView(currentView => currentView !== viewFromHash ? viewFromHash : currentView);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, []);
-
-
-  useEffect(() => {
-    const lastSelection = getLastSelection();
-    if (lastSelection) {
-      setSelectionLevel(lastSelection.selectionLevel);
-      setSelectedState(lastSelection.selectedState);
-      setSelectedQualification(lastSelection.selectedQualification);
-      setSelectedExam(lastSelection.selectedExam);
-      setSelectedSubCategory(lastSelection.selectedSubCategory);
-      setSelectedTier(lastSelection.selectedTier);
-    }
-  }, []);
-  
-  useEffect(() => {
-    saveLastSelection({
-        selectionLevel, selectedState, selectedQualification,
-        selectedExam, selectedSubCategory, selectedTier,
-    });
-  }, [selectionLevel, selectedState, selectedQualification, selectedExam, selectedSubCategory, selectedTier]);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-  
-  const handleClearPreselectedTopic = useCallback(() => setPreselectedTopic(null), []);
-
-  const selectionPath = useMemo(() => {
-    if (selectionLevel === 'School Syllabus (NCERT)') {
-        return [selectionLevel, selectedExam, selectedTier, selectedSubCategory].filter(Boolean).join(' - ');
-    }
-    return [
-      selectionLevel === 'State Level' ? selectedState : selectionLevel,
-      selectedExam,
-      selectedSubCategory,
-      selectedTier,
-    ].filter(Boolean).join(' - ');
-  }, [selectionLevel, selectedState, selectedExam, selectedSubCategory, selectedTier]);
-
-
-  const isExamSelected = !!selectedSubCategory;
-
-  const examCategories = useMemo(() => {
-    if (selectionLevel === 'National Level') {
-        return EXAM_DATA.national;
-    }
-    if (selectionLevel === 'State Level' && selectedState) {
-        return EXAM_DATA.state[selectedState] || [];
-    }
-    return [];
-  }, [selectionLevel, selectedState]);
-
-  const subCategories = useMemo(() => {
-    if (!selectedExam) return [];
-    const category = examCategories.find(cat => cat.name === selectedExam);
-    return category?.subCategories || [];
-  }, [examCategories, selectedExam]);
-
-  const tiers = useMemo(() => {
-    if (!selectedSubCategory) return [];
-    const subCategory = subCategories?.find(sub => sub.name === selectedSubCategory);
-    return subCategory?.tiers || [];
-  }, [subCategories, selectedSubCategory]);
-  
-  const { staticTopics, staticDetails } = useMemo(() => {
-      let topics: string[] | undefined, details: ExamDetailGroup[] | undefined;
-      const subCat = subCategories?.find(sc => sc.name === selectedSubCategory);
-      if (selectedTier) {
-          const tier = subCat?.tiers?.find(t => t.name === selectedTier);
-          topics = tier?.topics; details = tier?.details;
-      } else {
-          topics = subCat?.topics; details = subCat?.details;
-      }
-      return { staticTopics: topics, staticDetails: details };
-  }, [subCategories, selectedSubCategory, selectedTier]);
-
-  const examTopics = useMemo(() => staticTopics ?? (dynamicExamDetails?.topics ?? []), [staticTopics, dynamicExamDetails]);
-
-  const handleSelectionLevelChange = useCallback((level: string) => {
-    setSelectionLevel(level);
-    setSelectedState(''); setSelectedQualification(''); setSelectedExam('');
-    setSelectedSubCategory(''); setSelectedTier('');
-    setDynamicExamDetails(null); setDynamicDetailsError(null);
-    setQualificationExams([]); setQualificationExamsError(null);
-  }, []);
-
-  const handleResetSelection = useCallback(() => {
-    handleSelectionLevelChange('');
-    setView(AppView.HOME);
-  }, [handleSelectionLevelChange]);
-
-  const handleSubCategoryChange = (subCategory: string) => {
-      setSelectedSubCategory(subCategory);
-      setSelectedTier('');
-      setDynamicExamDetails(null);
-      setDynamicDetailsError(null);
-  };
-  
-  const handleClassChange = useCallback((className: string) => {
-    setSelectedExam(className);
-    setSelectedTier('');
-    setSelectedSubCategory('');
-  }, []);
-
-  const handleStreamChange = useCallback((streamName: string) => {
-    setSelectedTier(streamName);
-    setSelectedSubCategory('');
-  }, []);
-
-
-  useEffect(() => {
-    if (selectionLevel === 'Exams by Qualification' && selectedQualification) {
-      const fetchExams = async () => {
-        setIsQualificationExamsLoading(true);
-        setQualificationExamsError(null);
-        setQualificationExams([]);
-        try {
-          const exams = await generateExamsByQualification(selectedQualification, language);
-          setQualificationExams(exams);
-        } catch (err) {
-          setQualificationExamsError(getSpecificErrorMessage(err));
-        }
-        setIsQualificationExamsLoading(false);
-      };
-      fetchExams();
-    }
-  }, [selectedQualification, language, selectionLevel]);
-
-  useEffect(() => {
-    const shouldFetchDynamically = (selectionLevel === 'National Level' || selectionLevel === 'State Level') && selectedSubCategory && subCategories && subCategories.length > 0 && !staticTopics && !staticDetails;
-    const shouldFetchForQualification = selectionLevel === 'Exams by Qualification' && selectedSubCategory && selectedExam;
-    const shouldFetchForSchool = selectionLevel === 'School Syllabus (NCERT)' && selectedExam && selectedSubCategory;
-
-    if (shouldFetchDynamically || shouldFetchForQualification || shouldFetchForSchool) {
-      const fetchDynamicDetails = async () => {
-        setIsDynamicDetailsLoading(true);
-        setDynamicDetailsError(null);
-        try {
-            let examCategoryForAPI = selectedExam;
-            let subCategoryForAPI = selectedSubCategory;
-            let tierForAPI = selectedTier;
-
-            if (selectionLevel === 'School Syllabus (NCERT)') {
-                examCategoryForAPI = `NCERT ${selectedExam}${selectedTier ? ` ${selectedTier}` : ''}`;
-                tierForAPI = ''; // Don't pass stream as tier to API
-            } else {
-                examCategoryForAPI = selectedExam;
-            }
-
-          const [topics, details] = await Promise.all([
-            generateTopicsForExam(examCategoryForAPI, subCategoryForAPI, tierForAPI, language, selectionLevel),
-            generateExamDetails(examCategoryForAPI, subCategoryForAPI, tierForAPI, language, selectionLevel)
-          ]);
-          if (topics.length === 0 && details.length === 0) {
-            setDynamicDetailsError(`The AI could not find detailed information for "${selectedSubCategory}".`);
-            setDynamicExamDetails({ topics: [], details: [] });
-          } else {
-            setDynamicExamDetails({ topics, details });
-          }
-        } catch (err) {
-          setDynamicDetailsError(getSpecificErrorMessage(err));
-        } finally {
-          setIsDynamicDetailsLoading(false);
-        }
-      };
-      fetchDynamicDetails();
-    } else {
-      setDynamicExamDetails(null);
-      setDynamicDetailsError(null);
-    }
-  }, [selectedSubCategory, selectedExam, selectedTier, language, selectionLevel, subCategories, staticTopics, staticDetails]);
-
-  const showPopup = (config: PopupConfig) => {
-    setPopupState({
-        isOpen: true,
-        title: config.title,
-        options: config.options,
-        onSelect: (value: string) => {
-            config.onSelect(value);
-            setPopupState(prev => ({ ...prev, isOpen: false }));
-        }
-    });
-  };
-
-  const MainContent = () => {
-    switch (view) {
-      case AppView.EXPLORE: return <TopicExplorer topics={examTopics} language={language} isOnline={isOnline} showPopup={showPopup} user={user as User | null} />;
-      case AppView.STUDY_HELPER: return <StudyHelper topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} showPopup={showPopup} user={user as User | null} />;
-      case AppView.QUIZ: return <QuizGenerator topics={examTopics} language={language} isOnline={isOnline} preselectedTopic={preselectedTopic} onClearPreselectedTopic={handleClearPreselectedTopic} showPopup={showPopup} user={user as User | null} />;
-      case AppView.LEARNING_TRACKER: return <LearningTracker topics={examTopics} selectionPath={selectionPath} user={user as User | null} />;
-      case AppView.INTERVIEW: return <MockInterview language={language} isOnline={isOnline} showPopup={showPopup} />;
-      case AppView.SYLLABUS_TRACKER: return <SyllabusTracker selectedExam={selectionPath} language={language} isOnline={isOnline} onTeachWithStory={(topic) => { setPreselectedTopic(topic); setView(AppView.STORY_TUTOR); }} user={user as User | null} />;
-      case AppView.GUESS_PAPER: return <GuessPaperGenerator topics={examTopics} language={language} isOnline={isOnline} showPopup={showPopup} />;
-      case AppView.RESULT_TRACKER: return <ResultTracker selection={{ selectedExam, selectedSubCategory, selectedTier }} language={language} isOnline={isOnline} />;
-      case AppView.ADMIT_CARD_TRACKER: return <AdmitCardTracker selection={{ selectedExam, selectedSubCategory, selectedTier }} language={language} isOnline={isOnline} />;
-      case AppView.APPLICATION_TRACKER: return <ApplicationTracker user={user as User | null} />;
-      case AppView.AI_STUDY_PLAN: return <StudyPlanner setView={setView} setPreselectedTopic={setPreselectedTopic} selectionPath={selectionPath} availableTopics={examTopics} language={language} isOnline={isOnline} user={user as User | null} />;
-      case AppView.TEACH_SHORTCUTS: return <TeachShortcuts language={language} isOnline={isOnline} showPopup={showPopup} />;
-      case AppView.DOUBT_SOLVER: return <DoubtSolver language={language} isOnline={isOnline} />;
-      case AppView.STORY_TUTOR: return <StoryTutor topic={preselectedTopic} language={language} isOnline={isOnline} onBack={() => setView(AppView.SYLLABUS_TRACKER)} />;
-      case AppView.EXAM_DETAILS_VIEWER: return <ExamDetailsViewer 
-            selectionPath={selectionPath}
-            details={staticDetails ?? dynamicExamDetails?.details ?? []}
-            isLoading={isDynamicDetailsLoading}
-            error={dynamicDetailsError}
-            onBack={() => setView(AppView.HOME)}
-        />;
-      case AppView.JOB_NOTIFICATIONS: return <JobNotificationsViewer language={language} isOnline={isOnline} onBack={() => setView(AppView.HOME)} />;
-      case AppView.MIND_MAP: return <MindMapGenerator topics={examTopics} language={language} isOnline={isOnline} showPopup={showPopup} />;
-      case AppView.CURRENT_AFFAIRS: return <CurrentAffairsAnalyst language={language} isOnline={isOnline} selectionPath={selectionPath} />;
-      case AppView.DAILY_BRIEFING: return <DailyBriefing language={language} isOnline={isOnline} />;
-      case AppView.HOME:
-      default: return <Dashboard />;
-    }
-  };
-
-    const RadialProgress: React.FC<{ percentage: number; size?: number; strokeWidth?: number; }> = ({ percentage, size=100, strokeWidth=10 }) => {
-        const radius = (size - strokeWidth) / 2;
-        const circumference = 2 * Math.PI * radius;
-        const offset = circumference - (percentage / 100) * circumference;
-
-        return (
-            <div className="relative" style={{ width: size, height: size }}>
-                <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
-                    <defs>
-                        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#818cf8" />
-                            <stop offset="100%" stopColor="#4f46e5" />
-                        </linearGradient>
-                    </defs>
-                    <circle className="text-slate-200" strokeWidth={strokeWidth} stroke="currentColor" fill="transparent" r={radius} cx={size/2} cy={size/2} />
-                    <circle 
-                        stroke="url(#progressGradient)"
-                        strokeWidth={strokeWidth}
-                        strokeDasharray={circumference}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                        fill="transparent"
-                        r={radius}
-                        cx={size/2}
-                        cy={size/2}
-                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                    />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl font-extrabold text-indigo-700">{Math.round(percentage)}<span className="text-sm sm:text-base font-bold text-slate-500 mt-1">%</span></span>
-            </div>
-        );
-    };
-
-  const StatCard: React.FC<{ label: string; value: string | number; }> = ({ label, value }) => (
-    <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex items-center">
-      <div>
-        <p className="text-sm font-medium text-slate-600">{label}</p>
-        <p className="text-xl font-bold text-slate-900">{value}</p>
-      </div>
-    </div>
-  );
-
-  const ToolLinkCard: React.FC<{ view: AppView; title: string; desc: string; disabled: boolean; setView: (v: AppView) => void; }> = 
-  ({ view, title, desc, disabled, setView }) => (
-    <button 
-      onClick={() => setView(view)} 
-      disabled={disabled}
-      className="group w-full text-left p-4 bg-white rounded-xl border border-slate-200/80 shadow-sm hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:border-slate-200"
-    >
-      <div className="flex items-start">
-        <div className="flex-grow">
-          <h4 className="font-bold text-slate-900">{title}</h4>
-          <p className="text-xs text-slate-500 mt-1">{desc}</p>
-        </div>
-        <span className="text-slate-400 group-hover:text-indigo-500 transition-colors">→</span>
-      </div>
-    </button>
-  );
-
-  const Dashboard = () => {
-    const [syllabusProgressData, setSyllabusProgressData] = useState<any>({});
-    const [performanceStats, setPerformanceStats] = useState({ averageScore: 0, topicsStudied: 0 });
+    const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+    const [popupConfig, setPopupConfig] = useState<PopupConfig | null>(null);
+    const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(() => getDisplaySettings());
+    const [lastSelection, setLastSelection] = useState<LastSelection | null>(null);
+    const [syllabus, setSyllabus] = useState<Syllabus>([]);
+    const [isSyllabusLoading, setIsSyllabusLoading] = useState(false);
+    const [syllabusError, setSyllabusError] = useState<string | null>(null);
+    const [isExamWizardOpen, setIsExamWizardOpen] = useState(false);
     
-    const syllabusKey = selectionPath ? `${selectionPath}-${language}` : '';
-    const isSchoolSyllabus = selectionLevel === 'School Syllabus (NCERT)';
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [notification, setNotification] = useState<Notification | null>(null);
+    const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
+    const [isAuthInProgress, setIsAuthInProgress] = useState(false);
+
+    const [isStudyModalOpen, setIsStudyModalOpen] = useState(() => getComponentState<boolean>('isStudyModalOpen') || false);
+    const [studyModalTopic, setStudyModalTopic] = useState<{ topic: string, mainTopic?: string } | null>(() => getComponentState('studyModalTopic'));
+    const [studyMaterial, setStudyMaterial] = useState<StudyMaterial | null>(() => getComponentState('studyMaterial'));
+    const [isStudyMaterialLoading, setIsStudyMaterialLoading] = useState(false);
+    const [studyMaterialError, setStudyMaterialError] = useState<string | null>(null);
+
+    const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+    const [storyModalTopic, setStudyStoryTopic] = useState<string | null>(null);
+
+    const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(() => getComponentState<boolean>('isTutorialModalOpen') || false);
+    const [tutorialModalTopic, setTutorialModalTopic] = useState<string | null>(() => getComponentState('tutorialModalTopic'));
+    const [tutorial, setTutorial] = useState<Tutorial | null>(() => getComponentState('tutorial'));
+    const [isTutorialLoading, setIsTutorialLoading] = useState(false);
+    const [tutorialError, setTutorialError] = useState<string | null>(null);
+
+    const [currentTopic, setCurrentTopic] = useState<string | null>(null);
+
+    const [examDetails, setExamDetails] = useState<ExamDetailGroup[]>([]);
+    const [isExamDetailsLoading, setIsExamDetailsLoading] = useState(false);
+    const [examDetailsError, setExamDetailsError] = useState<string | null>(null);
+    
+    const [jobCount, setJobCount] = useState<number>(0);
+    const [selectedJob, setSelectedJob] = useState<JobNotification | null>(null);
+
+    const isLoggingOut = useRef(false);
+    const backHandlerRef = useRef<(() => boolean) | null>(null);
+    
+    const selectionPath = lastSelection ? [
+        lastSelection.selectionLevel === 'State Level' ? lastSelection.selectedState : '',
+        lastSelection.selectedExam, 
+        lastSelection.selectedSubCategory, 
+        lastSelection.selectedTier
+    ].filter(Boolean).join(' > ') : 'No Exam Selected';
+
+    const fetchExamData = useCallback(async (selection: LastSelection): Promise<Syllabus | null> => {
+        if (
+            (selection.selectionLevel === 'National Level' && (!selection.selectedExam || !selection.selectedSubCategory)) ||
+            (selection.selectionLevel === 'State Level' && (!selection.selectedState || !selection.selectedExam || !selection.selectedSubCategory)) ||
+            (selection.selectionLevel === 'Entrance Exams' && (!selection.selectedExam || !selection.selectedSubCategory)) ||
+            (selection.selectionLevel === 'Exams by Qualification' && !selection.selectedQualification) ||
+            (selection.selectionLevel === 'School Syllabus (NCERT)' && (!selection.selectedExam || !selection.selectedTier))
+        ) {
+            setSyllabus([]);
+            return null;
+        }
+
+        if (selection.selectionLevel === 'Exams by Qualification') {
+            setSyllabus([]);
+            return null;
+        }
+
+        setIsSyllabusLoading(true);
+        setSyllabusError(null);
+        setSyllabus([]);
+
+        try {
+            let syllabusData: Syllabus | undefined;
+
+            if (selection.selectionLevel === 'School Syllabus (NCERT)') {
+                syllabusData = await generateSyllabusForExam(selection.selectedExam, selection.selectedSubCategory, selection.selectedTier, displaySettings.language, selection.selectionLevel, selection.selectedState);
+            } else {
+                const examListSource = (
+                    selection.selectionLevel === 'National Level' ? EXAM_DATA.national :
+                    selection.selectionLevel === 'State Level' ? EXAM_DATA.state[selection.selectedState as keyof typeof EXAM_DATA.state] :
+                    EXAM_DATA.entrance
+                ) as ExamCategory[];
+
+                const exam = examListSource?.find(e => e.name === selection.selectedExam);
+                const subCategory = exam?.subCategories?.find(sc => sc.name === selection.selectedSubCategory);
+
+                if (selection.selectedTier) {
+                    const tierObj = subCategory?.tiers?.find(t => t.name === selection.selectedTier);
+                    const subSubCategoryObj = subCategory?.subCategories?.find(ssc => ssc.name === selection.selectedTier);
+                    syllabusData = tierObj?.syllabus || subSubCategoryObj?.syllabus;
+                } else {
+                    syllabusData = subCategory?.syllabus;
+                }
+
+                if (!syllabusData) {
+                    syllabusData = await generateSyllabusForExam(
+                        selection.selectedExam, 
+                        selection.selectedSubCategory, 
+                        selection.selectedTier, 
+                        displaySettings.language, 
+                        selection.selectionLevel,
+                        selection.selectedState
+                    );
+                }
+            }
+            
+            setSyllabus(syllabusData || []);
+            return syllabusData || null;
+        } catch (error) {
+            console.error("Failed to fetch exam data:", error);
+            setSyllabusError(getSpecificErrorMessage(error));
+            return null;
+        } finally {
+            setIsSyllabusLoading(false);
+        }
+    }, [displaySettings.language]);
+    
+    const handleRefreshSyllabus = useCallback(() => {
+        if (lastSelection) fetchExamData(lastSelection);
+    }, [lastSelection, fetchExamData]);
 
     useEffect(() => {
-        const loadData = async () => {
-            if (user === 'loading') return;
-            const uid = user ? user.uid : null;
-            const [syllabusData, trackingData] = await Promise.all([
-                getSyllabusProgress(uid),
-                getTrackingData(uid)
-            ]);
-            
-            setSyllabusProgressData(syllabusData);
+        const unsubscribe = onAuthStateChange(async (firebaseUser) => {
+            try {
+                if (firebaseUser) {
+                    if (isLoggingOut.current) {
+                        return;
+                    }
 
-            const totalQuizzes = trackingData.quizHistory.length;
-            const totalScore = trackingData.quizHistory.reduce((sum, q) => sum + (q.score / q.totalQuestions) * 100, 0);
-            const averageScore = totalQuizzes > 0 ? Math.round(totalScore / totalQuizzes) : 0;
-            setPerformanceStats({ averageScore, topicsStudied: trackingData.studiedTopics.length });
+                    const isGoogle = firebaseUser.providerData.some(p => p?.providerId === 'google.com');
+                    const isNew = firebaseUser.metadata.creationTime === firebaseUser.metadata.lastSignInTime;
+                    if (isGoogle && isNew) return;
+
+                    const userDoc = await getUserDoc(firebaseUser.uid);
+                    
+                    if (userDoc?.isBlocked) {
+                        await handleSignOut();
+                        setNotification({ type: 'error', message: "Your account has been blocked. Please contact support." });
+                        return;
+                    }
+
+                    let validityDays = 0;
+                    if (userDoc?.createdAt || firebaseUser.metadata.creationTime) {
+                        const createdAtDate = userDoc?.createdAt?.toDate() 
+                            ? userDoc.createdAt.toDate() 
+                            : new Date(firebaseUser.metadata.creationTime!);
+                        
+                        const customExpiry = userDoc?.customExpiryDate?.toDate();
+                        const defaultExpiryDate = new Date(createdAtDate);
+                        defaultExpiryDate.setFullYear(defaultExpiryDate.getFullYear() + 5);
+                        
+                        const expiryDate = customExpiry || defaultExpiryDate;
+                        const now = new Date();
+
+                        if (now > expiryDate) {
+                            await handleSignOut();
+                            setNotification({ type: 'error', message: "Your account validity (5 years) has expired. Please contact support." });
+                            return;
+                        }
+
+                        const diffTime = expiryDate.getTime() - now.getTime();
+                        validityDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    }
+
+                    let isUserAdmin = false;
+                    if (firebaseUser.email) {
+                        isUserAdmin = ADMIN_EMAILS.some(email => email.toLowerCase() === firebaseUser.email!.toLowerCase());
+                    }
+                    
+                    if (isUserAdmin) {
+                        try { await ensureAdminPermissions(firebaseUser.uid); } catch (err) { console.error("Failed to sync admin permissions:", err); }
+                    }
+                    
+                    setIsAdmin(isUserAdmin);
+                    setAppMode('user');
+                    
+                    setIsAnonymousSession(false);
+                    setIsTrialActive(false);
+                    setVerifiedPhoneNumber(null);
+
+                    const loggedInUser: User = {
+                        uid: firebaseUser.uid,
+                        displayName: firebaseUser.displayName,
+                        email: firebaseUser.email,
+                        photoURL: firebaseUser.photoURL,
+                        isAdmin: isUserAdmin,
+                        createdAt: firebaseUser.metadata.creationTime,
+                        validityDaysRemaining: validityDays,
+                    };
+                    setUser(loggedInUser);
+        
+                    const [cloudSettings, selection, session] = await Promise.all([
+                        getUserDisplaySettings(loggedInUser.uid),
+                        getLastSelection(loggedInUser.uid),
+                        getUserSession(loggedInUser.uid)
+                    ]);
+
+                    if (cloudSettings) {
+                        setDisplaySettings(cloudSettings);
+                        saveDisplaySettings(cloudSettings);
+                    } else {
+                        const localSettings = getDisplaySettings();
+                        await saveUserDisplaySettings(loggedInUser.uid, localSettings);
+                    }
+
+                    if (session) {
+                        setView(session.lastView);
+                        if (session.history) setHistory(session.history);
+                        if (session.context?.currentTopic) setCurrentTopic(session.context.currentTopic);
+                    }
+                    
+                    if (isLastSelectionValid(selection)) {
+                        setLastSelection(selection);
+                        fetchExamData(selection);
+                    } 
+
+                } else {
+                    setUser(null);
+                    setIsAdmin(false);
+                    if (isLoggingOut.current) {
+                        setIsAnonymousSession(false);
+                        setIsTrialActive(false);
+                        setVerifiedPhoneNumber(null);
+                        setView(AppView.HOME);
+                        setHistory([]);
+                        setLastSelection(null);
+                        setSyllabus([]);
+                        isLoggingOut.current = false;
+                        
+                        saveComponentState('isStudyModalOpen', null);
+                        saveComponentState('studyModalTopic', null);
+                        saveComponentState('studyMaterial', null);
+                        saveComponentState('isTutorialModalOpen', null);
+                        saveComponentState('tutorialModalTopic', null);
+                        saveComponentState('tutorial', null);
+                        
+                        const keysToRemove = [
+                            'quiz_active_state', 'mindmap_active_state', 'interview_active_state',
+                            'topic_explorer_state', 'guess_paper_state', 'study_roadmap_state',
+                            'shortcuts_state', 'doubt_solver_state',
+                            'concept_map_state', 'teach_back_state', 'summary_challenge_state',
+                            'real_life_examples_state', 'career_compass_state', 'resume_builder_state',
+                            'flashcards_state', 'pyq_state', 'current_affairs_state', 'story_tutor_state'
+                        ];
+                        keysToRemove.forEach(key => localStorage.removeItem(key));
+
+                        if (user?.uid) {
+                            saveUserSession(user.uid, null).catch(e => console.warn("Session clear error", e));
+                        }
+
+                        handleSignOut().catch(err => console.error("Sign out error:", err));
+                    } else {
+                        const trialIsCurrentlyActive = checkIsTrialActive();
+                        const phoneIsVerified = getVerifiedPhoneNumber();
+
+                        if (trialIsCurrentlyActive && phoneIsVerified) {
+                            setIsAnonymousSession(true);
+                            setIsTrialActive(true);
+                            setTrialDaysRemaining(getTrialDaysRemaining());
+                            setVerifiedPhoneNumber(phoneIsVerified);
+
+                            const session = await getUserSession(null);
+                            const selection = await getLastSelection(null);
+                            if (session) {
+                                setView(session.lastView);
+                                if (session.history) setHistory(session.history);
+                                if (session.context?.currentTopic) setCurrentTopic(session.context.currentTopic);
+                            }
+                            if (isLastSelectionValid(selection)) {
+                                setLastSelection(selection);
+                                fetchExamData(selection);
+                            }
+                        } else {
+                            setIsAnonymousSession(false);
+                            setIsTrialActive(false);
+                            setVerifiedPhoneNumber(null);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error during app initialization:", e);
+            } finally {
+                setIsLoading(false);
+            }
+        });
+        return () => unsubscribe();
+    }, [fetchExamData, isAuthInProgress]);
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark = displaySettings.theme === 'dark' || (displaySettings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.classList.toggle('dark', isDark);
+        if (displaySettings.theme === 'system') localStorage.removeItem('color-theme');
+        else localStorage.setItem('color-theme', displaySettings.theme);
+    }, [displaySettings.theme]);
+
+    useEffect(() => {
+        if (!isLoading && !isLoggingOut.current) {
+            const session: UserSession = { lastView: view, history: history, context: { currentTopic } };
+            saveUserSession(user?.uid || null, session);
+        }
+    }, [view, history, currentTopic, user, isLoading]);
+
+    useEffect(() => {
+        saveComponentState('isStudyModalOpen', isStudyModalOpen);
+        saveComponentState('studyModalTopic', studyModalTopic);
+        saveComponentState('studyMaterial', studyMaterial);
+    }, [isStudyModalOpen, studyModalTopic, studyMaterial]);
+
+    useEffect(() => {
+        saveComponentState('isTutorialModalOpen', isTutorialModalOpen);
+        saveComponentState('tutorialModalTopic', tutorialModalTopic);
+        saveComponentState('tutorial', tutorial);
+    }, [isTutorialModalOpen, tutorialModalTopic, tutorial]);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
         };
-        loadData();
-    }, [user, selectionPath, language]);
-    
-    const currentSyllabusProgress = syllabusProgressData[syllabusKey] || { checkedIds: [], syllabus: [] };
-
-    const countTopics = useCallback((topics: SyllabusTopic[]): number => {
-      return topics.reduce((acc, topic) => acc + 1 + (topic.children ? countTopics(topic.children) : 0), 0);
     }, []);
 
-    const totalTopics = useMemo(() => countTopics(currentSyllabusProgress.syllabus), [currentSyllabusProgress.syllabus, countTopics]);
-    const progressPercentage = totalTopics > 0 ? (currentSyllabusProgress.checkedIds.length / totalTopics) * 100 : 0;
+    useEffect(() => {
+        if (view === AppView.EXAM_DETAILS_VIEWER && lastSelection && (user || isTrialActive)) {
+            const fetchDetails = async () => {
+                setIsExamDetailsLoading(true);
+                setExamDetailsError(null);
+                setExamDetails([]);
+                try {
+                    const details = await generateExamDetails(
+                        lastSelection.selectedExam,
+                        lastSelection.selectedSubCategory,
+                        lastSelection.selectedTier,
+                        displaySettings.language,
+                        lastSelection.selectionLevel
+                    );
+                    setExamDetails(details);
+                } catch (err) {
+                    setExamDetailsError(getSpecificErrorMessage(err));
+                } finally {
+                    setIsExamDetailsLoading(false);
+                }
+            };
+            fetchDetails();
+        }
+    }, [view, lastSelection, displaySettings.language, user, isTrialActive]);
 
-    const learningTools = [
-      { view: AppView.STUDY_HELPER, title: 'Study Hub', desc: 'Notes, summaries, and deep dives.' },
-      { view: AppView.QUIZ, title: 'Quiz Generator', desc: 'Create custom quizzes on any topic.' },
-      { view: AppView.INTERVIEW, title: 'Mock Interview', desc: 'Practice with an AI interviewer.', disabled: isSchoolSyllabus },
-      { view: AppView.DOUBT_SOLVER, title: 'Doubt Solver', desc: 'Get answers from a photo.' },
-    ];
-    
-    const progressTools = [
-        { view: AppView.SYLLABUS_TRACKER, title: 'Syllabus Tracker', desc: 'Generate and track your syllabus.' },
-        { view: AppView.AI_STUDY_PLAN, title: 'AI Study Plan', desc: 'Get a personalized study plan.' },
-        { view: AppView.APPLICATION_TRACKER, title: 'Application Tracker', desc: 'Save application credentials.', disabled: isSchoolSyllabus },
-    ];
+    const canAccessPremium = !!user || isTrialActive;
 
-    const infoTools = [
-      { view: AppView.JOB_NOTIFICATIONS, title: 'Job Notifications', desc: 'Latest govt job openings.', disabled: isSchoolSyllabus },
-      { view: AppView.CURRENT_AFFAIRS, title: 'Current Affairs', desc: 'AI-powered news analysis.' },
-      { view: AppView.EXAM_DETAILS_VIEWER, title: isSchoolSyllabus ? 'Learning Objectives' : 'Eligibility & Details', desc: isSchoolSyllabus ? 'See key concepts for the subject.' : 'Check criteria, patterns, and more.' },
-    ];
-
-    return (
-      <div className="space-y-8">
-        {!isExamSelected ? (
-          <ExamSelectionWizard />
-        ) : (
-          <>
-            <div className="p-6 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/30">
-                <h2 className="text-3xl font-bold">Welcome back!</h2>
-                <p className="opacity-80 mt-1">Your dashboard for <span className="font-semibold">{selectionPath}</span></p>
-                <button onClick={handleResetSelection} className="text-sm font-semibold opacity-80 hover:opacity-100 mt-2">Change Exam →</button>
-            </div>
+    useEffect(() => {
+        const checkDailyJobUpdates = async () => {
+            if (!isOnline || !canAccessPremium) return;
+            const now = new Date();
+            const istDateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+            const checkKey = `last_job_notification_check_${istDateStr}`;
+            const alreadyChecked = localStorage.getItem(checkKey);
             
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-1 !p-4 flex flex-col items-center justify-center text-center">
-                    <h3 className="font-bold text-slate-700 mb-2">Syllabus Progress</h3>
-                    <RadialProgress percentage={progressPercentage} size={140} strokeWidth={12} />
-                    <p className="text-xs text-slate-500 mt-2">{currentSyllabusProgress.checkedIds.length} of {totalTopics} topics complete</p>
-                </Card>
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <StatCard label="Avg. Quiz Score" value={`${performanceStats.averageScore}%`} />
-                   <StatCard label="Topics Studied" value={performanceStats.topicsStudied} />
-                   <div className="sm:col-span-2">
-                     <button onClick={() => setView(AppView.DAILY_BRIEFING)} className="w-full h-full text-left p-4 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                        <div className="flex items-center">
-                            <div className="flex-grow">
-                                <h3 className="text-lg font-bold">Today's AI Briefing</h3>
-                                <p className="opacity-80 mt-1 text-sm">Get your daily dose of current affairs.</p>
-                            </div>
-                        </div>
-                    </button>
-                   </div>
-                </div>
-            </div>
-            
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Start Learning</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {learningTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
-                </div>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Track Your Progress</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {progressTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
-                </div>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Stay Informed</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {infoTools.map(tool => <ToolLinkCard key={tool.title} {...tool} setView={setView} disabled={!isExamSelected || !!tool.disabled} />)}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
-
-  const ExamSelectionWizard = () => {
-    
-    const SelectionCard: React.FC<{title: string; subtitle?: string; onClick: () => void;}> = ({ title, subtitle, onClick }) => (
-      <button onClick={onClick} className="w-full h-full p-4 text-center bg-white rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 flex flex-col justify-center">
-        <h4 className="font-bold text-slate-800 text-base leading-tight">{title}</h4>
-        {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
-      </button>
-    );
-
-    const renderStep1_Level = () => (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 h-auto">
-           {SELECTION_LEVELS.map(level => (
-               <div key={level} className="h-28">
-                 <SelectionCard title={level} onClick={() => handleSelectionLevelChange(level)} />
-               </div>
-           ))}
-        </div>
-    );
-
-    const renderStep2_StateOrQual = () => (
-        <>
-            {selectionLevel === 'State Level' && 
-                <PopupSelector 
-                    label="Choose your state"
-                    value={selectedState}
-                    placeholder="Select a state..."
-                    onClick={() => setPopupState({
-                        isOpen: true,
-                        title: 'Choose your state',
-                        options: INDIAN_STATES.map(s => ({ value: s.name, label: s.name, subtitle: s.capital })),
-                        onSelect: (state) => {
-                            setSelectedState(state);
-                            setPopupState(prev => ({ ...prev, isOpen: false }));
-                        }
-                    })}
-                />
+            if (!alreadyChecked) {
+                try {
+                    const jobs = await fetchLatestJobNotifications(displaySettings.language, !user);
+                    setJobCount(jobs.length);
+                    if (jobs.length > 0) {
+                        setNotification({ type: 'success', message: `🔔 Daily Update: ${jobs.length} new job notifications available today!` });
+                    }
+                    localStorage.setItem(checkKey, 'true');
+                    const yesterday = new Date(now);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+                    localStorage.removeItem(`last_job_notification_check_${yesterdayStr}`);
+                } catch (e) {
+                    console.error("Daily job fetch failed:", e);
+                }
+            } else {
+                fetchLatestJobNotifications(displaySettings.language, !user).then(jobs => {
+                    setJobCount(jobs.length);
+                }).catch(e => console.error("Silent job count update failed", e));
             }
-            {selectionLevel === 'Exams by Qualification' && 
-                <PopupSelector 
-                    label="Choose your qualification"
-                    value={selectedQualification}
-                    placeholder="Select a qualification..."
-                    onClick={() => setPopupState({
-                        isOpen: true,
-                        title: 'Choose your qualification',
-                        options: QUALIFICATION_CATEGORIES.map(q => ({ value: q, label: q })),
-                        onSelect: (qual) => {
-                            setSelectedQualification(qual);
-                            setPopupState(prev => ({ ...prev, isOpen: false }));
-                        }
-                    })}
-                />
-            }
-        </>
-    );
+        };
+        checkDailyJobUpdates();
+        const intervalId = setInterval(checkDailyJobUpdates, 60 * 1000);
+        return () => clearInterval(intervalId);
+    }, [canAccessPremium, isOnline, displaySettings.language, user]);
+
+
+    const handleSetLastSelection = async (selection: LastSelection | null): Promise<Syllabus | null> => {
+        setLastSelection(selection);
+        await saveLastSelection(selection, user?.uid || null);
+        if (selection) {
+            return fetchExamData(selection);
+        } else {
+            setSyllabus([]);
+            return null;
+        }
+    };
+
+    const handleDisplaySettingsChange = (newSettings: Partial<DisplaySettings>) => {
+        setDisplaySettings(prev => {
+            const updated = { ...prev, ...newSettings };
+            saveDisplaySettings(updated);
+            if (user) saveUserDisplaySettings(user.uid, updated);
+            return updated;
+        });
+    };
     
-    const renderStep_School_Class = () => (
-        <PopupSelector 
-            label="Choose your class"
-            value={selectedExam}
-            placeholder="Select a class..."
-            onClick={() => showPopup({
-                title: 'Choose your class',
-                options: SCHOOL_CLASSES.map(c => ({ value: c, label: c })),
-                onSelect: handleClassChange
-            })}
-        />
-    );
+    const handleChangeExam = () => setIsExamWizardOpen(true);
 
-    const renderStep_School_Stream = () => (
-        <PopupSelector 
-            label="Choose your stream"
-            value={selectedTier}
-            placeholder="Select a stream..."
-            onClick={() => showPopup({
-                title: 'Choose your stream',
-                options: SCHOOL_STREAMS.map(s => ({ value: s, label: s })),
-                onSelect: handleStreamChange
-            })}
-        />
-    );
-
-    const renderStep_School_Subject = () => {
-        const classNum = parseInt(selectedExam.split(' ')[1] || '0');
-        let subjectKey = '';
-        if (classNum >= 6 && classNum <= 8) subjectKey = 'junior';
-        else if (classNum >= 9 && classNum <= 10) subjectKey = 'secondary';
-        else if ((classNum === 11 || classNum === 12) && selectedTier) subjectKey = `${selectedExam}_${selectedTier}`;
+    const handleSelectionComplete = async (selection: LastSelection) => {
+        setIsExamWizardOpen(false);
         
-        const subjects = SCHOOL_SUBJECTS[subjectKey] || [];
+        // Explicitly clear component states to ensure fresh start for new exam
+        const tools = [
+            'topic_explorer_state', 'quiz_active_state', 'mindmap_active_state', 
+            'interview_active_state', 'guess_paper_state', 'study_roadmap_state',
+            'shortcuts_state', 'doubt_solver_state', 'concept_map_state', 
+            'teach_back_state', 'summary_challenge_state', 'real_life_examples_state', 
+            'career_compass_state', 'resume_builder_state', 'flashcards_state', 
+            'pyq_state', 'current_affairs_state', 'story_tutor_state', 'homework_solver_state'
+        ];
+        tools.forEach(key => saveComponentState(key, null));
 
-        return (
-            <PopupSelector 
-                label="Choose your subject"
-                value={selectedSubCategory}
-                placeholder="Select a subject..."
-                onClick={() => showPopup({
-                    title: 'Choose your subject',
-                    options: subjects.map(s => ({ value: s, label: s })),
-                    onSelect: setSelectedSubCategory
-                })}
-            />
-        );
+        await handleSetLastSelection(selection);
+        handleSetView(AppView.LEARN_TOPICS);
     };
 
-    const renderStep3_Category = () => {
-        if (isQualificationExamsLoading) return <LoadingSpinner />;
-        if (qualificationExamsError) return <p className="text-red-500">{qualificationExamsError}</p>;
-
-        const examsToList = selectionLevel === 'Exams by Qualification' ? qualificationExams : examCategories;
-        if (examsToList.length === 0) return <p className="text-slate-500">No exams found for this selection.</p>;
-
-        return (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {examsToList.map(exam => (
-                    <SelectionCard 
-                        key={exam.name || exam.examName} 
-                        title={exam.name || exam.examName} 
-                        subtitle={(exam as ExamByQualification).examCategory}
-                        onClick={() => {
-                            if (selectionLevel === 'Exams by Qualification') {
-                                setSelectedExam((exam as ExamByQualification).examCategory);
-                                handleSubCategoryChange((exam as ExamByQualification).examName);
-                            } else {
-                                setSelectedExam(exam.name);
-                            }
-                        }} 
-                    />
-                ))}
-            </div>
-        );
-    };
-
-    const renderStep4_SubCategory = () => (
-        subCategories && subCategories.length > 0 ? (
-            <PopupSelector
-                label="Select a sub-category or specific exam"
-                value={selectedSubCategory}
-                placeholder="Select..."
-                onClick={() => setPopupState({
-                    isOpen: true,
-                    title: 'Select a sub-category',
-                    options: subCategories.map(s => ({ value: s.name, label: s.name })),
-                    onSelect: (subCat) => {
-                        handleSubCategoryChange(subCat);
-                        setPopupState(prev => ({ ...prev, isOpen: false }));
-                    }
-                })}
-            />
-        ) : (isDynamicDetailsLoading ? <LoadingSpinner/> : <p className="text-slate-500">This exam has no further sub-categories. You can now use the tools.</p>)
-    );
-
-    const renderStep5_Tier = () => (
-        tiers && tiers.length > 0 ? (
-            <PopupSelector
-                label="Select a tier or stage (if applicable)"
-                value={selectedTier}
-                placeholder="Select a tier..."
-                onClick={() => setPopupState({
-                    isOpen: true,
-                    title: 'Select a tier',
-                    options: tiers.map(t => ({ value: t.name, label: t.name })),
-                    onSelect: (tier) => {
-                        setSelectedTier(tier);
-                        setPopupState(prev => ({ ...prev, isOpen: false }));
-                    }
-                })}
-            />
-        ) : null
-    );
-
-    const renderWizardSteps = () => {
-        if (!selectionLevel) {
-            return renderStep1_Level();
+    const handleSetView = useCallback((newView: AppView) => {
+        if (newView === view) return;
+        backHandlerRef.current = null;
+        if (newView === AppView.HOME) {
+            setHistory([]);
+        } else {
+            setHistory(prev => [...prev, view]);
         }
-        if (selectionLevel === 'School Syllabus (NCERT)') {
-            if (!selectedExam) return renderStep_School_Class();
-            const classNum = parseInt(selectedExam.split(' ')[1]);
-            if ((classNum === 11 || classNum === 12) && !selectedTier) return renderStep_School_Stream();
-            if (!selectedSubCategory) return renderStep_School_Subject();
+        setView(newView);
+        setIsNavMenuOpen(false);
+        window.scrollTo(0, 0);
+    }, [view]);
+
+    const handleGoBack = useCallback(() => {
+        if (backHandlerRef.current) {
+            const handled = backHandlerRef.current();
+            if (handled) return;
         }
-        if (selectionLevel === 'National Level') {
-            if (!selectedExam) return renderStep3_Category();
-            if (!selectedSubCategory && subCategories && subCategories.length > 0) return renderStep4_SubCategory();
-            if (selectedSubCategory && tiers && tiers.length > 0 && !selectedTier) return renderStep5_Tier();
+        if (isExamWizardOpen) { setIsExamWizardOpen(false); return; }
+        if (isStudyModalOpen) { setIsStudyModalOpen(false); return; }
+        if (isStoryModalOpen) { setIsStoryModalOpen(false); return; }
+        if (isTutorialModalOpen) { setIsTutorialModalOpen(false); return; }
+        if (isDisplaySettingsOpen) { setIsDisplaySettingsOpen(false); return; }
+        if (!!popupConfig) { setPopupConfig(null); return; }
+
+        if (history.length > 0) {
+            const previousView = history[history.length - 1];
+            setHistory(prev => prev.slice(0, -1));
+            setView(previousView);
+            window.scrollTo(0, 0);
+        } else if (view !== AppView.HOME) {
+            setView(AppView.HOME);
+        } else {
+            CapacitorApp.exitApp();
         }
-        if (selectionLevel === 'State Level') {
-            if (!selectedState) return renderStep2_StateOrQual();
-            if (!selectedExam) return renderStep3_Category();
-            if (!selectedSubCategory && subCategories && subCategories.length > 0) return renderStep4_SubCategory();
-            if (selectedSubCategory && tiers && tiers.length > 0 && !selectedTier) return renderStep5_Tier();
-        }
-        if (selectionLevel === 'Exams by Qualification') {
-            if (!selectedQualification) return renderStep2_StateOrQual();
-            if (!selectedExam && !selectedSubCategory) return renderStep3_Category();
-        }
-        return null;
+    }, [history, view, isExamWizardOpen, isStudyModalOpen, isStoryModalOpen, isTutorialModalOpen, isDisplaySettingsOpen, popupConfig]);
+    
+    const handleSetBackHandler = useCallback((handler: (() => boolean) | null) => {
+        backHandlerRef.current = handler;
+    }, []);
+
+    useEffect(() => {
+        const backListener = CapacitorApp.addListener('backButton', (data) => {
+            handleGoBack();
+        });
+        return () => {
+            backListener.then(handler => handler.remove());
+        };
+    }, [handleGoBack]);
+    
+    const handleStartTrialFlow = () => setShowPhoneVerification(true);
+
+    const handlePhoneVerificationSuccess = (phoneNumber: string) => {
+        saveVerifiedPhoneNumber(phoneNumber);
+        startTrial();
+        setIsAnonymousSession(true);
+        setIsTrialActive(true);
+        setTrialDaysRemaining(7);
+        setVerifiedPhoneNumber(phoneNumber);
+        setShowPhoneVerification(false);
     };
     
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80">
-          <div className="p-8 text-center bg-indigo-50 rounded-t-2xl border-b border-slate-200/80">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-4">Start Your Journey!</h2>
-              <p className="text-slate-600 mt-2 max-w-xl mx-auto">Select your exam category to unlock personalized tools and AI-powered study assistance.</p>
-          </div>
-          <div className="p-6 sm:p-8">
-              <div className="space-y-6">
-                  {renderWizardSteps()}
-                  {dynamicDetailsError && <p className="text-red-500 bg-red-100 p-3 rounded-md">{dynamicDetailsError}</p>}
-              </div>
-              
-              {selectionLevel && (
-                  <div className="mt-8 pt-6 border-t border-slate-200/80">
-                      <Button variant="secondary" onClick={handleResetSelection}>Start Over</Button>
-                  </div>
-              )}
-          </div>
-      </div>
-    );
-  };
-  
-  const NavItem: React.FC<{ view: AppView; label: string; currentView: AppView; setView: (v: AppView) => void; isSidebar?: boolean; disabled?: boolean; }> = 
-  ({ view, label, currentView, setView, isSidebar = false, disabled = false }) => {
-    const isActive = view === currentView;
-    const baseClasses = `flex transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative`;
-    const activeClasses = isSidebar 
-      ? 'bg-indigo-50 text-indigo-600 font-semibold' 
-      : 'text-indigo-600';
-    const inactiveClasses = isSidebar 
-      ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' 
-      : 'text-slate-500 hover:bg-slate-100';
-    const layoutClasses = isSidebar 
-      ? 'items-center p-3 rounded-lg w-full text-left' 
-      : 'flex-col items-center justify-center flex-1 py-2';
-    
-    return (
-      <button onClick={() => { setView(view); setIsSidebarOpen(false); }} disabled={disabled} className={`${baseClasses} ${layoutClasses} ${isActive ? activeClasses : inactiveClasses}`}>
-        {isActive && isSidebar && <div className="absolute left-0 top-2 bottom-2 w-1 bg-indigo-500 rounded-r-full"></div>}
-        <span className={`text-sm font-semibold ${isSidebar ? 'ml-3' : ''}`}>{label}</span>
-        {isActive && !isSidebar && <div className="absolute bottom-0 left-4 right-4 h-1 bg-indigo-500 rounded-t-full"></div>}
-      </button>
-    );
-  };
-  
-  const navItems = [
-    { view: AppView.HOME, label: "Dashboard" },
-    { view: AppView.EXPLORE, label: "Explore", disabled: !isExamSelected },
-    { view: AppView.LEARNING_TRACKER, label: "Insights" },
-  ];
-  
+    const handleUserSignOut = () => {
+        isLoggingOut.current = true;
+        setUser(null);
+        setIsAnonymousSession(false);
+        setIsTrialActive(false);
+        setIsAdmin(false);
+        setAppMode('user');
+        setVerifiedPhoneNumber(null);
+        setView(AppView.HOME);
+        setHistory([]);
+        setLastSelection(null);
+        setSyllabus([]);
+        setCurrentTopic(null);
+        setIsStudyModalOpen(false);
+        setStudyMaterial(null);
+        setStudyModalTopic(null);
+        setIsTutorialModalOpen(false);
+        setTutorial(null);
+        setTutorialModalTopic(null);
+        setIsExamWizardOpen(false);
+        setPopupConfig(null);
+        setIsDisplaySettingsOpen(false);
 
-  const getLanguageAbbreviation = (lang: string): string => {
-    if (!lang) return 'En';
-    if (lang.includes('+')) {
-        const parts = lang.split('+').map(part => part.trim().split('(')[0].trim());
-        const firstAbbr = parts[0].substring(0, 1);
-        const secondAbbr = parts[1].substring(0, 1);
-        return `${firstAbbr}/${secondAbbr}`;
+        backHandlerRef.current = null;
+
+        setTimeout(() => {
+            saveComponentState('isStudyModalOpen', null);
+            saveComponentState('studyModalTopic', null);
+            saveComponentState('studyMaterial', null);
+            saveComponentState('isTutorialModalOpen', null);
+            saveComponentState('tutorialModalTopic', null);
+            saveComponentState('tutorial', null);
+            
+            const keysToRemove = [
+                'quiz_active_state', 'mindmap_active_state', 'interview_active_state',
+                'topic_explorer_state', 'guess_paper_state', 'study_roadmap_state',
+                'shortcuts_state', 'doubt_solver_state',
+                'concept_map_state', 'teach_back_state', 'summary_challenge_state',
+                'real_life_examples_state', 'career_compass_state', 'resume_builder_state',
+                'flashcards_state', 'pyq_state', 'current_affairs_state', 'story_tutor_state'
+            ];
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+
+            if (user?.uid) {
+                saveUserSession(user.uid, null).catch(e => console.warn("Session clear error", e));
+            }
+
+            handleSignOut().catch(err => console.error("Sign out error:", err));
+        }, 50);
+    };
+    
+    const handleTrialLogout = () => {
+        clearTrialData();
+        setUser(null);
+        setIsAnonymousSession(false);
+        setIsTrialActive(false);
+        setVerifiedPhoneNumber(null);
+        setView(AppView.HOME);
+        setHistory([]);
+        setLastSelection(null);
+        setSyllabus([]);
+        setCurrentTopic(null);
+        backHandlerRef.current = null;
+        setIsStudyModalOpen(false);
+        setStudyMaterial(null);
+        setStudyModalTopic(null);
+        setIsTutorialModalOpen(false);
+        setTutorial(null);
+        setTutorialModalTopic(null);
+        setIsExamWizardOpen(false);
+        setPopupConfig(null);
+        setIsDisplaySettingsOpen(false);
+    };
+
+    const handleStudyTopic = useCallback(async (topic: string, mainTopic?: string) => {
+        setIsStudyModalOpen(true);
+        setStudyModalTopic({ topic, mainTopic });
+        
+        if (studyMaterial && studyModalTopic?.topic === topic) {
+            return; 
+        }
+
+        setIsStudyMaterialLoading(true);
+        setStudyMaterial(null);
+        setStudyMaterialError(null);
+    
+        try {
+            const material = await generateStudyNotes(topic, displaySettings.language, mainTopic, selectionPath, !user);
+            setStudyMaterial(material);
+        } catch (err) {
+            setStudyMaterialError(getSpecificErrorMessage(err));
+        } finally {
+            setIsStudyMaterialLoading(false);
+        }
+    }, [displaySettings.language, selectionPath, studyMaterial, studyModalTopic, user]);
+    
+    const handleTeachWithStory = (topic: string) => {
+        setStudyStoryTopic(topic);
+        setIsStoryModalOpen(true);
+    };
+
+    const handleStartTutorial = useCallback(async (topic: string) => {
+        setIsTutorialModalOpen(true);
+        setTutorialModalTopic(topic);
+        
+        if (tutorial && tutorialModalTopic === topic) {
+            return;
+        }
+
+        setIsTutorialLoading(true);
+        setTutorial(null);
+        setTutorialError(null);
+    
+        logActivity(user?.uid || null, {
+            type: 'TUTORIAL_STARTED' as HistoryType,
+            description: `Started a tutorial for "${topic}"`,
+            view: AppView.LEARN_TOPICS,
+            context: { topic, examPath: selectionPath }
+        });
+
+        try {
+            const tutorialData = await generateTutorialForTopic(topic, displaySettings.language, selectionPath, !user);
+            setTutorial(tutorialData);
+        } catch (err) {
+            setTutorialError(getSpecificErrorMessage(err));
+        } finally {
+            setIsTutorialLoading(false);
+        }
+    }, [displaySettings.language, selectionPath, user, tutorial, tutorialModalTopic]);
+    
+    const handleRetryStudyMaterial = useCallback(() => {
+        if (studyModalTopic) handleStudyTopic(studyModalTopic.topic, studyModalTopic.mainTopic);
+    }, [studyModalTopic, handleStudyTopic]);
+
+    const handleRetryTutorial = useCallback(() => {
+        if (tutorialModalTopic) handleStartTutorial(tutorialModalTopic);
+    }, [tutorialModalTopic, handleStartTutorial]);
+
+    const requestAuth = () => { if (!user) setShowAuthModal(true); };
+    
+    const handleSelectJob = (job: JobNotification) => {
+        setSelectedJob(job);
+        handleSetView(AppView.JOB_DETAILS_VIEWER);
+    };
+
+    const handleTakeQuiz = (topic: string) => {
+        setCurrentTopic(topic);
+        handleSetView(AppView.QUIZ);
+    };
+
+    const renderView = () => {
+        const lang = displaySettings.language;
+        const topics = syllabus.flatMap(s => s.topics);
+
+        return (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><LoadingSpinner /></div>}>
+                {(() => {
+                    switch (view) {
+                        case AppView.HOME: 
+                            return <Dashboard user={user} setView={handleSetView} lastSelection={lastSelection} onChangeExam={handleChangeExam} isOnline={isOnline} />;
+                        case AppView.ASK_AI: 
+                            return <AskAiAnything language={lang} isOnline={isOnline} selectionPath={selectionPath} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.LEARNING_TRACKER: 
+                            return <LearningTracker topics={topics} selectionPath={selectionPath} user={user} isTrial={isTrialActive} trialDays={trialDaysRemaining} />;
+                        case AppView.USER_PROFILE: 
+                            return <UserProfileComponent user={user} setNotification={setNotification} />;
+                        case AppView.LEARN_TOPICS:
+                            return <TopicExplorer syllabus={syllabus} onStudyTopic={handleStudyTopic} onTeachWithStory={handleTeachWithStory} onStartTutorial={handleStartTutorial} isOnline={isOnline} user={user} language={lang} selectionPath={selectionPath} isLoading={isSyllabusLoading} error={syllabusError} onRefresh={handleRefreshSyllabus} canAccessPremium={canAccessPremium} requestAuth={requestAuth} onSetBackHandler={handleSetBackHandler} onTakeQuiz={handleTakeQuiz} />;
+                        case AppView.QUIZ:
+                            return <QuizGenerator topics={topics} language={lang} isOnline={isOnline} topic={currentTopic} onTopicChange={setCurrentTopic} showPopup={setPopupConfig} user={user} selectionPath={selectionPath} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} onSetBackHandler={handleSetBackHandler} />;
+                        case AppView.INTERVIEW:
+                            return <MockInterview language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} selectionPath={selectionPath} canAccessPremium={canAccessPremium} requestAuth={requestAuth} onSetBackHandler={handleSetBackHandler} />;
+                        case AppView.JOB_NOTIFICATIONS:
+                            return <JobNotificationsViewer language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} onSelectJob={handleSelectJob} />;
+                        case AppView.EXAM_DETAILS_VIEWER:
+                            return <ExamDetailsViewer selectionPath={selectionPath} details={examDetails} isLoading={isExamDetailsLoading} error={examDetailsError} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.JOB_DETAILS_VIEWER:
+                            if (!selectedJob) return <JobNotificationsViewer language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} onSelectJob={handleSelectJob} />;
+                            const jobDetails: ExamDetailGroup[] = [
+                                {
+                                    groupTitle: 'Job Overview',
+                                    details: [
+                                        { criteria: 'Post Name', details: selectedJob.postName },
+                                        { criteria: 'Organization', details: selectedJob.organization },
+                                        { criteria: 'Vacancies', details: selectedJob.vacancies },
+                                        { criteria: 'Last Date', details: selectedJob.lastDate },
+                                    ]
+                                },
+                                {
+                                    groupTitle: 'Eligibility & Requirements',
+                                    details: [
+                                        { criteria: 'Details', details: selectedJob.eligibility }
+                                    ]
+                                }
+                            ];
+                            return <ExamDetailsViewer 
+                                selectionPath={`${selectedJob.postName} at ${selectedJob.organization}`}
+                                details={jobDetails}
+                                isLoading={false}
+                                error={null}
+                                user={user}
+                                canAccessPremium={canAccessPremium}
+                                requestAuth={requestAuth}
+                                officialLink={selectedJob.link}
+                            />;
+                        case AppView.PREVIOUS_YEAR_QUESTIONS:
+                            return <PreviousYearQuestions selectionPath={selectionPath} language={displaySettings.language} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.TOOLS:
+                            return <Tools setView={handleSetView} />;
+                        case AppView.CURRENT_AFFAIRS:
+                            return <CurrentAffairsAnalyst language={lang} isOnline={isOnline} selectionPath={selectionPath} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.DAILY_BRIEFING:
+                            return <DailyBriefing language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.MIND_MAP:
+                            return <MindMapGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.GUESS_PAPER:
+                            return <GuessPaperGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} selectionPath={selectionPath} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.STUDY_ROADMAP:
+                            return <StudyPlanner selectionPath={selectionPath} language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} topics={topics} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.TEACH_SHORTCUTS:
+                            return <TeachShortcuts language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.DOUBT_SOLVER:
+                            return <DoubtSolver language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.CONCEPT_LINK_MAP:
+                            return <ConceptLinkMap topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.TEACH_BACK_MODE:
+                            return <TeachBackMode topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.SELF_SUMMARY_CHALLENGE:
+                            return <SelfSummaryChallenge topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.REAL_LIFE_EXAMPLES:
+                            return <RealLifeExamples topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.CAREER_COMPASS:
+                            return <CareerCompass language={lang} isOnline={isOnline} user={user} selectionPath={selectionPath} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.AI_RESUME_BUILDER:
+                            return <AiResumeBuilder language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.FLASHCARDS_GENERATOR:
+                            return <FlashcardsGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} topic={currentTopic} onTopicChange={setCurrentTopic} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.SCIENTIFIC_CALCULATOR:
+                            return <ScientificCalculator />;
+                        case AppView.ADAPTIVE_LEARNING_PATH:
+                            return <AdaptiveLearningPath topics={topics} language={lang} isOnline={isOnline} user={user} selectionPath={selectionPath} setView={handleSetView} onStudyTopic={handleStudyTopic} setQuizTopic={setCurrentTopic} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                        case AppView.STORY_TUTOR:
+                            return <StoryTutorGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        default: 
+                            return <Dashboard user={user} setView={handleSetView} lastSelection={lastSelection} onChangeExam={handleChangeExam} isOnline={isOnline} />;
+                    }
+                })()}
+            </Suspense>
+        );
     }
-    const mainLang = lang.split('(')[0].trim();
-    return mainLang.substring(0, 2);
-  };
 
-  const handleLanguageButtonClick = () => {
-    setPopupState({
-        isOpen: true,
-        title: 'Select Language',
-        options: LANGUAGES.map(lang => ({ value: lang, label: lang })),
-        onSelect: (selectedLang) => {
-            setLanguage(selectedLang);
-            setPopupState(prev => ({ ...prev, isOpen: false }));
-        }
-    });
-  };
+    if (isLoading) {
+        return <StartupLoading />;
+    }
 
-  const handleBack = () => {
-    window.history.back();
-  };
+    if (user && isAdmin && appMode === 'admin') {
+        return (
+            <Suspense fallback={<StartupLoading />}>
+                <AdminDashboard user={user} onSignOut={handleUserSignOut} setAppMode={setAppMode} />
+            </Suspense>
+        );
+    }
 
-  return (
-    <div className="flex h-full bg-slate-100">
-      {/* Sidebar for md and up */}
-      <aside className={`fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 h-16">
-          <div className="text-xl font-bold text-slate-800 hover:text-indigo-700 transition-colors text-left">
-              Club of Competition
-          </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-1 text-slate-500 hover:text-slate-800">
-              X
-          </button>
+    if (!user && !isAnonymousSession) {
+        return (
+            <>
+                {notification && <NotificationBanner message={notification.message} type={notification.type} onDismiss={() => setNotification(null)} />}
+                <LoginPrompt 
+                    onStartTrialFlow={handleStartTrialFlow} 
+                    onAuthStart={() => setIsAuthInProgress(true)}
+                    onAuthEnd={() => setIsAuthInProgress(false)}
+                />
+                <PhoneVerificationModal
+                    isOpen={showPhoneVerification}
+                    onClose={() => setShowPhoneVerification(false)}
+                    onVerificationSuccess={handlePhoneVerificationSuccess}
+                />
+                <div id="recaptcha-container"></div>
+            </>
+        );
+    }
+    
+    return (
+        <div className={`font-${displaySettings.fontFamily} font-size-${displaySettings.fontSize} bg-slate-100 dark:bg-slate-900`}>
+            <Sidebar
+                currentView={view}
+                setView={handleSetView}
+                isOpen={isNavMenuOpen}
+                onClose={() => setIsNavMenuOpen(false)}
+                jobCount={jobCount}
+                onBack={handleGoBack}
+            />
+            
+            <div className="lg:ml-64 flex flex-col min-h-screen">
+                <Header 
+                    user={user}
+                    lastSelection={lastSelection}
+                    onToggleNav={() => setIsNavMenuOpen(!isNavMenuOpen)}
+                    onOpenSettings={() => setIsDisplaySettingsOpen(true)}
+                    onUserSignOut={handleUserSignOut}
+                    setView={handleSetView}
+                    onChangeExam={handleChangeExam}
+                    isAnonymous={isAnonymousSession && !user}
+                    isTrialActive={isTrialActive}
+                    trialDaysRemaining={trialDaysRemaining}
+                    requestAuth={requestAuth}
+                    verifiedPhoneNumber={verifiedPhoneNumber}
+                    onTrialLogout={handleTrialLogout}
+                    isAdmin={isAdmin}
+                    setAppMode={setAppMode}
+                />
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 sm:pb-6">
+                    {renderView()}
+                </main>
+            </div>
+
+            <MobileTaskbar currentView={view} setView={handleSetView} jobCount={jobCount} onBack={handleGoBack} />
+
+            <Suspense fallback={null}>
+                <ExamSelectionWizard 
+                    isOpen={isExamWizardOpen}
+                    onClose={() => setIsExamWizardOpen(false)}
+                    onSelectionComplete={handleSelectionComplete}
+                />
+
+                {popupConfig && (
+                    <SelectionPopup
+                        isOpen={!!popupConfig}
+                        onClose={() => setPopupConfig(null)}
+                        title={popupConfig.title}
+                        options={popupConfig.options}
+                        onSelect={(value) => {
+                            popupConfig.onSelect(value);
+                            setPopupConfig(null);
+                        }}
+                    />
+                )}
+
+                <DisplaySettingsPopup
+                    isOpen={isDisplaySettingsOpen}
+                    onClose={() => setIsDisplaySettingsOpen(false)}
+                    settings={displaySettings}
+                    onSettingsChange={handleDisplaySettingsChange}
+                />
+
+                {notification && (
+                    <NotificationBanner
+                        message={notification.message}
+                        type={notification.type}
+                        onDismiss={() => setNotification(null)}
+                    />
+                )}
+                
+                <StudyMaterialModal 
+                    isOpen={isStudyModalOpen}
+                    onClose={() => { setIsStudyModalOpen(false); saveComponentState('isStudyModalOpen', false); }}
+                    topic={studyModalTopic?.topic || null}
+                    material={studyMaterial}
+                    isLoading={isStudyMaterialLoading}
+                    error={studyMaterialError}
+                    onRetry={handleRetryStudyMaterial}
+                    language={displaySettings.language}
+                    selectionPath={selectionPath}
+                    isOnline={isOnline}
+                    user={user}
+                    onSelectRelatedTopic={handleStudyTopic}
+                />
+                
+                <StoryTutorModal
+                    isOpen={isStoryModalOpen}
+                    onClose={() => setIsStoryModalOpen(false)}
+                    topic={storyModalTopic}
+                    language={displaySettings.language}
+                    isOnline={isOnline}
+                    isTrial={!user && isAnonymousSession}
+                />
+
+                <TutorialModal
+                    isOpen={isTutorialModalOpen}
+                    onClose={() => { setIsTutorialModalOpen(false); saveComponentState('isTutorialModalOpen', false); }}
+                    tutorial={tutorial}
+                    isLoading={isTutorialLoading}
+                    error={tutorialError}
+                    onRetry={handleRetryTutorial}
+                />
+            </Suspense>
+
+            {showAuthModal && (
+                <AuthModal 
+                    onClose={() => setShowAuthModal(false)}
+                    onAuthStart={() => setIsAuthInProgress(true)}
+                    onAuthEnd={() => {
+                        setIsAuthInProgress(false);
+                        setShowAuthModal(false);
+                    }}
+                />
+            )}
+
+            <PhoneVerificationModal
+                isOpen={showPhoneVerification}
+                onClose={() => setShowPhoneVerification(false)}
+                onVerificationSuccess={handlePhoneVerificationSuccess}
+            />
+            <div id="recaptcha-container"></div>
         </div>
-        <nav className="p-4 space-y-2">
-            {navItems.map(item => <NavItem key={item.label} {...item} currentView={view} setView={setView} isSidebar />)}
-        </nav>
-      </aside>
-
-      <div className="flex-1 flex flex-col h-full w-full">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
-          <div className="flex items-center justify-between p-2 sm:p-4 h-16">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-1 text-slate-500" aria-label="Open menu">
-                  <Bars3Icon className="w-6 h-6" />
-              </button>
-              {view !== AppView.HOME && (
-                  <button onClick={handleBack} className="p-1 text-slate-500 hover:text-slate-800" aria-label="Go back">
-                      <ArrowLeftIcon className="w-6 h-6" />
-                  </button>
-              )}
-            </div>
-            <div className="flex-shrink min-w-0 text-sm font-semibold text-indigo-800 bg-indigo-100/80 px-3 py-1.5 rounded-full flex items-center gap-2" title={selectionPath}>
-              <span className="truncate">{selectionPath ? selectionPath : 'No Exam Selected'}</span>
-            </div>
-             <div className="flex items-center gap-2 sm:gap-4">
-                 <button 
-                    onClick={handleLanguageButtonClick} 
-                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                    aria-label={`Change language, current is ${language}`}
-                 >
-                    <span>{getLanguageAbbreviation(language)}</span>
-                 </button>
-                 {user === 'loading' ? null : user ? (
-                      <div className="relative group">
-                        <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100" aria-label="User menu">
-                           <UserCircleIcon className="w-7 h-7 text-slate-500"/>
-                        </button>
-                        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 p-1 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-10">
-                            <div className="px-2 py-1.5 text-sm text-slate-600 border-b mb-1 truncate">{user.name || user.email}</div>
-                            <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-2 py-1.5 text-sm text-slate-700 rounded-md hover:bg-slate-100">
-                                <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </div>
-                 ) : (
-                    <Button variant="secondary" onClick={handleGoogleLogin} disabled={isLoggingIn}>
-                      {isLoggingIn ? 'Signing in...' : 'Login'}
-                    </Button>
-                 )}
-             </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="pb-20 lg:pb-0">
-                <MainContent />
-            </div>
-        </main>
-      </div>
-
-      {/* Bottom Nav for mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex justify-around bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-2px_5px_rgba(0,0,0,0.05)] p-1 gap-1">
-        {navItems.map(item => (
-            <NavItem key={item.label} {...item} currentView={view} setView={setView} />
-        ))}
-      </nav>
-      
-      <SelectionPopup 
-        isOpen={popupState.isOpen}
-        onClose={() => setPopupState({ ...popupState, isOpen: false })}
-        title={popupState.title}
-        options={popupState.options}
-        onSelect={popupState.onSelect}
-      />
-      {notification && (
-        <NotificationBanner 
-            message={notification.message}
-            type={notification.type}
-            onDismiss={() => setNotification(null)}
-        />
-      )}
-    </div>
-  );
+    );
 };
 
 export default App;

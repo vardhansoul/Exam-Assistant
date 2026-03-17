@@ -1,12 +1,13 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getTrackingData } from '../utils/tracking';
-import { predictRank, getSpecificErrorMessage } from '../services/geminiService';
+import { predictRank } from '../services/geminiService';
+import { getSpecificErrorMessage } from '../utils/errors';
 import type { LearningProgress, QuizResult, PerformanceSummary, RankPrediction, User } from '../types';
 import Card from './Card';
 import LoadingSpinner from './LoadingSpinner';
 import Button from './Button';
+import ErrorMessage from './ErrorMessage';
 
 interface WeakArea {
     topic: string;
@@ -26,11 +27,13 @@ interface LearningTrackerProps {
     topics: string[];
     selectionPath: string;
     user: User | null;
+    isTrial?: boolean;
+    trialDays?: number;
 }
 
-const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath, user }) => {
+const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath, user, isTrial, trialDays }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [progress, setProgress] = useState<LearningProgress>({ studiedTopics: [], quizHistory: [] });
+    const [progress, setProgress] = useState<LearningProgress>({ studiedTopics: [], quizHistory: [], likedTopics: [] });
     const [isLoadingProgress, setIsLoadingProgress] = useState(true);
     const [masteredTopics, setMasteredTopics] = useState<Set<string>>(new Set());
     const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
@@ -38,13 +41,6 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     const [rankPrediction, setRankPrediction] = useState<RankPrediction | null>(null);
     const [isRankLoading, setIsRankLoading] = useState(false);
     const [rankError, setRankError] = useState<string|null>(null);
-    const [adminClickCount, setAdminClickCount] = useState(0);
-
-    useEffect(() => {
-        if (adminClickCount >= 7) {
-            window.location.href = '/admin.html';
-        }
-    }, [adminClickCount]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -85,6 +81,12 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
         let streak = 0;
         if (quizDates.size > 0) {
             let currentDate = new Date();
+            // If no activity today, start checking from yesterday
+            if (!quizDates.has(currentDate.toISOString().split('T')[0])) {
+                currentDate.setDate(currentDate.getDate() - 1);
+            }
+            
+            // Now count backwards from either today or yesterday
             while (quizDates.has(currentDate.toISOString().split('T')[0])) {
                 streak++;
                 currentDate.setDate(currentDate.getDate() - 1);
@@ -126,15 +128,84 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
         setIsRankLoading(false);
     }, [performanceSummary, selectionPath]);
 
+    const StreakCard: React.FC<{ streak: number }> = ({ streak }) => {
+        let message: string;
+        if (streak === 0) {
+            message = "Complete a quiz to start your streak!";
+        } else if (streak === 1) {
+            message = "Great start! Keep the flame alive!";
+        } else if (streak >= 10) {
+            message = "Incredible consistency! You're on fire!";
+        } else if (streak >= 5) {
+            message = "You're on a roll! Keep it up!";
+        } else {
+            message = "Nice work, keep the momentum going!";
+        }
+    
+        return (
+            <div className="bg-amber-50 p-4 rounded-xl border-l-4 border-amber-400 text-center shadow-sm">
+                <h4 className="text-sm font-semibold text-amber-800">Current Study Streak</h4>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                    <p className="text-4xl font-extrabold text-amber-700">{streak}</p>
+                    <p className="text-xl font-bold text-slate-600 self-end pb-1">Days</p>
+                </div>
+                <p className="text-xs text-amber-700 mt-2 italic">{message}</p>
+            </div>
+        );
+    };
+
+    const AccountStatusCard = () => {
+        const expiryDateStr = useMemo(() => {
+            const today = new Date();
+            if (isTrial && trialDays !== undefined) {
+                const exp = new Date(today);
+                exp.setDate(today.getDate() + trialDays);
+                return exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            if (user?.validityDaysRemaining !== undefined) {
+                const exp = new Date(today);
+                exp.setDate(today.getDate() + user.validityDaysRemaining);
+                return exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            return 'Lifetime';
+        }, [user, isTrial, trialDays]);
+
+        return (
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 border-b border-slate-100 dark:border-slate-700 pb-2">Account Status</h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Member Since</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-100">
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : (isTrial ? 'Trial Account' : 'Unknown')}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Plan Expiry</p>
+                        <div className={`font-bold ${isTrial ? 'text-orange-600' : 'text-green-600'}`}>
+                            {isTrial ? `${trialDays} Days Left` : (user?.validityDaysRemaining ? `${user.validityDaysRemaining} Days Left` : 'Active')}
+                            <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
+                                ({expiryDateStr})
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const DashboardTab = () => (
         isLoadingProgress ? <LoadingSpinner /> : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
+                    <StreakCard streak={performanceSummary.studyStreak} />
+                    <AccountStatusCard />
+
                     <div className="grid grid-cols-2 gap-4">
                         <InfoCard title="Average Score" value={`${performanceSummary.averageScore}%`} />
-                        <InfoCard title="Study Streak" value={`${performanceSummary.studyStreak} Days`} />
                         <InfoCard title="Topics Mastered" value={performanceSummary.masteredTopics.length} />
-                        <InfoCard title="Weak Areas" value={performanceSummary.weakTopics.length} />
+                        <InfoCard title="Total Quizzes" value={performanceSummary.totalQuizzes} />
+                        <InfoCard title="Topics Studied" value={performanceSummary.topicsStudied} />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 mb-3">Weak Areas</h3>
@@ -196,7 +267,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
         <div className="text-center max-w-2xl mx-auto">
             {!selectionPath ? <p className="text-slate-500">Please select an exam on the dashboard to get a rank prediction.</p> :
             isRankLoading ? <LoadingSpinner /> :
-            rankError ? <p className="text-red-500 bg-red-100 p-3 rounded-md">{rankError}</p> :
+            rankError ? <ErrorMessage message={rankError} onRetry={handleGetRankPrediction} /> :
             rankPrediction ? (
                 <div className="space-y-6">
                     <div>
@@ -204,7 +275,7 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                         <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600 my-2">{rankPrediction.predictedRank}</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg text-left">
-                        <h4 className="font-bold text-slate-800 mb-2">AI Analysis</h4>
+                        <h4 className="font-bold text-slate-800 mb-2">COC Analysis</h4>
                         <p className="text-slate-600 text-sm">{rankPrediction.analysis}</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-lg text-left">
@@ -219,8 +290,8 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                 </div>
             ) : (
                 <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-slate-800">Get Your AI Rank Prediction</h3>
-                    <p className="text-slate-500">The AI will analyze your performance data to give you a simulated rank and actionable feedback for the <strong>{selectionPath}</strong> exam.</p>
+                    <h3 className="text-xl font-bold text-slate-800">Get Your COC Rank Prediction</h3>
+                    <p className="text-slate-500">COC will analyze your performance data to give you a simulated rank and actionable feedback for the <strong>{selectionPath}</strong> exam.</p>
                     <Button onClick={handleGetRankPrediction} disabled={!selectionPath}>
                         Analyze My Performance
                     </Button>
@@ -232,13 +303,13 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     const tabs = [
         { id: 'dashboard', label: 'My Dashboard' },
         { id: 'benchmarks', label: 'Community Benchmarks' },
-        { id: 'rank', label: 'AI Rank Prediction' },
+        { id: 'rank', label: 'COC Rank Prediction' },
     ];
 
     return (
         <Card>
             <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-200 pb-4 mb-6">
-                <h2 className="text-2xl font-bold text-slate-800 cursor-pointer" onClick={() => setAdminClickCount(c => c + 1)}>Progress & Insights</h2>
+                <h2 className="text-2xl font-bold text-slate-800">Progress & Insights</h2>
                 <div className="flex w-full sm:w-auto mt-4 sm:mt-0 rounded-lg bg-slate-200 p-1">
                     {tabs.map(tab => (
                         <button
@@ -260,9 +331,9 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
 };
 
 const InfoCard: React.FC<{title: string; value: string | number; }> = ({ title, value }) => (
-    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
-        <h4 className="text-sm font-semibold text-stone-600">{title}</h4>
-        <p className="text-2xl font-bold text-stone-800 mt-1">{value}</p>
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <h4 className="text-sm font-semibold text-slate-600">{title}</h4>
+        <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
     </div>
 );
 
@@ -291,14 +362,14 @@ const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory 
     });
 
     const getColor = (count: number) => {
-        if (count === 0) return 'bg-stone-200/70';
+        if (count === 0) return 'bg-slate-200/70';
         if (count <= 2) return 'bg-indigo-300';
         if (count <= 4) return 'bg-indigo-500';
         return 'bg-indigo-700';
     };
 
     return (
-        <div className="bg-stone-50 p-4 rounded-lg">
+        <div className="bg-slate-50 p-4 rounded-lg">
             <div className="overflow-x-auto pb-2">
               <div className="grid grid-flow-col grid-rows-7 gap-1 w-max">
                   {days.map((day, index) => {
@@ -314,9 +385,9 @@ const ProgressHeatmap: React.FC<{ quizHistory: QuizResult[] }> = ({ quizHistory 
                   })}
               </div>
             </div>
-             <div className="flex justify-end items-center gap-2 mt-2 text-xs text-stone-500">
+             <div className="flex justify-end items-center gap-2 mt-2 text-xs text-slate-500">
                 <span>Less</span>
-                <div className="w-3 h-3 rounded-sm bg-stone-200/70 border border-stone-300"></div>
+                <div className="w-3 h-3 rounded-sm bg-slate-200/70 border border-slate-300"></div>
                 <div className="w-3 h-3 rounded-sm bg-indigo-300"></div>
                 <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
                 <div className="w-3 h-3 rounded-sm bg-indigo-700"></div>
