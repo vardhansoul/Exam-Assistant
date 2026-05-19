@@ -286,23 +286,23 @@ const Quiz: React.FC<QuizProps> = ({ quiz, topic, onFinish, user, language, pers
         <p className="text-sm text-slate-500 dark:text-slate-400">Topic: {topic}</p>
         <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
       </div>
-      <div className="prose prose-slate dark:prose-invert max-w-none break-words">
+      <div className="prose max-w-none break-words text-xl font-medium text-red-800 dark:text-red-300">
         <ContentRenderer content={currentQuestion.question} />
         {currentQuestion.questionEnglish && currentQuestion.question.toLowerCase() !== currentQuestion.questionEnglish.toLowerCase() && (
-            <p className="text-md text-slate-500 dark:text-slate-400 mt-2 italic">({currentQuestion.questionEnglish})</p>
+            <p className="text-md text-red-600/80 dark:text-red-300/80 mt-2 italic">({currentQuestion.questionEnglish})</p>
         )}
       </div>
       <div className="space-y-4 mt-8">
         {currentQuestion.options.map((option) => {
-          let buttonClasses = 'bg-white dark:bg-slate-700 hover:bg-blue-50/70 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600';
+          let buttonClasses = 'bg-white dark:bg-slate-700 hover:bg-blue-50/70 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-600 text-blue-950 dark:text-blue-100 text-lg';
           const isCorrect = option === currentQuestion.correctAnswer;
           const isSelected = selectedOption === option;
 
           if (isSubmitted) {
-            if (isCorrect) buttonClasses = 'bg-green-100 dark:bg-green-500/10 border-green-500 dark:border-green-500/30 text-green-800 dark:text-green-300 ring-2 ring-green-300 dark:ring-green-500/30';
-            else if (isSelected && !isCorrect) buttonClasses = 'bg-red-100 dark:bg-red-500/10 border-red-500 dark:border-red-500/30 text-red-800 dark:text-red-300 ring-2 ring-red-300 dark:ring-red-500/30';
-            else buttonClasses = 'bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700/60 text-slate-500 dark:text-slate-500';
-          } else if (isSelected) buttonClasses = 'bg-blue-100 dark:bg-blue-900/40 border-blue-500 dark:border-blue-600 ring-2 ring-blue-300 dark:ring-blue-700 text-blue-800 dark:text-blue-200';
+            if (isCorrect) buttonClasses = 'bg-green-100 dark:bg-green-500/10 border-green-500 dark:border-green-500/30 text-green-900 dark:text-green-200 ring-2 ring-green-300 dark:ring-green-500/30 font-bold';
+            else if (isSelected && !isCorrect) buttonClasses = 'bg-red-100 dark:bg-red-500/10 border-red-500 dark:border-red-500/30 text-red-900 dark:text-red-200 ring-2 ring-red-300 dark:ring-red-500/30 font-bold';
+            else buttonClasses = 'bg-slate-100 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 opacity-60';
+          } else if (isSelected) buttonClasses = 'bg-blue-100 dark:bg-blue-900/40 border-blue-500 dark:border-blue-600 ring-2 ring-blue-300 dark:ring-blue-700 text-blue-900 dark:text-blue-100 font-bold';
           
           const englishOption = currentQuestion.optionsEnglish && currentQuestion.optionsEnglish.find(opt => opt.toLowerCase() !== option.toLowerCase());
           const areDifferent = englishOption && option.toLowerCase() !== englishOption.toLowerCase();
@@ -326,7 +326,7 @@ const Quiz: React.FC<QuizProps> = ({ quiz, topic, onFinish, user, language, pers
                     <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg animate-fade-in-fast break-words">
                         {isExplanationLoading === option ? (
                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><SmallSpinner /><span>COC AI is thinking...</span></div>
-                        ) : ( explanation && <ContentRenderer content={explanation} className="prose prose-sm max-w-none text-slate-700 dark:prose-invert" /> )}
+                        ) : ( explanation && <ContentRenderer content={explanation} className="prose prose-base max-w-none text-slate-700 dark:prose-invert" /> )}
                     </div>
                 )}
             </div>

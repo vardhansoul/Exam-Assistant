@@ -2,10 +2,9 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { 
     getDisplaySettings, saveDisplaySettings, getLastSelection, saveLastSelection, 
-    isLastSelectionValid, getUserSession, saveUserSession, startTrial, 
-    isTrialActive as checkIsTrialActive, getTrialDaysRemaining, saveVerifiedPhoneNumber, 
-    getVerifiedPhoneNumber, clearTrialData, logActivity, saveComponentState, 
-    getComponentState 
+    isLastSelectionValid, getUserSession, saveUserSession, 
+    logActivity, saveComponentState, 
+    getComponentState, syncComponentStatesFromCloud 
 } from './utils/tracking';
 import { 
     generateExamDetails, generateStudyNotes, generateTutorialForTopic, 
@@ -13,7 +12,8 @@ import {
 } from './services/geminiService';
 import { 
     onAuthStateChange, getUserDoc, handleSignOut, getUserProfile, 
-    ensureAdminPermissions, getUserDisplaySettings, saveUserDisplaySettings 
+    ensureAdminPermissions, getUserDisplaySettings, saveUserDisplaySettings,
+    retryFailedExports, syncSession, listenToSession
 } from './firebase';
 import { ADMIN_EMAILS, EXAM_DATA } from './constants';
 import { getSpecificErrorMessage } from './utils/errors';
@@ -24,6 +24,7 @@ import type {
 } from './types';
 import { AppView } from './types';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Network } from '@capacitor/network';
 
 // Eager imports for Shell (Critical Path)
 import Dashboard from './components/Dashboard';
@@ -34,7 +35,7 @@ import StartupLoading from './components/StartupLoading';
 import LoginPrompt from './components/LoginPrompt';
 import NotificationBanner from './components/NotificationBanner';
 import AuthModal from './components/AuthModal';
-import PhoneVerificationModal from './components/PhoneVerificationModal';
+import { OfflineBanner } from './components/OfflineBanner';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Retry Logic for Lazy Loading - Optimized for Speed
@@ -77,7 +78,6 @@ const ExamDetailsViewer = lazyRetry(() => import('./components/ExamDetailsViewer
 const PreviousYearQuestions = lazyRetry(() => import('./components/PreviousYearQuestions'));
 const Tools = lazyRetry(() => import('./components/Tools'));
 const CurrentAffairsAnalyst = lazyRetry(() => import('./components/CurrentAffairsAnalyst'));
-const DailyBriefing = lazyRetry(() => import('./components/DailyBriefing'));
 const MindMapGenerator = lazyRetry(() => import('./components/MindMapGenerator'));
 const GuessPaperGenerator = lazyRetry(() => import('./components/GuessPaperGenerator'));
 const StudyPlanner = lazyRetry(() => import('./components/StudyPlanner'));
@@ -94,6 +94,8 @@ const ScientificCalculator = lazyRetry(() => import('./components/ScientificCalc
 const AdaptiveLearningPath = lazyRetry(() => import('./components/AdaptiveLearningPath'));
 const AdminDashboard = lazyRetry(() => import('./components/AdminDashboard'));
 const StoryTutorGenerator = lazyRetry(() => import('./components/StoryTutorGenerator'));
+const LearningTechniques = lazyRetry(() => import('./components/LearningTechniques'));
+const MapInteractiveLearning = lazyRetry(() => import('./components/MapInteractiveLearning'));
 
 // Lazy Imports for Heavy Modals
 const ExamSelectionWizard = lazyRetry(() => import('./components/ExamSelectionWizard'));
@@ -108,15 +110,29 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
     const [appMode, setAppMode] = useState<'user' | 'admin'>('user');
-    const [isAnonymousSession, setIsAnonymousSession] = useState(false);
-    const [isTrialActive, setIsTrialActive] = useState(false);
-    const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [showPhoneVerification, setShowPhoneVerification] = useState(false);
-    const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useState<string | null>(null);
 
-    const [view, setView] = useState<AppView>(AppView.HOME);
-    const [history, setHistory] = useState<AppView[]>([]);
+    const [view, setView] = useState<AppView>(() => {
+        try {
+            const sessionStr = localStorage.getItem('global_last_session');
+            if (sessionStr) {
+                const session = JSON.parse(sessionStr);
+                return session.lastView || AppView.HOME;
+            }
+        } catch (e) {}
+        return AppView.HOME;
+    });
+    
+    const [history, setHistory] = useState<AppView[]>(() => {
+        try {
+            const sessionStr = localStorage.getItem('global_last_session');
+            if (sessionStr) {
+                const session = JSON.parse(sessionStr);
+                return session.history || [];
+            }
+        } catch (e) {}
+        return [];
+    });
 
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
     const [popupConfig, setPopupConfig] = useState<PopupConfig | null>(null);
@@ -131,6 +147,15 @@ const App: React.FC = () => {
     const [notification, setNotification] = useState<Notification | null>(null);
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
     const [isAuthInProgress, setIsAuthInProgress] = useState(false);
+
+    // Single device limit session tracking
+    const [sessionId] = useState(() => {
+        const existing = localStorage.getItem('app_session_id');
+        if (existing) return existing;
+        const newId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('app_session_id', newId);
+        return newId;
+    });
 
     const [isStudyModalOpen, setIsStudyModalOpen] = useState(() => getComponentState<boolean>('isStudyModalOpen') || false);
     const [studyModalTopic, setStudyModalTopic] = useState<{ topic: string, mainTopic?: string } | null>(() => getComponentState('studyModalTopic'));
@@ -237,6 +262,13 @@ const App: React.FC = () => {
         if (lastSelection) fetchExamData(lastSelection);
     }, [lastSelection, fetchExamData]);
 
+    // Handle language change: refetch syllabus if the language changes
+    useEffect(() => {
+        if (lastSelection) {
+            fetchExamData(lastSelection);
+        }
+    }, [displaySettings.language, fetchExamData]);
+
     useEffect(() => {
         const unsubscribe = onAuthStateChange(async (firebaseUser) => {
             try {
@@ -257,29 +289,6 @@ const App: React.FC = () => {
                         return;
                     }
 
-                    let validityDays = 0;
-                    if (userDoc?.createdAt || firebaseUser.metadata.creationTime) {
-                        const createdAtDate = userDoc?.createdAt?.toDate() 
-                            ? userDoc.createdAt.toDate() 
-                            : new Date(firebaseUser.metadata.creationTime!);
-                        
-                        const customExpiry = userDoc?.customExpiryDate?.toDate();
-                        const defaultExpiryDate = new Date(createdAtDate);
-                        defaultExpiryDate.setFullYear(defaultExpiryDate.getFullYear() + 5);
-                        
-                        const expiryDate = customExpiry || defaultExpiryDate;
-                        const now = new Date();
-
-                        if (now > expiryDate) {
-                            await handleSignOut();
-                            setNotification({ type: 'error', message: "Your account validity (5 years) has expired. Please contact support." });
-                            return;
-                        }
-
-                        const diffTime = expiryDate.getTime() - now.getTime();
-                        validityDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    }
-
                     let isUserAdmin = false;
                     if (firebaseUser.email) {
                         isUserAdmin = ADMIN_EMAILS.some(email => email.toLowerCase() === firebaseUser.email!.toLowerCase());
@@ -292,10 +301,6 @@ const App: React.FC = () => {
                     setIsAdmin(isUserAdmin);
                     setAppMode('user');
                     
-                    setIsAnonymousSession(false);
-                    setIsTrialActive(false);
-                    setVerifiedPhoneNumber(null);
-
                     const loggedInUser: User = {
                         uid: firebaseUser.uid,
                         displayName: firebaseUser.displayName,
@@ -303,23 +308,31 @@ const App: React.FC = () => {
                         photoURL: firebaseUser.photoURL,
                         isAdmin: isUserAdmin,
                         createdAt: firebaseUser.metadata.creationTime,
-                        validityDaysRemaining: validityDays,
                     };
                     setUser(loggedInUser);
         
-                    const [cloudSettings, selection, session] = await Promise.all([
-                        getUserDisplaySettings(loggedInUser.uid),
+                    const localSettings = getDisplaySettings();
+                    setDisplaySettings(localSettings);
+
+                    // Fetch critical local data first, let cloud states sync in background
+                    const [selection, session] = await Promise.all([
                         getLastSelection(loggedInUser.uid),
                         getUserSession(loggedInUser.uid)
                     ]);
 
-                    if (cloudSettings) {
-                        setDisplaySettings(cloudSettings);
-                        saveDisplaySettings(cloudSettings);
-                    } else {
-                        const localSettings = getDisplaySettings();
-                        await saveUserDisplaySettings(loggedInUser.uid, localSettings);
-                    }
+                    Promise.all([
+                        getUserDisplaySettings(loggedInUser.uid),
+                        syncComponentStatesFromCloud(loggedInUser.uid)
+                    ]).then(([cloudSettings]) => {
+                        if (cloudSettings) {
+                            setDisplaySettings(cloudSettings);
+                            saveDisplaySettings(cloudSettings);
+                        } else {
+                            // If no cloud settings, upload local as default
+                            const current = getDisplaySettings();
+                            saveUserDisplaySettings(loggedInUser.uid, current).catch(console.warn);
+                        }
+                    }).catch(console.warn);
 
                     if (session) {
                         setView(session.lastView);
@@ -335,22 +348,37 @@ const App: React.FC = () => {
                 } else {
                     setUser(null);
                     setIsAdmin(false);
+
+                    // Load guest session if not logging out
+                    if (!isLoggingOut.current) {
+                        const [guestSession, guestSelection] = await Promise.all([
+                            getUserSession(null),
+                            getLastSelection(null)
+                        ]);
+                        
+                        if (guestSession) {
+                            setView(guestSession.lastView);
+                            if (guestSession.history) setHistory(guestSession.history);
+                            if (guestSession.context?.currentTopic) setCurrentTopic(guestSession.context.currentTopic);
+                        }
+                        
+                        if (isLastSelectionValid(guestSelection)) {
+                            setLastSelection(guestSelection);
+                            fetchExamData(guestSelection);
+                        }
+                    }
+
                     if (isLoggingOut.current) {
-                        setIsAnonymousSession(false);
-                        setIsTrialActive(false);
-                        setVerifiedPhoneNumber(null);
                         setView(AppView.HOME);
                         setHistory([]);
                         setLastSelection(null);
                         setSyllabus([]);
                         isLoggingOut.current = false;
                         
-                        saveComponentState('isStudyModalOpen', null);
-                        saveComponentState('studyModalTopic', null);
-                        saveComponentState('studyMaterial', null);
-                        saveComponentState('isTutorialModalOpen', null);
-                        saveComponentState('tutorialModalTopic', null);
-                        saveComponentState('tutorial', null);
+                        saveComponentState('isStudyModalOpen', null, user?.uid || null);
+                        saveComponentState('studyModalTopic', null, user?.uid || null);
+                        saveComponentState('isTutorialModalOpen', null, user?.uid || null);
+                        saveComponentState('tutorialModalTopic', null, user?.uid || null);
                         
                         const keysToRemove = [
                             'quiz_active_state', 'mindmap_active_state', 'interview_active_state',
@@ -367,32 +395,6 @@ const App: React.FC = () => {
                         }
 
                         handleSignOut().catch(err => console.error("Sign out error:", err));
-                    } else {
-                        const trialIsCurrentlyActive = checkIsTrialActive();
-                        const phoneIsVerified = getVerifiedPhoneNumber();
-
-                        if (trialIsCurrentlyActive && phoneIsVerified) {
-                            setIsAnonymousSession(true);
-                            setIsTrialActive(true);
-                            setTrialDaysRemaining(getTrialDaysRemaining());
-                            setVerifiedPhoneNumber(phoneIsVerified);
-
-                            const session = await getUserSession(null);
-                            const selection = await getLastSelection(null);
-                            if (session) {
-                                setView(session.lastView);
-                                if (session.history) setHistory(session.history);
-                                if (session.context?.currentTopic) setCurrentTopic(session.context.currentTopic);
-                            }
-                            if (isLastSelectionValid(selection)) {
-                                setLastSelection(selection);
-                                fetchExamData(selection);
-                            }
-                        } else {
-                            setIsAnonymousSession(false);
-                            setIsTrialActive(false);
-                            setVerifiedPhoneNumber(null);
-                        }
                     }
                 }
             } catch (e) {
@@ -406,44 +408,93 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const root = window.document.documentElement;
-        const isDark = displaySettings.theme === 'dark' || (displaySettings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        root.classList.toggle('dark', isDark);
-        if (displaySettings.theme === 'system') localStorage.removeItem('color-theme');
-        else localStorage.setItem('color-theme', displaySettings.theme);
+        
+        const applyTheme = () => {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = displaySettings.theme === 'dark' || (displaySettings.theme === 'system' && prefersDark);
+            
+            root.classList.toggle('dark', isDark);
+            
+            if (displaySettings.theme === 'system') {
+                localStorage.removeItem('color-theme');
+            } else {
+                localStorage.setItem('color-theme', displaySettings.theme);
+            }
+        };
+
+        applyTheme();
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemThemeChange = () => {
+            if (displaySettings.theme === 'system') {
+                applyTheme();
+            }
+        };
+
+        // Add listener for system theme changes
+        mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleSystemThemeChange);
+        };
     }, [displaySettings.theme]);
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (displaySettings.fontSize === 'sm') {
+            root.style.fontSize = '14px';
+        } else if (displaySettings.fontSize === 'lg') {
+            root.style.fontSize = '18px';
+        } else {
+            root.style.fontSize = '16px'; // base
+        }
+    }, [displaySettings.fontSize]);
 
     useEffect(() => {
         if (!isLoading && !isLoggingOut.current) {
             const session: UserSession = { lastView: view, history: history, context: { currentTopic } };
             saveUserSession(user?.uid || null, session);
+            try {
+                localStorage.setItem('global_last_session', JSON.stringify(session));
+            } catch (e) {}
         }
     }, [view, history, currentTopic, user, isLoading]);
 
     useEffect(() => {
-        saveComponentState('isStudyModalOpen', isStudyModalOpen);
-        saveComponentState('studyModalTopic', studyModalTopic);
-        saveComponentState('studyMaterial', studyMaterial);
-    }, [isStudyModalOpen, studyModalTopic, studyMaterial]);
+        saveComponentState('isStudyModalOpen', isStudyModalOpen, user?.uid || null);
+        saveComponentState('studyModalTopic', studyModalTopic, user?.uid || null);
+    }, [isStudyModalOpen, studyModalTopic, user?.uid]);
 
     useEffect(() => {
-        saveComponentState('isTutorialModalOpen', isTutorialModalOpen);
-        saveComponentState('tutorialModalTopic', tutorialModalTopic);
-        saveComponentState('tutorial', tutorial);
-    }, [isTutorialModalOpen, tutorialModalTopic, tutorial]);
+        saveComponentState('isTutorialModalOpen', isTutorialModalOpen, user?.uid || null);
+        saveComponentState('tutorialModalTopic', tutorialModalTopic, user?.uid || null);
+    }, [isTutorialModalOpen, tutorialModalTopic, user?.uid]);
 
     useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
+        let networkListener: any = null;
+
+        const setupNetwork = async () => {
+            const status = await Network.getStatus();
+            setIsOnline(status.connected);
+            if (status.connected) retryFailedExports();
+
+            networkListener = await Network.addListener('networkStatusChange', status => {
+                setIsOnline(status.connected);
+                if (status.connected) retryFailedExports();
+            });
+        };
+
+        setupNetwork();
+
         return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
+            if (networkListener) {
+                networkListener.remove();
+            }
         };
     }, []);
 
     useEffect(() => {
-        if (view === AppView.EXAM_DETAILS_VIEWER && lastSelection && (user || isTrialActive)) {
+        if (view === AppView.EXAM_DETAILS_VIEWER && lastSelection && user) {
             const fetchDetails = async () => {
                 setIsExamDetailsLoading(true);
                 setExamDetailsError(null);
@@ -465,9 +516,9 @@ const App: React.FC = () => {
             };
             fetchDetails();
         }
-    }, [view, lastSelection, displaySettings.language, user, isTrialActive]);
+    }, [view, lastSelection, displaySettings.language, user]);
 
-    const canAccessPremium = !!user || isTrialActive;
+    const canAccessPremium = !!user;
 
     useEffect(() => {
         const checkDailyJobUpdates = async () => {
@@ -479,7 +530,7 @@ const App: React.FC = () => {
             
             if (!alreadyChecked) {
                 try {
-                    const jobs = await fetchLatestJobNotifications(displaySettings.language, !user);
+                    const jobs = await fetchLatestJobNotifications(displaySettings.language);
                     setJobCount(jobs.length);
                     if (jobs.length > 0) {
                         setNotification({ type: 'success', message: `🔔 Daily Update: ${jobs.length} new job notifications available today!` });
@@ -493,7 +544,7 @@ const App: React.FC = () => {
                     console.error("Daily job fetch failed:", e);
                 }
             } else {
-                fetchLatestJobNotifications(displaySettings.language, !user).then(jobs => {
+                fetchLatestJobNotifications(displaySettings.language).then(jobs => {
                     setJobCount(jobs.length);
                 }).catch(e => console.error("Silent job count update failed", e));
             }
@@ -524,6 +575,31 @@ const App: React.FC = () => {
         });
     };
     
+    // Automatically sync AI content (like syllabus and open modals) when language changes
+    useEffect(() => {
+        // Clear cached tools states so they restart in the new language
+        const tools = [
+            'AskAiAnything', 'careerCompass', 'currentAffairsAnalyst',
+            'doubtSolver', 'flashcardsGenerator', 'guessPaperGenerator',
+            'homeworkSolver', 'mindMapGenerator', 'mockInterview',
+            'previousYearQuestions', 'quizGenerator', 'realLifeExamples',
+            'selfSummaryChallenge', 'storyTutorGenerator', 'studyPlanner',
+            'teachShortcuts', 'topicExplorer'
+        ];
+        // Don't fully trash history from Firebase right here, just trash local state so components refetch fresh
+        tools.forEach(key => localStorage.removeItem(`active_state_${key}`));
+
+        if (lastSelection) {
+            fetchExamData(lastSelection);
+        }
+        if (isStudyModalOpen && studyModalTopic) {
+            handleStudyTopic(studyModalTopic.topic, studyModalTopic.mainTopic);
+        }
+        if (isTutorialModalOpen && tutorialModalTopic) {
+            handleStartTutorial(tutorialModalTopic);
+        }
+    }, [displaySettings.language]);
+    
     const handleChangeExam = () => setIsExamWizardOpen(true);
 
     const handleSelectionComplete = async (selection: LastSelection) => {
@@ -538,10 +614,10 @@ const App: React.FC = () => {
             'career_compass_state', 'resume_builder_state', 'flashcards_state', 
             'pyq_state', 'current_affairs_state', 'story_tutor_state', 'homework_solver_state'
         ];
-        tools.forEach(key => saveComponentState(key, null));
+        tools.forEach(key => saveComponentState(key, null, user?.uid || null));
 
-        await handleSetLastSelection(selection);
         handleSetView(AppView.LEARN_TOPICS);
+        handleSetLastSelection(selection);
     };
 
     const handleSetView = useCallback((newView: AppView) => {
@@ -594,26 +670,11 @@ const App: React.FC = () => {
         };
     }, [handleGoBack]);
     
-    const handleStartTrialFlow = () => setShowPhoneVerification(true);
-
-    const handlePhoneVerificationSuccess = (phoneNumber: string) => {
-        saveVerifiedPhoneNumber(phoneNumber);
-        startTrial();
-        setIsAnonymousSession(true);
-        setIsTrialActive(true);
-        setTrialDaysRemaining(7);
-        setVerifiedPhoneNumber(phoneNumber);
-        setShowPhoneVerification(false);
-    };
-    
     const handleUserSignOut = () => {
         isLoggingOut.current = true;
         setUser(null);
-        setIsAnonymousSession(false);
-        setIsTrialActive(false);
         setIsAdmin(false);
         setAppMode('user');
-        setVerifiedPhoneNumber(null);
         setView(AppView.HOME);
         setHistory([]);
         setLastSelection(null);
@@ -632,12 +693,10 @@ const App: React.FC = () => {
         backHandlerRef.current = null;
 
         setTimeout(() => {
-            saveComponentState('isStudyModalOpen', null);
-            saveComponentState('studyModalTopic', null);
-            saveComponentState('studyMaterial', null);
-            saveComponentState('isTutorialModalOpen', null);
-            saveComponentState('tutorialModalTopic', null);
-            saveComponentState('tutorial', null);
+            saveComponentState('isStudyModalOpen', null, user?.uid || null);
+            saveComponentState('studyModalTopic', null, user?.uid || null);
+            saveComponentState('isTutorialModalOpen', null, user?.uid || null);
+            saveComponentState('tutorialModalTopic', null, user?.uid || null);
             
             const keysToRemove = [
                 'quiz_active_state', 'mindmap_active_state', 'interview_active_state',
@@ -657,29 +716,6 @@ const App: React.FC = () => {
         }, 50);
     };
     
-    const handleTrialLogout = () => {
-        clearTrialData();
-        setUser(null);
-        setIsAnonymousSession(false);
-        setIsTrialActive(false);
-        setVerifiedPhoneNumber(null);
-        setView(AppView.HOME);
-        setHistory([]);
-        setLastSelection(null);
-        setSyllabus([]);
-        setCurrentTopic(null);
-        backHandlerRef.current = null;
-        setIsStudyModalOpen(false);
-        setStudyMaterial(null);
-        setStudyModalTopic(null);
-        setIsTutorialModalOpen(false);
-        setTutorial(null);
-        setTutorialModalTopic(null);
-        setIsExamWizardOpen(false);
-        setPopupConfig(null);
-        setIsDisplaySettingsOpen(false);
-    };
-
     const handleStudyTopic = useCallback(async (topic: string, mainTopic?: string) => {
         setIsStudyModalOpen(true);
         setStudyModalTopic({ topic, mainTopic });
@@ -693,7 +729,7 @@ const App: React.FC = () => {
         setStudyMaterialError(null);
     
         try {
-            const material = await generateStudyNotes(topic, displaySettings.language, mainTopic, selectionPath, !user);
+            const material = await generateStudyNotes(topic, displaySettings.language, mainTopic, selectionPath);
             setStudyMaterial(material);
         } catch (err) {
             setStudyMaterialError(getSpecificErrorMessage(err));
@@ -727,7 +763,7 @@ const App: React.FC = () => {
         });
 
         try {
-            const tutorialData = await generateTutorialForTopic(topic, displaySettings.language, selectionPath, !user);
+            const tutorialData = await generateTutorialForTopic(topic, displaySettings.language, selectionPath);
             setTutorial(tutorialData);
         } catch (err) {
             setTutorialError(getSpecificErrorMessage(err));
@@ -736,6 +772,31 @@ const App: React.FC = () => {
         }
     }, [displaySettings.language, selectionPath, user, tutorial, tutorialModalTopic]);
     
+    useEffect(() => {
+        if (user?.uid) {
+            syncSession(user.uid, sessionId);
+            
+            const unsubscribe = listenToSession(user.uid, (currentId) => {
+                if (currentId && currentId !== sessionId) {
+                    // Another session started
+                    setNotification({ 
+                        type: 'error', 
+                        message: "Logged out: You are logged in on another device." 
+                    });
+                    handleSignOut().then(() => {
+                        setUser(null);
+                        setIsAdmin(false);
+                        setAppMode('user');
+                        setView(AppView.HOME);
+                    }).catch((error) => {
+                        console.error("Sign out error", error);
+                    });
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [user?.uid, sessionId]);
+
     const handleRetryStudyMaterial = useCallback(() => {
         if (studyModalTopic) handleStudyTopic(studyModalTopic.topic, studyModalTopic.mainTopic);
     }, [studyModalTopic, handleStudyTopic]);
@@ -767,9 +828,9 @@ const App: React.FC = () => {
                         case AppView.HOME: 
                             return <Dashboard user={user} setView={handleSetView} lastSelection={lastSelection} onChangeExam={handleChangeExam} isOnline={isOnline} />;
                         case AppView.ASK_AI: 
-                            return <AskAiAnything language={lang} isOnline={isOnline} selectionPath={selectionPath} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
+                            return <AskAiAnything language={lang} isOnline={isOnline} selectionPath={selectionPath} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} setView={handleSetView} />;
                         case AppView.LEARNING_TRACKER: 
-                            return <LearningTracker topics={topics} selectionPath={selectionPath} user={user} isTrial={isTrialActive} trialDays={trialDaysRemaining} />;
+                            return <LearningTracker topics={topics} selectionPath={selectionPath} user={user} />;
                         case AppView.USER_PROFILE: 
                             return <UserProfileComponent user={user} setNotification={setNotification} />;
                         case AppView.LEARN_TOPICS:
@@ -817,8 +878,6 @@ const App: React.FC = () => {
                             return <Tools setView={handleSetView} />;
                         case AppView.CURRENT_AFFAIRS:
                             return <CurrentAffairsAnalyst language={lang} isOnline={isOnline} selectionPath={selectionPath} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
-                        case AppView.DAILY_BRIEFING:
-                            return <DailyBriefing language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
                         case AppView.MIND_MAP:
                             return <MindMapGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
                         case AppView.GUESS_PAPER:
@@ -849,6 +908,10 @@ const App: React.FC = () => {
                             return <AdaptiveLearningPath topics={topics} language={lang} isOnline={isOnline} user={user} selectionPath={selectionPath} setView={handleSetView} onStudyTopic={handleStudyTopic} setQuizTopic={setCurrentTopic} canAccessPremium={canAccessPremium} requestAuth={requestAuth} />;
                         case AppView.STORY_TUTOR:
                             return <StoryTutorGenerator topics={topics} language={lang} isOnline={isOnline} showPopup={setPopupConfig} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} isSyllabusLoading={isSyllabusLoading} onRefresh={handleRefreshSyllabus} />;
+                        case AppView.LEARNING_TECHNIQUES:
+                            return <LearningTechniques language={lang} isOnline={isOnline} user={user} canAccessPremium={canAccessPremium} requestAuth={requestAuth} topics={topics} selectionPath={selectionPath} />;
+                        case AppView.MAP_INTERACTIVE_LEARNING:
+                            return <MapInteractiveLearning onSetBackHandler={handleSetBackHandler} isOnline={isOnline} selectionPath={selectionPath} language={lang} topics={topics} />;
                         default: 
                             return <Dashboard user={user} setView={handleSetView} lastSelection={lastSelection} onChangeExam={handleChangeExam} isOnline={isOnline} />;
                     }
@@ -869,19 +932,13 @@ const App: React.FC = () => {
         );
     }
 
-    if (!user && !isAnonymousSession) {
+    if (!user) {
         return (
             <>
                 {notification && <NotificationBanner message={notification.message} type={notification.type} onDismiss={() => setNotification(null)} />}
                 <LoginPrompt 
-                    onStartTrialFlow={handleStartTrialFlow} 
                     onAuthStart={() => setIsAuthInProgress(true)}
                     onAuthEnd={() => setIsAuthInProgress(false)}
-                />
-                <PhoneVerificationModal
-                    isOpen={showPhoneVerification}
-                    onClose={() => setShowPhoneVerification(false)}
-                    onVerificationSuccess={handlePhoneVerificationSuccess}
                 />
                 <div id="recaptcha-container"></div>
             </>
@@ -889,7 +946,8 @@ const App: React.FC = () => {
     }
     
     return (
-        <div className={`font-${displaySettings.fontFamily} font-size-${displaySettings.fontSize} bg-slate-100 dark:bg-slate-900`}>
+        <div className={`font-${displaySettings.fontFamily} bg-slate-100 dark:bg-slate-900`}>
+            <OfflineBanner isOnline={isOnline} />
             <Sidebar
                 currentView={view}
                 setView={handleSetView}
@@ -908,12 +966,7 @@ const App: React.FC = () => {
                     onUserSignOut={handleUserSignOut}
                     setView={handleSetView}
                     onChangeExam={handleChangeExam}
-                    isAnonymous={isAnonymousSession && !user}
-                    isTrialActive={isTrialActive}
-                    trialDaysRemaining={trialDaysRemaining}
                     requestAuth={requestAuth}
-                    verifiedPhoneNumber={verifiedPhoneNumber}
-                    onTrialLogout={handleTrialLogout}
                     isAdmin={isAdmin}
                     setAppMode={setAppMode}
                 />
@@ -961,7 +1014,7 @@ const App: React.FC = () => {
                 
                 <StudyMaterialModal 
                     isOpen={isStudyModalOpen}
-                    onClose={() => { setIsStudyModalOpen(false); saveComponentState('isStudyModalOpen', false); }}
+                    onClose={() => { setIsStudyModalOpen(false); saveComponentState('isStudyModalOpen', false, user?.uid || null); }}
                     topic={studyModalTopic?.topic || null}
                     material={studyMaterial}
                     isLoading={isStudyMaterialLoading}
@@ -980,12 +1033,11 @@ const App: React.FC = () => {
                     topic={storyModalTopic}
                     language={displaySettings.language}
                     isOnline={isOnline}
-                    isTrial={!user && isAnonymousSession}
                 />
 
                 <TutorialModal
                     isOpen={isTutorialModalOpen}
-                    onClose={() => { setIsTutorialModalOpen(false); saveComponentState('isTutorialModalOpen', false); }}
+                    onClose={() => { setIsTutorialModalOpen(false); saveComponentState('isTutorialModalOpen', false, user?.uid || null); }}
                     tutorial={tutorial}
                     isLoading={isTutorialLoading}
                     error={tutorialError}
@@ -1004,11 +1056,6 @@ const App: React.FC = () => {
                 />
             )}
 
-            <PhoneVerificationModal
-                isOpen={showPhoneVerification}
-                onClose={() => setShowPhoneVerification(false)}
-                onVerificationSuccess={handlePhoneVerificationSuccess}
-            />
             <div id="recaptcha-container"></div>
         </div>
     );

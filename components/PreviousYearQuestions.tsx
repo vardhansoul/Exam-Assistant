@@ -63,8 +63,7 @@ const PreviousYearQuestions: React.FC<PreviousYearQuestionsProps> = ({ selection
     });
 
     try {
-      // Pass !user as isTrial
-      const result = await fetchPreviousYearQuestions(selectionPath, language, !user);
+      const result = await fetchPreviousYearQuestions(selectionPath, language);
       setQuestions(result);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -77,9 +76,9 @@ const PreviousYearQuestions: React.FC<PreviousYearQuestionsProps> = ({ selection
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to search for previous year questions.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to search for previous year questions.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -112,13 +111,16 @@ const PreviousYearQuestions: React.FC<PreviousYearQuestionsProps> = ({ selection
                 <div className="mt-6">
                     <h4 className="text-md font-bold text-slate-700 mb-2">Sources</h4>
                     <ul className="space-y-2 text-sm">
-                        {questions.sources.map((source, index) => (
+                        {questions.sources.map((source, index) => {
+                            if (!source.web?.uri) return null;
+                            return (
                             <li key={index} className="flex items-start gap-2 p-2 bg-slate-100 rounded-md">
                                 <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all" title={source.web.title}>
                                     {source.web.title || source.web.uri}
                                 </a>
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 </div>
             )}

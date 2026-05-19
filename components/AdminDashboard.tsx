@@ -1,17 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { User, FullUserProfile, TrialUser } from '../types';
+import type { User, FullUserProfile } from '../types';
 import { 
     listenToUsers, 
-    listenToTrialUsers, 
-    listenToActivityLog, 
+    listenToActivityLog,  
     deleteUserDocument, 
     adminCreateUser, 
     toggleUserBlockStatus, 
-    setSignupAccessCode, 
-    getSignupAccessCode, 
-    ensureAdminPermissions, 
-    extendUserValidity 
+    ensureAdminPermissions
 } from '../firebase';
 import { ADMIN_EMAILS } from '../constants';
 import Button from './Button';
@@ -75,35 +71,16 @@ const formatDateTime = (timestamp: any) => {
     return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
-const getTrialExpiryDisplay = (t: TrialUser) => {
-    if (!t.startedAt) return <span className="text-slate-500">Unknown</span>;
-    
-    const startDate = t.startedAt.seconds 
-        ? new Date(t.startedAt.seconds * 1000) 
-        : new Date(t.startedAt);
-        
-    const now = new Date();
-    const expiryDate = new Date(startDate);
-    expiryDate.setDate(startDate.getDate() + 7); 
-    
-    const timeDiff = expiryDate.getTime() - now.getTime();
-    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    
-    if (daysLeft <= 0) {
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800">Expired</span>;
-    }
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">{daysLeft} Days Left</span>;
-};
+
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setAppMode }) => {
     const [users, setUsers] = useState<FullUserProfile[]>([]);
-    const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
     const [activityLog, setActivityLog] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     
     // UI States
-    const [activeTab, setActiveTab] = useState<'users' | 'trials' | 'activity' | 'settings'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'settings'>('users');
     const [showAddUser, setShowAddUser] = useState(false);
     const [selectedUser, setSelectedUser] = useState<FullUserProfile | null>(null);
     
@@ -112,13 +89,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
     const [newUserName, setNewUserName] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [isCreatingUser, setIsCreatingUser] = useState(false);
-
-    // Settings
-    const [accessCode, setAccessCode] = useState('');
-    const [currentDbCode, setCurrentDbCode] = useState<string>('Loading...');
-    const [isSettingsLoading, setIsSettingsLoading] = useState(false);
-    const [showResetConfirm, setShowResetConfirm] = useState(false);
-    const [resetPassword, setResetPassword] = useState('');
 
     useEffect(() => {
         // Init: Ensure permissions are robust
@@ -129,21 +99,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
             setIsLoading(false);
         });
         
-        const unsubscribeTrials = listenToTrialUsers(setTrialUsers);
         const unsubscribeLogs = listenToActivityLog(setActivityLog);
 
         return () => {
             unsubscribeUsers();
-            unsubscribeTrials();
             unsubscribeLogs();
         };
     }, [user?.uid]);
-
-    useEffect(() => {
-        if (activeTab === 'settings') {
-            getSignupAccessCode().then(setCurrentDbCode);
-        }
-    }, [activeTab]);
 
     const filteredUsers = useMemo(() => {
         const lowerTerm = searchTerm.toLowerCase();
@@ -184,63 +146,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
         }
     };
 
-    const handleUpdateAccessCode = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!accessCode.trim()) return;
-        setIsSettingsLoading(true);
-        try {
-            await setSignupAccessCode(accessCode.trim());
-            setCurrentDbCode(accessCode.trim());
-            setAccessCode('');
-            alert("Access Code Updated!");
-        } catch (e: any) {
-            alert("Failed to update code: " + e.message);
-        } finally {
-            setIsSettingsLoading(false);
-        }
-    };
-
-    const handleHardReset = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (resetPassword !== 'Govardhan1*') {
-            alert("Incorrect Master Password.");
-            return;
-        }
-        setIsSettingsLoading(true);
-        try {
-            await setSignupAccessCode('admin123');
-            setCurrentDbCode('admin123');
-            setShowResetConfirm(false);
-            setResetPassword('');
-            alert("Reset Successful.");
-        } catch(e: any) {
-            alert("Reset Failed: " + e.message);
-        } finally {
-            setIsSettingsLoading(false);
-        }
-    };
-
     const handleToggleBlock = async (uid: string, currentStatus: boolean) => {
         if (window.confirm(`Are you sure you want to ${currentStatus ? 'UNBLOCK' : 'BLOCK'} this user?`)) {
-            await toggleUserBlockStatus(uid, !currentStatus);
-            // If viewing this user, update local state visually
-            if (selectedUser?.uid === uid) {
-                setSelectedUser(prev => prev ? ({ ...prev, isBlocked: !currentStatus }) : null);
+            try {
+                await toggleUserBlockStatus(uid, !currentStatus);
+                // If viewing this user, update local state visually
+                if (selectedUser?.uid === uid) {
+                    setSelectedUser(prev => prev ? ({ ...prev, isBlocked: !currentStatus }) : null);
+                }
+            } catch (error) {
+                console.error("Failed to toggle user block status:", error);
+                alert("Failed to update user status. Please check permissions.");
             }
         }
     };
 
     const handleDeleteUser = async (uid: string) => {
         if (window.confirm("WARNING: This will permanently delete the user's data from the database. This action cannot be undone. Continue?")) {
-            await deleteUserDocument(uid);
-            if (selectedUser?.uid === uid) setSelectedUser(null);
-        }
-    };
-
-    const handleExtendValidity = async (uid: string) => {
-        if (window.confirm("Reset account validity to 5 years from today?")) {
-            await extendUserValidity(uid);
-            alert("Validity extended.");
+            try {
+                await deleteUserDocument(uid);
+                if (selectedUser?.uid === uid) setSelectedUser(null);
+            } catch (error) {
+                console.error("Failed to delete user:", error);
+                alert("Failed to delete user. Please check permissions.");
+            }
         }
     };
 
@@ -282,15 +211,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
                             <h3 className="text-3xl font-bold">{users.length}</h3>
                         </div>
                     </Card>
-                    <Card className="flex items-center p-6 border-l-4 border-l-green-500">
-                        <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full mr-4 text-green-600 dark:text-green-400">
-                            <ClockIcon className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Active Trials</p>
-                            <h3 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{trialUsers.length}</h3>
-                        </div>
-                    </Card>
                     <Card className="flex items-center p-6 border-l-4 border-l-amber-500">
                         <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full mr-4 text-amber-600 dark:text-amber-400">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -305,7 +225,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
                 {/* Tabs & Content */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[600px] flex flex-col">
                     <div className="flex border-b border-slate-200 dark:border-slate-700 px-6 pt-4 gap-6 overflow-x-auto">
-                        {['users', 'trials', 'activity', 'settings'].map((tab) => (
+                        {['users', 'activity', 'settings'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -401,9 +321,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
                                                                 <button onClick={() => setSelectedUser(u)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" title="View Details">
                                                                     <EyeIcon className="w-5 h-5" />
                                                                 </button>
-                                                                <button onClick={() => handleExtendValidity(u.uid)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors" title="Reset Validity (5 Years)">
-                                                                    <ClockIcon className="w-5 h-5" />
-                                                                </button>
                                                                 <button onClick={() => handleToggleBlock(u.uid, !!u.isBlocked)} className={`p-2 rounded-full transition-colors ${u.isBlocked ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-slate-400 hover:text-orange-600 hover:bg-orange-50'}`} title={u.isBlocked ? "Unblock User" : "Block User"}>
                                                                     <ShieldExclamationIcon className="w-5 h-5" />
                                                                 </button>
@@ -419,37 +336,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
                                     </table>
                                 </div>
                             </>
-                        )}
-
-                        {/* Trials Tab */}
-                        {activeTab === 'trials' && (
-                            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                                        <tr>
-                                            <th className="px-6 py-4">Name & Contact</th>
-                                            <th className="px-6 py-4">Started</th>
-                                            <th className="px-6 py-4">Expiry</th>
-                                            <th className="px-6 py-4">Device</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-                                        {trialUsers.map(t => (
-                                            <tr key={t.id}>
-                                                <td className="px-6 py-4">
-                                                    <p className="font-semibold text-slate-900 dark:text-slate-100">{t.name}</p>
-                                                    <p className="text-xs text-slate-500">{t.email}</p>
-                                                    <p className="text-xs text-indigo-600">{t.phoneNumber}</p>
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{formatDate(t.startedAt)}</td>
-                                                <td className="px-6 py-4">{getTrialExpiryDisplay(t)}</td>
-                                                <td className="px-6 py-4 text-xs text-slate-500 max-w-xs truncate" title={t.userAgent}>{t.userAgent}</td>
-                                            </tr>
-                                        ))}
-                                        {trialUsers.length === 0 && <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No active trials.</td></tr>}
-                                    </tbody>
-                                </table>
-                            </div>
                         )}
 
                         {/* Activity Tab */}
@@ -485,44 +371,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onSignOut, setApp
                         {activeTab === 'settings' && (
                             <div className="max-w-2xl mx-auto w-full space-y-8">
                                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Access Control</h3>
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg mb-6">
-                                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Current Sign Up Code:</span>
-                                        <span className="text-xl font-mono font-bold text-indigo-600">{currentDbCode}</span>
-                                    </div>
-                                    <form onSubmit={handleUpdateAccessCode} className="flex gap-2">
-                                        <Input 
-                                            label=""
-                                            placeholder="Enter new access code..." 
-                                            value={accessCode} 
-                                            onChange={e => setAccessCode(e.target.value)}
-                                            disabled={isSettingsLoading}
-                                        />
-                                        <Button type="submit" disabled={isSettingsLoading || !accessCode.trim()} className="mt-1">
-                                            Update
-                                        </Button>
-                                    </form>
-                                </div>
-
-                                <div className="bg-red-50 dark:bg-red-900/10 p-6 rounded-xl border border-red-200 dark:border-red-900/30">
-                                    <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Emergency Reset</h3>
-                                    <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">Lost the access code? Use the Master Password to reset it to 'admin123'.</p>
-                                    
-                                    {!showResetConfirm ? (
-                                        <Button onClick={() => setShowResetConfirm(true)} variant="danger">Reset Access Code</Button>
-                                    ) : (
-                                        <form onSubmit={handleHardReset} className="flex gap-2 animate-fade-in">
-                                            <input 
-                                                type="password" 
-                                                placeholder="Master Password" 
-                                                className="flex-1 px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                                                value={resetPassword}
-                                                onChange={e => setResetPassword(e.target.value)}
-                                            />
-                                            <Button type="submit" variant="danger">Confirm</Button>
-                                            <Button type="button" variant="ghost" onClick={() => {setShowResetConfirm(false); setResetPassword('');}}>Cancel</Button>
-                                        </form>
-                                    )}
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Settings</h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">No settings available at this time.</p>
                                 </div>
                             </div>
                         )}

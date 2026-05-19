@@ -75,6 +75,11 @@ const Tools: React.FC<ToolsProps> = ({ setView }) => {
 
   const visualizationTools = [
       { 
+        title: "Map Learning",
+        description: "Interactive map-based pointer challenge for geography and history.",
+        view: AppView.MAP_INTERACTIVE_LEARNING
+    },
+      { 
         title: "Mind Map Generator",
         description: "Visually structure and connect concepts for any topic.",
         view: AppView.MIND_MAP
@@ -87,6 +92,11 @@ const Tools: React.FC<ToolsProps> = ({ setView }) => {
   ];
   
   const advancedLearningTools = [
+      { 
+        title: "Subject Learning Techniques",
+        description: "Discover the best evidence-based study methods tailored to your specific subject.",
+        view: AppView.LEARNING_TECHNIQUES
+      },
       { 
         title: "Story Tutor",
         description: "Master complex topics and solve questions through engaging stories.",

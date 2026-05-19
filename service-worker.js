@@ -1,7 +1,7 @@
 
 // Define cache names for versioning
-const STATIC_CACHE_NAME = 'club-of-competition-static-v17';
-const DYNAMIC_CACHE_NAME = 'club-of-competition-dynamic-v2';
+const STATIC_CACHE_NAME = 'club-of-competition-static-v18';
+const DYNAMIC_CACHE_NAME = 'club-of-competition-dynamic-v3';
 
 // List of assets to be cached on installation (App Shell)
 const ASSETS_TO_CACHE = [
@@ -46,7 +46,6 @@ const ASSETS_TO_CACHE = [
   '/components/LearningTracker.tsx',
   '/components/LoadingSpinner.tsx',
   '/components/LoginPrompt.tsx',
-  '/components/MapPractice.tsx',
   '/components/MindMapGenerator.tsx',
   '/components/MobileTaskbar.tsx',
   '/components/MockInterview.tsx',

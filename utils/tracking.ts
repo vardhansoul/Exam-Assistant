@@ -1,5 +1,5 @@
 import type { QuizResult, LearningProgress, SyllabusProgress, ApplicationRecord, HistoryItem, HistoryType, DisplaySettings, LastSelection, UserNotes, SyllabusTopic, UserSession, ChatSession } from '../types';
-import { db, saveUserDisplaySettings } from '../firebase';
+import { db, saveUserDisplaySettings, handleFirestoreError, OperationType, isPermissionError } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { EXAM_DATA, INDIAN_STATES, QUALIFICATION_CATEGORIES, SCHOOL_CLASSES, SELECTION_LEVELS, SCHOOL_STREAMS } from '../constants';
 
@@ -25,33 +25,169 @@ const setLocalJson = (key: string, value: any) => {
     try {
         localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
+        if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+            console.warn("LocalStorage quota exceeded, attempting cleanup...");
+            cleanupCache();
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                return;
+            } catch (retryError) {
+                console.error("LocalStorage still full after cleanup:", retryError);
+            }
+        }
         console.warn(`Error setting localStorage key “${key}”:`, error);
     }
 };
 
-// --- Active Component State Persistence ---
-export const getComponentState = <T>(key: string): T | null => {
-    return getLocalJson<T | null>(`active_state_${key}`, null);
+const cleanupCache = () => {
+    try {
+        const keys = Object.keys(localStorage);
+        const apiCacheKeys = keys.filter(k => k.startsWith('api_cache_'));
+        
+        if (apiCacheKeys.length === 0) return;
+
+        // Sort by timestamp (oldest first)
+        const entries = apiCacheKeys.map(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                return { key, timestamp: data.timestamp || 0 };
+            } catch {
+                return { key, timestamp: 0 };
+            }
+        }).sort((a, b) => a.timestamp - b.timestamp);
+
+        // Remove oldest 20% of entries
+        const toRemove = Math.max(1, Math.floor(entries.length * 0.2));
+        for (let i = 0; i < toRemove; i++) {
+            localStorage.removeItem(entries[i].key);
+        }
+        console.log(`Cleaned up ${toRemove} old cache entries.`);
+    } catch (e) {
+        console.error("Cache cleanup failed:", e);
+    }
 };
 
-export const saveComponentState = (key: string, data: any) => {
+// --- Active Component State Persistence ---
+// Synchronous read for useState initializers
+export const getComponentState = <T>(key: string, uid: string | null = null): T | null => {
+    const localKey = `active_state_${key}`;
+    return getLocalJson<T | null>(localKey, null);
+};
+
+export const saveComponentState = async (key: string, data: any, uid: string | null = null) => {
+    const localKey = `active_state_${key}`;
     if (data === null || data === undefined) {
-        localStorage.removeItem(`active_state_${key}`);
+        localStorage.removeItem(localKey);
     } else {
-        setLocalJson(`active_state_${key}`, data);
+        setLocalJson(localKey, data);
+    }
+
+    // If user is logged in, sync to cloud for cross-device persistence
+    if (uid) {
+        try {
+            const docRef = db.collection('users').doc(uid).collection('component_states').doc(key);
+            if (data === null || data === undefined) {
+                await docRef.delete();
+            } else {
+                await docRef.set({ ...data, _updatedAt: Date.now() });
+            }
+        } catch (e) {
+            if (isPermissionError(e)) {
+                handleFirestoreError(e, OperationType.WRITE, `users/${uid}/component_states/${key}`);
+            }
+            console.warn(`Failed to sync component state ${key} to cloud:`, e);
+        }
+    }
+};
+
+/**
+ * Loads all component states from cloud for a user
+ */
+export const syncComponentStatesFromCloud = async (uid: string): Promise<void> => {
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('component_states').get();
+        snapshot.forEach(doc => {
+            const key = doc.id;
+            const data = doc.data();
+            setLocalJson(`active_state_${key}`, data);
+        });
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/component_states`);
+        }
+        console.warn("Failed to sync component states from cloud:", e);
+    }
+};
+
+// --- IndexedDB Wrapper for massive payloads ---
+const DB_NAME = 'COC_Cache_DB';
+const API_STORE = 'api_cache_store';
+
+let idbPromise: Promise<IDBDatabase> | null = null;
+const getIDB = async (): Promise<IDBDatabase> => {
+    if (!window.indexedDB) {
+        throw new Error("IndexedDB not supported");
+    }
+    if (!idbPromise) {
+        idbPromise = new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = () => {
+                req.result.createObjectStore(API_STORE);
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    return idbPromise;
+};
+
+export const setIndexedDB = async (key: string, value: any): Promise<void> => {
+    try {
+        const db = await getIDB();
+        return new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(API_STORE, 'readwrite');
+            tx.objectStore(API_STORE).put(value, key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn('IDB write failed', e);
+    }
+};
+
+export const getIndexedDB = async <T>(key: string): Promise<T | null> => {
+    try {
+        const db = await getIDB();
+        return new Promise<T | null>((resolve, reject) => {
+            const tx = db.transaction(API_STORE, 'readonly');
+            const req = tx.objectStore(API_STORE).get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return null;
     }
 };
 
 // --- API Caching ---
-interface ApiCacheEntry {
+export interface ApiCacheEntry {
     timestamp: number;
     data: any;
 }
-export const getApiCache = <T>(key: string): ApiCacheEntry | null => {
-    return getLocalJson<ApiCacheEntry | null>(`api_cache_${key}`, null);
+export const getApiCache = async <T>(key: string): Promise<ApiCacheEntry | null> => {
+    let val = await getIndexedDB<ApiCacheEntry>(`api_cache_${key}`);
+    if (!val) {
+        // Fallback/migration from old synchronous localStorage version
+        val = getLocalJson<ApiCacheEntry | null>(`api_cache_${key}`, null);
+        if (val) {
+            setIndexedDB(`api_cache_${key}`, val).catch(() => {});
+            localStorage.removeItem(`api_cache_${key}`);
+        }
+    }
+    return val;
 };
-export const setApiCache = (key: string, data: any, timestamp: number = Date.now()) => {
-    setLocalJson(`api_cache_${key}`, { timestamp, data });
+export const setApiCache = async (key: string, data: any, timestamp: number = Date.now()) => {
+    await setIndexedDB(`api_cache_${key}`, { timestamp, data });
 };
 export const isCacheStale = (timestamp: number, staleMs = 1000 * 60 * 60 * 24): boolean => {
     return (Date.now() - timestamp) > staleMs;
@@ -68,6 +204,9 @@ export const getTrackingData = async (uid: string | null): Promise<LearningProgr
         const docSnap = await db.collection('users').doc(uid).collection('progress').doc('tracking').get();
         return docSnap.exists ? (docSnap.data() as LearningProgress) : defaultData;
     } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/tracking`);
+        }
         console.warn("Failed to load tracking data, using default:", e);
         return defaultData;
     }
@@ -78,7 +217,14 @@ const saveTrackingData = async (uid: string | null, data: LearningProgress) => {
         setLocalJson(getStorageKey(null, 'tracking'), data);
         return;
     }
-    await db.collection('users').doc(uid).collection('progress').doc('tracking').set(data, { merge: true });
+    try {
+        await db.collection('users').doc(uid).collection('progress').doc('tracking').set(data, { merge: true });
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.WRITE, `users/${uid}/progress/tracking`);
+        }
+        console.error("Failed to save tracking data:", e);
+    }
 };
 
 export const saveQuizResult = async (result: QuizResult, uid: string | null) => {
@@ -126,6 +272,9 @@ export const getHistory = async (uid: string | null): Promise<HistoryItem[]> => 
         const docSnap = await db.collection('users').doc(uid).collection('progress').doc('history').get();
         return docSnap.exists ? (docSnap.data()?.items as HistoryItem[]).sort((a,b) => b.timestamp - a.timestamp) : [];
     } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/history`);
+        }
         console.warn("Failed to load history:", e);
         return [];
     }
@@ -148,7 +297,12 @@ export const logActivity = async (uid: string | null, item: Omit<HistoryItem, 'i
     const docRef = db.collection('users').doc(uid).collection('progress').doc('history');
     
     // Log to global activity log
-    db.collection('activity_log').add({ ...fullItem, uid }).catch(e => console.warn("Failed to log global activity", e));
+    db.collection('activity_log').add({ ...fullItem, uid }).catch(e => {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.CREATE, `activity_log`);
+        }
+        console.warn("Failed to log global activity", e);
+    });
 
     try {
         await docRef.update({
@@ -156,8 +310,18 @@ export const logActivity = async (uid: string | null, item: Omit<HistoryItem, 'i
         });
     } catch (err: any) {
         if(err.code === 'not-found') {
-            await docRef.set({ items: [fullItem] });
+            try {
+                await docRef.set({ items: [fullItem] });
+            } catch (setErr) {
+                if (isPermissionError(setErr)) {
+                    handleFirestoreError(setErr, OperationType.WRITE, `users/${uid}/progress/history`);
+                }
+                console.error("Error creating activity log: ", setErr);
+            }
         } else {
+            if (isPermissionError(err)) {
+                handleFirestoreError(err, OperationType.UPDATE, `users/${uid}/progress/history`);
+            }
             console.error("Error logging activity: ", err);
         }
     }
@@ -178,6 +342,9 @@ export const getSyllabusProgress = async (uid: string | null): Promise<SyllabusP
                 rawData = docSnap.data();
             }
         } catch (e) {
+            if (isPermissionError(e)) {
+                handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/syllabus`);
+            }
             console.warn("Failed to load syllabus progress:", e);
         }
     }
@@ -206,10 +373,19 @@ export const saveSyllabusProgress = async (key: string, checkedIds: string[], sy
     const updatedProgress = { ...allProgress, [key]: { checkedIds, syllabus } };
 
     if (!uid) {
-        setLocalJson(getStorageKey(null, 'syllabus'), updatedProgress);
+        setIndexedDB(getStorageKey(null, 'syllabus'), updatedProgress).catch(e => console.warn(e));
         return;
     }
-    await db.collection('users').doc(uid).collection('progress').doc('syllabus').set(updatedProgress);
+    try {
+        await db.collection('users').doc(uid).collection('progress').doc('syllabus').set(updatedProgress);
+        // Also persist locally via IDB for offline
+        setIndexedDB(getStorageKey(uid, 'syllabus'), updatedProgress).catch(e => console.warn(e));
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.WRITE, `users/${uid}/progress/syllabus`);
+        }
+        console.error("Failed to save syllabus progress:", e);
+    }
 };
 
 
@@ -217,14 +393,19 @@ export const saveSyllabusProgress = async (key: string, checkedIds: string[], sy
 export const getBookmarkedTopics = async (uid: string | null): Promise<string[]> => {
     let rawTopics: unknown;
     if (!uid) {
-        rawTopics = getLocalJson(getStorageKey(null, 'bookmarks'), []);
+        let lcl = await getIndexedDB(getStorageKey(null, 'bookmarks'));
+        rawTopics = lcl || getLocalJson(getStorageKey(null, 'bookmarks'), []);
     } else {
         try {
             const docSnap = await db.collection('users').doc(uid).collection('progress').doc('bookmarks').get();
             rawTopics = docSnap.exists ? docSnap.data()?.topics : [];
+            setIndexedDB(getStorageKey(uid, 'bookmarks'), rawTopics).catch(e => console.warn(e));
         } catch (e) {
+            if (isPermissionError(e)) {
+                handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/bookmarks`);
+            }
             console.warn("Failed to load bookmarks:", e);
-            rawTopics = [];
+            rawTopics = await getIndexedDB(getStorageKey(uid, 'bookmarks')) || getLocalJson(getStorageKey(uid, 'bookmarks'), []);
         }
     }
     
@@ -236,36 +417,69 @@ export const getBookmarkedTopics = async (uid: string | null): Promise<string[]>
 
 export const saveBookmarkedTopics = async (topics: string[], uid: string | null) => {
     if (!uid) {
-        setLocalJson(getStorageKey(null, 'bookmarks'), topics);
+        setIndexedDB(getStorageKey(null, 'bookmarks'), topics).catch(e => console.warn(e));
         return;
     }
-    await db.collection('users').doc(uid).collection('progress').doc('bookmarks').set({ topics });
+    try {
+        await db.collection('users').doc(uid).collection('progress').doc('bookmarks').set({ topics });
+        setIndexedDB(getStorageKey(uid, 'bookmarks'), topics).catch(e => console.warn(e));
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.WRITE, `users/${uid}/progress/bookmarks`);
+        }
+        console.error("Failed to save bookmarked topics:", e);
+    }
 };
 
 // --- Last Selection ---
 export const getLastSelection = async (uid: string | null): Promise<LastSelection | null> => {
+    // ALWAYS eagerly load from local storage
+    const localSelection = getLocalJson<LastSelection | null>(getStorageKey(uid, 'lastSelection'), null);
+    
     if (!uid) {
-        return getLocalJson<LastSelection | null>(getStorageKey(null, 'lastSelection'), null);
+        return localSelection;
     }
+    
+    // For authenticated users, try to get from Firebase to get latest cross-device
     try {
         const docSnap = await db.collection('users').doc(uid).collection('progress').doc('selection').get();
-        return docSnap.exists ? (docSnap.data() as LastSelection) : null;
+        if (docSnap.exists) {
+            const fbSelection = docSnap.data() as LastSelection;
+            setLocalJson(getStorageKey(uid, 'lastSelection'), fbSelection);
+            return fbSelection;
+        }
     } catch (e) {
-        console.warn("Failed to load last selection:", e);
-        return null;
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/selection`);
+        }
+        console.warn("Failed to load last selection from cloud, falling back to local:", e);
     }
+    
+    return localSelection;
 };
 
 export const saveLastSelection = async (selection: LastSelection | null, uid: string | null) => {
-    if (!uid) {
-        setLocalJson(getStorageKey(null, 'lastSelection'), selection);
-        return;
-    }
-    const docRef = db.collection('users').doc(uid).collection('progress').doc('selection');
+    // ALWAYS save locally for instant persistence
     if (selection) {
-        await docRef.set(selection);
+        setLocalJson(getStorageKey(uid, 'lastSelection'), selection);
     } else {
-        await docRef.delete();
+        localStorage.removeItem(getStorageKey(uid, 'lastSelection'));
+    }
+    
+    if (!uid) return;
+
+    const docRef = db.collection('users').doc(uid).collection('progress').doc('selection');
+    try {
+        if (selection) {
+            await docRef.set(selection);
+        } else {
+            await docRef.delete();
+        }
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, selection ? OperationType.WRITE : OperationType.DELETE, `users/${uid}/progress/selection`);
+        }
+        console.error("Failed to save last selection to cloud:", e);
     }
 };
 
@@ -336,6 +550,9 @@ export const getApplicationRecords = async (uid: string | null): Promise<Applica
         const querySnapshot = await db.collection('users').doc(uid).collection('applications').get();
         return querySnapshot.docs.map(doc => doc.data() as ApplicationRecord);
     } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/applications`);
+        }
         console.warn("Failed to load application records:", e);
         return [];
     }
@@ -351,7 +568,14 @@ export const saveApplicationRecord = async (record: Omit<ApplicationRecord, 'id'
         setLocalJson(getStorageKey(null, 'applications'), records);
         return;
     }
-    await db.collection('users').doc(uid).collection('applications').doc(id).set(newRecord);
+    try {
+        await db.collection('users').doc(uid).collection('applications').doc(id).set(newRecord);
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.WRITE, `users/${uid}/applications/${id}`);
+        }
+        console.error("Failed to save application record:", e);
+    }
 };
 
 export const deleteApplicationRecord = async (id: string, uid: string | null) => {
@@ -361,12 +585,22 @@ export const deleteApplicationRecord = async (id: string, uid: string | null) =>
         setLocalJson(getStorageKey(null, 'applications'), records);
         return;
     }
-    await db.collection('users').doc(uid).collection('applications').doc(id).delete();
+    try {
+        await db.collection('users').doc(uid).collection('applications').doc(id).delete();
+    } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.DELETE, `users/${uid}/applications/${id}`);
+        }
+        console.error("Failed to delete application record:", e);
+    }
 };
 
 
 // --- Display Settings ---
 const DISPLAY_SETTINGS_KEY = 'display_settings';
+
+// Because React hooks expect synchronous return for initial state, we leave getDisplaySettings
+// attached to localStorage for instantly painting the UI.
 export const getDisplaySettings = (): DisplaySettings => {
     return getLocalJson<DisplaySettings>(DISPLAY_SETTINGS_KEY, {
         fontSize: 'base',
@@ -377,6 +611,7 @@ export const getDisplaySettings = (): DisplaySettings => {
 };
 export const saveDisplaySettings = (settings: DisplaySettings) => {
     setLocalJson(DISPLAY_SETTINGS_KEY, settings);
+    setIndexedDB(DISPLAY_SETTINGS_KEY, settings).catch(() => {});
 };
 
 // --- User Session Persistence ---
@@ -400,6 +635,9 @@ export const getUserSession = async (uid: string | null): Promise<UserSession | 
             return session;
         }
     } catch (e) {
+        if (isPermissionError(e)) {
+            handleFirestoreError(e, OperationType.GET, `users/${uid}/progress/session`);
+        }
         console.warn("Failed to load user session:", e);
     }
     return null;
@@ -415,71 +653,19 @@ export const saveUserSession = async (uid: string | null, session: UserSession |
 
     if (uid) {
         const docRef = db.collection('users').doc(uid).collection('progress').doc('session');
-        if (session) {
-            await docRef.set(session);
-        } else {
-            await docRef.delete();
+        try {
+            if (session) {
+                await docRef.set(session);
+            } else {
+                await docRef.delete();
+            }
+        } catch (e) {
+            if (isPermissionError(e)) {
+                handleFirestoreError(e, session ? OperationType.WRITE : OperationType.DELETE, `users/${uid}/progress/session`);
+            }
+            console.error("Failed to save user session:", e);
         }
     }
 };
 
-// --- Trial & Auth Helpers ---
 
-export const startTrial = () => {
-    localStorage.setItem('trial_start_date', new Date().toISOString());
-};
-
-export const isTrialActive = (): boolean => {
-    const startDateStr = localStorage.getItem('trial_start_date');
-    if (!startDateStr) return false;
-    const startDate = new Date(startDateStr);
-    const now = new Date();
-    // 7 days in milliseconds
-    const diff = now.getTime() - startDate.getTime();
-    return diff < 7 * 24 * 60 * 60 * 1000;
-};
-
-export const getTrialDaysRemaining = (): number => {
-    const startDateStr = localStorage.getItem('trial_start_date');
-    if (!startDateStr) return 0;
-    const startDate = new Date(startDateStr);
-    const now = new Date();
-    const diff = now.getTime() - startDate.getTime();
-    const daysPassed = diff / (1000 * 60 * 60 * 24);
-    return Math.max(0, Math.ceil(7 - daysPassed));
-};
-
-export const saveVerifiedPhoneNumber = (phoneNumber: string) => {
-    localStorage.setItem('verified_phone_number', phoneNumber);
-};
-
-export const getVerifiedPhoneNumber = (): string | null => {
-    return localStorage.getItem('verified_phone_number');
-};
-
-export const clearTrialData = () => {
-    localStorage.removeItem('trial_start_date');
-    localStorage.removeItem('verified_phone_number');
-};
-
-export const getDeviceFingerprint = async (): Promise<string> => {
-    // Basic fingerprinting for trial limitation (User Agent + Screen + Timezone)
-    const str = `${navigator.userAgent}-${window.screen.width}x${window.screen.height}-${new Date().getTimezoneOffset()}`;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-};
-
-export const migrateGuestDataToUser = async (uid: string) => {
-    // Migrate Display Settings
-    const localSettings = getDisplaySettings();
-    if (localSettings) {
-        await saveUserDisplaySettings(uid, localSettings);
-    }
-    
-    // Future: Migrate other local storage data like history or syllabus progress if needed.
-};

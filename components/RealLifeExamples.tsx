@@ -69,8 +69,7 @@ const RealLifeExamples: React.FC<RealLifeExamplesProps> = ({ topics, language, i
     });
 
     try {
-      // Pass !user as isTrial
-      const result = await generateRealLifeExamples(topic, language, !user);
+      const result = await generateRealLifeExamples(topic, language);
       setExamples(result);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -95,9 +94,9 @@ const RealLifeExamples: React.FC<RealLifeExamplesProps> = ({ topics, language, i
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to see real-life examples.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to see real-life examples.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>

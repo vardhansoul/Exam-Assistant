@@ -19,11 +19,10 @@ interface StatusTrackerProps {
   selection: Selection;
   language: string;
   isOnline: boolean;
-  isTrial?: boolean;
 }
 
 
-const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, language, isOnline, isTrial }) => {
+const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, language, isOnline }) => {
   const { selectedExam, selectedSubCategory, selectedTier } = selection;
   const [statusUpdate, setStatusUpdate] = useState<ExamStatusUpdate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,8 +35,7 @@ const StatusTracker: React.FC<StatusTrackerProps> = ({ trackerType, selection, l
     setError(null);
     setStatusUpdate(null);
     try {
-      // Pass isTrial to service
-      const update = await generateStatusUpdate(selectedExam, selectedSubCategory, selectedTier, language, trackerType, isTrial);
+      const update = await generateStatusUpdate(selectedExam, selectedSubCategory, selectedTier, language, trackerType);
       setStatusUpdate(update);
     } catch (err) {
       setError(getSpecificErrorMessage(err));

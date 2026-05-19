@@ -7,14 +7,26 @@
  */
 export const getSpecificErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
-    const message = error.message;
+    let message = error.message;
+
+    // Try to parse JSON error messages (like FirestoreErrorInfo)
+    try {
+      if (message.startsWith('{') && message.includes('"error"')) {
+        const parsed = JSON.parse(message);
+        if (parsed.error) {
+          message = parsed.error;
+        }
+      }
+    } catch (e) {
+      // Not a JSON string, use as is
+    }
 
     // --- 1. Custom App Logic Errors ---
     const specificErrors = [
         "Account not found. Please contact administrator to create your account first. Google login is only for existing users.",
-        "Account not found. Please sign up with Email/Password first to create your account.",
-        "User account not found. Please sign up with Email/Password first.",
-        "Account not found. Please sign up with Email/Password first."
+        "Account not found. Please contact the administrator to create your account.",
+        "User account not found. Please contact the administrator.",
+        "Account not found. Please contact the administrator."
     ];
 
     if (specificErrors.includes(message)) {
@@ -55,7 +67,8 @@ export const getSpecificErrorMessage = (error: unknown): string => {
 
     // Invalid Request / Bad Request
     if (message.includes('400') || message.includes('Invalid argument') || message.includes('INVALID_ARGUMENT')) {
-        return "We couldn't quite understand that request. It might be a bit too long or complex—try breaking it down.";
+        console.error("DEBUG 400 ERROR:", message, error);
+        return `We couldn't quite understand that request. Try breaking it down. Details: ${message}. If this persists, please clear your cache.`;
     }
 
     // API Key Issues
@@ -89,7 +102,7 @@ export const getSpecificErrorMessage = (error: unknown): string => {
             case 'auth/network-request-failed':
               return "We couldn't reach the network. Please check your connection.";
             case 'auth/user-not-found':
-              return "We couldn't find an account with those details. Please check your email or sign up to join us!";
+              return "We couldn't find an account with those details. Please check your email or contact the administrator.";
             case 'auth/wrong-password':
               return "That password didn't match. Please try again or reset it.";
             case 'auth/invalid-email':

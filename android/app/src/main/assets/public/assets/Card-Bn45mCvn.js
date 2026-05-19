@@ -1,0 +1,1 @@
+import{j as e}from"./index-x_IE3o7i.js";const d=({children:r,className:s=""})=>e.jsx("div",{className:`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 ${s}`,children:r});export{d as C};

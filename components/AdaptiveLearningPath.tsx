@@ -110,8 +110,7 @@ const AdaptiveLearningPath: React.FC<AdaptiveLearningPathProps> = ({
         });
 
         try {
-            // Pass !user as isTrial
-            const path = await generateAdaptivePath(selectionPath, quizResults, language, !user);
+            const path = await generateAdaptivePath(selectionPath, quizResults, language);
             updateState({ learningPath: path, stage: 'path' });
         } catch (err) {
             setError(getSpecificErrorMessage(err));
@@ -153,10 +152,10 @@ const AdaptiveLearningPath: React.FC<AdaptiveLearningPathProps> = ({
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
                 <p className="text-slate-500 dark:text-slate-400 mt-2">
-                    Your trial has ended. Please sign up or log in to use the Adaptive Learning Path.
+                    Please log in to use the Adaptive Learning Path.
                 </p>
                 <div className="mt-8">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         );

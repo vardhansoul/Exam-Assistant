@@ -27,11 +27,9 @@ interface LearningTrackerProps {
     topics: string[];
     selectionPath: string;
     user: User | null;
-    isTrial?: boolean;
-    trialDays?: number;
 }
 
-const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath, user, isTrial, trialDays }) => {
+const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath, user }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [progress, setProgress] = useState<LearningProgress>({ studiedTopics: [], quizHistory: [], likedTopics: [] });
     const [isLoadingProgress, setIsLoadingProgress] = useState(true);
@@ -155,21 +153,6 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
     };
 
     const AccountStatusCard = () => {
-        const expiryDateStr = useMemo(() => {
-            const today = new Date();
-            if (isTrial && trialDays !== undefined) {
-                const exp = new Date(today);
-                exp.setDate(today.getDate() + trialDays);
-                return exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-            }
-            if (user?.validityDaysRemaining !== undefined) {
-                const exp = new Date(today);
-                exp.setDate(today.getDate() + user.validityDaysRemaining);
-                return exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-            }
-            return 'Lifetime';
-        }, [user, isTrial, trialDays]);
-
         return (
             <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 border-b border-slate-100 dark:border-slate-700 pb-2">Account Status</h4>
@@ -177,16 +160,13 @@ const LearningTracker: React.FC<LearningTrackerProps> = ({ topics, selectionPath
                     <div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Member Since</p>
                         <p className="font-bold text-slate-800 dark:text-slate-100">
-                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : (isTrial ? 'Trial Account' : 'Unknown')}
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Plan Expiry</p>
-                        <div className={`font-bold ${isTrial ? 'text-orange-600' : 'text-green-600'}`}>
-                            {isTrial ? `${trialDays} Days Left` : (user?.validityDaysRemaining ? `${user.validityDaysRemaining} Days Left` : 'Active')}
-                            <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
-                                ({expiryDateStr})
-                            </span>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Plan Status</p>
+                        <div className={`font-bold text-green-600`}>
+                            Active
                         </div>
                     </div>
                 </div>

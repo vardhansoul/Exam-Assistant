@@ -1,0 +1,155 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (.dark &);
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  
+  /* Slightly increase base font sizes for text readability */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.625rem;
+
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #172554;
+  
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  /* Darken slate grays for better visual contrast in light mode */
+  --color-slate-400: #7b8a9e; 
+  --color-slate-500: #596b82; 
+  --color-slate-600: #3f4e66; 
+  --color-slate-700: #2c384d; 
+  --color-slate-800: #192233; 
+  --color-slate-900: #0d121c; 
+  --color-slate-950: #06080d;
+}
+
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-800);
+    line-height: 1.6;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow-x: hidden;
+}
+
+input, textarea, [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.dark html, .dark body, .dark #root {
+    background-color: #0b1121; /* Slightly softer than pure slate-950 */
+    color: var(--color-slate-100); /* Brighter than slate-200 */
+}
+
+.dark, .dark * {
+    /* Redefine mid-to-dark slate colors for better contrast in dark mode */
+    --color-slate-400: #a8b6c7; /* lighter than default */
+    --color-slate-500: #8c9eb4; /* slightly lighter than #7b8a9e */
+    --color-slate-600: #6a7c93; /* slightly lighter than #596b82 */
+    --color-slate-700: #4b5d77; /* slightly lighter than #42526b */
+    --color-slate-800: #293952; /* slightly lighter than #233147 */
+    --color-slate-900: #1b263b; /* slightly lighter than #141f33 */
+    
+    /* Soften the text colors in dark mode automatically so we don't have unreadable dark text accidentally */
+    --tw-prose-invert-body: var(--color-slate-200);
+    --tw-prose-invert-headings: #ffffff;
+    --tw-prose-invert-lead: var(--color-slate-300);
+    --tw-prose-invert-links: var(--color-blue-400);
+    --tw-prose-invert-bold: #ffffff;
+    --tw-prose-invert-counters: var(--color-slate-400);
+    --tw-prose-invert-bullets: var(--color-slate-400);
+    --tw-prose-invert-hr: var(--color-slate-700);
+    --tw-prose-invert-quotes: var(--color-slate-100);
+    --tw-prose-invert-quote-borders: var(--color-slate-700);
+    --tw-prose-invert-captions: var(--color-slate-400);
+    --tw-prose-invert-code: var(--color-white);
+    --tw-prose-invert-pre-code: var(--color-slate-200);
+    --tw-prose-invert-pre-bg: rgb(0 0 0 / 50%);
+    --tw-prose-invert-th-borders: var(--color-slate-600);
+    --tw-prose-invert-td-borders: var(--color-slate-700);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* Force leaflet container to not overlap application UI components */
+.leaflet-container {
+    z-index: 0 !important;
+}
+
+/* Responsive Visualizations */
+[data-smiles-container] canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+.katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure tables do not break mobile layout */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+    background: var(--color-slate-300); 
+    border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: var(--color-slate-700); 
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-slate-400); 
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-slate-600); 
+}

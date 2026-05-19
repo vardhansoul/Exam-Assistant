@@ -78,8 +78,7 @@ const SelfSummaryChallenge: React.FC<SelfSummaryChallengeProps> = ({ topics, lan
     });
 
     try {
-      // Pass !user as isTrial
-      const result = await evaluateUserSummary(topic, userSummary, language, !user);
+      const result = await evaluateUserSummary(topic, userSummary, language);
       setFeedback(result);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -106,9 +105,9 @@ const SelfSummaryChallenge: React.FC<SelfSummaryChallengeProps> = ({ topics, lan
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Self-summary Challenge.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Self-summary Challenge.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>

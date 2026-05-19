@@ -91,11 +91,11 @@ const CareerCompass: React.FC<CareerCompassProps> = ({ language, isOnline, user,
         let response;
         if (tool === 'advice') {
             if (!performanceSummary) throw new Error("Performance data not loaded yet.");
-            response = await getCareerPathAdvice(input, performanceSummary, language, !user);
+            response = await getCareerPathAdvice(input, performanceSummary, language);
         } else if (tool === 'skill') {
-            response = await generateSkillDevelopmentPlan(input, language, !user);
+            response = await generateSkillDevelopmentPlan(input, language);
         } else { // resources
-            response = await findUpskillingResources(input, language, !user);
+            response = await findUpskillingResources(input, language);
         }
         setResult(response);
     } catch(err) {
@@ -134,7 +134,7 @@ const CareerCompass: React.FC<CareerCompassProps> = ({ language, isOnline, user,
               disabled={isLoading || !isOnline || !canAccessPremium}
               className="mt-auto w-full"
           >
-              {isLoading && activeTool === toolId ? 'Generating...' : !canAccessPremium ? 'Sign Up to Use' : 'Get Advice'}
+              {isLoading && activeTool === toolId ? 'Generating...' : !canAccessPremium ? 'Log In to Use' : 'Get Advice'}
           </Button>
       </Card>
   );
@@ -144,9 +144,9 @@ const CareerCompass: React.FC<CareerCompassProps> = ({ language, isOnline, user,
         <div className="max-w-4xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Career Compass.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Career Compass.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -197,13 +197,16 @@ const CareerCompass: React.FC<CareerCompassProps> = ({ language, isOnline, user,
                                     <div className="mt-6 pt-4 border-t">
                                         <h4 className="font-bold text-slate-700 mb-2">Sources Found:</h4>
                                         <ul className="space-y-2 text-sm">
-                                            {result.sources.map((source, index) => (
+                                            {result.sources.map((source, index) => {
+                                                if (!source.web?.uri) return null;
+                                                return (
                                                 <li key={index} className="p-2 bg-slate-100 rounded-md">
                                                     <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all" title={source.web.title}>
                                                         {source.web.title || source.web.uri}
                                                     </a>
                                                 </li>
-                                            ))}
+                                                );
+                                            })}
                                         </ul>
                                     </div>
                                 )}

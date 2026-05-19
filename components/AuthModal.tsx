@@ -2,8 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Button from './Button';
 import ErrorMessage from './ErrorMessage';
-import { sendPasswordReset, signInWithEmailPassword, signUpWithEmailPassword } from '../firebase';
-import { migrateGuestDataToUser } from '../utils/tracking';
+import { sendPasswordReset, signInWithEmailPassword } from '../firebase';
 import { getSpecificErrorMessage } from '../utils/errors';
 import Input from './Input';
 
@@ -14,7 +13,7 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStart, onAuthEnd }) => {
-  const [mode, setMode] = useState<'signIn' | 'signUp' | 'reset'>('signIn');
+  const [mode, setMode] = useState<'signIn' | 'reset'>('signIn');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
@@ -26,6 +25,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStart, onAuthEnd }
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [resetMessage, setResetMessage] = useState('');
+
+  // Access Code State
+  const [accessCodeInput, setAccessCodeInput] = useState('');
 
   useEffect(() => {
     isMounted.current = true;
@@ -55,14 +57,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStart, onAuthEnd }
         if (onAuthEnd) onAuthEnd();
       }
     }
-  };
-
-  const handleEmailSignUp = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleAuthOperation((async () => {
-      const { user } = await signUpWithEmailPassword(email, password, displayName);
-      await migrateGuestDataToUser(user.uid);
-    })());
   };
 
   const handleEmailSignIn = (e: React.FormEvent) => {
@@ -98,8 +92,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStart, onAuthEnd }
 
   const renderContent = () => {
     switch (mode) {
-        case 'signUp':
-            return ( <> <h2 className="text-3xl font-bold text-center mb-2">Create Your Account</h2> <p className="text-slate-500 text-center mb-8">Unlock all COC features and save your progress.</p> <form onSubmit={handleEmailSignUp} className="space-y-5"> <Input label="Full Name" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} required disabled={isLoading} /> <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} /> <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} /> <Button type="submit" variant="purple" disabled={isLoading} className="w-full !py-3.5 text-lg mt-4">{isLoading ? 'Creating...' : 'Create Account'}</Button> </form> </> );
         case 'reset':
             return ( <> <h2 className="text-3xl font-bold text-center mb-2">Reset Password</h2> <p className="text-slate-500 text-center mb-8">Enter your email to get a reset link.</p> <form onSubmit={handlePasswordResetSubmit} className="space-y-5"> {resetMessage && <div className="bg-green-100 text-green-700 p-4 rounded-lg text-sm mb-4">{resetMessage}</div>} <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} /> <Button type="submit" variant="primary" disabled={isLoading} className="w-full !py-3.5 text-lg mt-4">{isLoading ? 'Sending...' : 'Send Reset Link'}</Button> </form> </> );
         default: // signIn
@@ -147,8 +139,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onAuthStart, onAuthEnd }
                 {renderContent()}
                 
                 <div className="mt-8 text-center text-base">
-                    {mode === 'signIn' ? <p>Don't have an account? <button onClick={() => setMode('signUp')} className="font-bold text-indigo-600 hover:underline">Sign Up</button></p>
-                    : <p>Already have an account? <button onClick={() => setMode('signIn')} className="font-bold text-indigo-600 hover:underline">Sign In</button></p>}
+                    {mode === 'reset' && (
+                        <p>Remember your password? <button onClick={() => { setMode('signIn'); }} className="font-bold text-indigo-600 hover:underline">Sign In</button></p>
+                    )}
                 </div>
             </div>
         </div>

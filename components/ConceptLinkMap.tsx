@@ -98,8 +98,7 @@ const ConceptLinkMap: React.FC<ConceptLinkMapProps> = ({ topics, language, isOnl
     });
 
     try {
-      // Pass !user as isTrial
-      const data = await generateConceptLinkMap(topic, language, !user);
+      const data = await generateConceptLinkMap(topic, language);
       setMapData(data);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -120,9 +119,9 @@ const ConceptLinkMap: React.FC<ConceptLinkMapProps> = ({ topics, language, isOnl
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Concept Link Map.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Concept Link Map.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>

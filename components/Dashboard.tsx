@@ -8,6 +8,7 @@ import ClipboardListIcon from './icons/ClipboardListIcon';
 import UserGroupIcon from './icons/UserGroupIcon';
 import WrenchScrewdriverIcon from './icons/WrenchScrewdriverIcon';
 import GlobeAltIcon from './icons/GlobeAltIcon';
+import NewspaperIcon from './icons/NewspaperIcon2';
 import InformationCircleIcon from './icons/InformationCircleIcon';
 import RectangleGroupIcon from './icons/RectangleGroupIcon';
 import ScissorsIcon from './icons/ScissorsIcon';
@@ -30,16 +31,14 @@ const DashboardCard: React.FC<{
 }> = ({ title, description, icon, onClick }) => (
     <button
         onClick={onClick}
-        className="group w-full text-left p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+        className="group w-full text-left p-6 bg-white dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700/60 hover:border-red-400 dark:hover:border-red-500/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 flex flex-col h-full active:scale-[0.98]"
     >
-        <div className="flex items-start gap-4">
-            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                {icon}
-            </div>
-            <div className="flex-grow">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">{title}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
-            </div>
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl w-fit mb-5 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+            {icon}
+        </div>
+        <div className="flex-grow">
+            <h3 className="font-semibold text-blue-950 dark:text-blue-100 group-hover:text-red-800 dark:group-hover:text-red-200 text-base mb-1.5 transition-colors">{title}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
         </div>
     </button>
 );
@@ -59,18 +58,18 @@ const ActivityItem: React.FC<{ item: HistoryItem, onClick: () => void }> = ({ it
     return (
         <div 
             onClick={onClick}
-            className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+            className="flex items-center justify-between p-4 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer group"
         >
             <div className="flex items-center gap-3 overflow-hidden">
-                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-500 dark:text-indigo-400 flex-shrink-0">
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400 flex-shrink-0 group-hover:bg-red-100 dark:group-hover:bg-red-900/30 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                     <ClockIcon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{item.description}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate capitalize">{item.view.replace(/_/g, ' ').toLowerCase()}</p>
+                    <p className="text-sm font-medium text-blue-950 dark:text-blue-100 group-hover:text-red-800 dark:group-hover:text-red-200 transition-colors truncate">{item.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate capitalize mt-0.5">{item.view.replace(/_/g, ' ').toLowerCase()}</p>
                 </div>
             </div>
-            <span className="text-xs text-slate-400 dark:text-slate-500 flex-shrink-0 ml-2">
+            <span className="text-xs font-medium text-slate-400 dark:text-slate-500 flex-shrink-0 ml-3">
                 {timeAgo(item.timestamp)}
             </span>
         </div>
@@ -124,6 +123,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setView, lastSelection, onC
             view: AppView.LEARN_TOPICS
         },
         {
+            title: "Map Learning",
+            description: "Interactive map-based pointer challenge for geography and history.",
+            icon: <GlobeAltIcon className="w-6 h-6" />,
+            view: AppView.MAP_INTERACTIVE_LEARNING
+        },
+        {
             title: "Practice Quiz",
             description: "Generate custom quizzes based on your selected exam syllabus.",
             icon: <ClipboardListIcon className="w-6 h-6" />,
@@ -148,8 +153,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setView, lastSelection, onC
             view: AppView.CURRENT_AFFAIRS
         },
         { 
-            title: "Job Notifications",
-            description: "Find the latest government job openings from national and state sources.",
+            title: "Alerts & Updates",
+            description: "Get the latest job notifications, admit cards, and exam results in one place.",
             icon: <GlobeAltIcon className="w-6 h-6" />,
             view: AppView.JOB_NOTIFICATIONS
         },
@@ -191,20 +196,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setView, lastSelection, onC
     );
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
             {/* Header Section */}
-            <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-500 text-white shadow-lg">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 text-center sm:text-left">
-                    <div>
-                        <p className="text-sm font-medium text-indigo-200">YOUR CURRENT FOCUS</p>
-                        <h2 className="text-2xl font-bold truncate" title={selectionPath}>
-                            {displayFocus}
-                        </h2>
+            <div className="mb-10 p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row justify-between sm:items-center gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-blue-50 dark:bg-blue-900/10 rounded-full blur-3xl pointer-events-none transition-all"></div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-3">
+                        <p className="text-xs font-semibold tracking-wider text-blue-600 dark:text-blue-400 uppercase">Current Focus</p>
+                        {isOnline && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                                Synced
+                            </span>
+                        )}
                     </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight truncate" title={selectionPath}>
+                        {displayFocus}
+                    </h2>
+                </div>
+                <div className="relative z-10">
                     <Button 
                         onClick={onChangeExam} 
                         variant="secondary" 
-                        className="!bg-white/20 !border-white/30 !text-white hover:!bg-white/30 w-full sm:w-auto flex-shrink-0" 
+                        className="w-full sm:w-auto flex-shrink-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm" 
                         disabled={!isOnline}
                     >
                         {lastSelection ? 'Change Focus' : 'Select Focus'}
@@ -213,19 +227,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setView, lastSelection, onC
             </div>
 
             {/* Search Bar */}
-            <div className="mb-8 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <div className="mb-12 relative group">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                     </svg>
                 </div>
                 <input
                     type="text"
                     placeholder="Search tools like 'Quiz', 'Maps', 'Interview'..."
-                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-800 dark:text-slate-200 transition-all placeholder-slate-400"
+                    className="w-full pl-12 pr-12 py-4 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-blue-950 dark:text-blue-100 transition-all placeholder-slate-400 text-base shadow-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                    <button 
+                        onClick={() => setSearchTerm('')}
+                        className="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    >
+                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                )}
             </div>
 
             {/* Tools Grid Section */}
@@ -247,33 +271,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, setView, lastSelection, onC
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <p className="text-slate-500 dark:text-slate-400">No tools found matching "{searchTerm}".</p>
-                        <button onClick={() => setSearchTerm('')} className="mt-2 text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">Clear search</button>
+                    <div className="text-center py-16 bg-white dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700/50">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl flex items-center justify-center">
+                            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-slate-700 dark:text-slate-300 font-semibold mb-1">No tools found</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">We couldn't find anything matching "{searchTerm}".</p>
+                        <button onClick={() => setSearchTerm('')} className="mt-5 text-blue-600 dark:text-blue-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-semibold transition-colors">Clear search</button>
                     </div>
                 )}
             </div>
             
             {/* Recent Activity Section */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+            <div className="bg-white dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-6 sm:p-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Recent Activity</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Recent Activity</h3>
                     <button 
                         onClick={() => setView(AppView.LEARNING_TRACKER)}
-                        className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                        className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:text-red-700 dark:hover:text-red-300 transition-colors flex items-center gap-1"
                     >
-                        View Analytics →
+                        View Analytics <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     </button>
                 </div>
                 
                 {isLoadingHistory ? (
-                    <div className="text-center py-10 text-slate-500">Loading activity...</div>
+                    <div className="text-center py-12 text-slate-500">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                        <p className="text-sm font-medium">Loading activity...</p>
+                    </div>
                 ) : recentActivity.length === 0 ? (
-                    <div className="text-center py-10 px-4">
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">No recent activity found. Start using the tools to see your history here!</p>
+                    <div className="text-center py-12 px-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-blue-50 dark:bg-blue-900/10 rounded-full flex items-center justify-center">
+                            <ClockIcon className="w-6 h-6 text-blue-400/80" />
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium">No recent activity</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Start using the tools to see your history here!</p>
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800/40 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700/50 divide-y divide-slate-100 dark:divide-slate-700/50">
                         {recentActivity.map((item, index) => (
                             <ActivityItem 
                                 key={item.id || index} 

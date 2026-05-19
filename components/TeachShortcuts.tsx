@@ -113,9 +113,9 @@ const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline, sho
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to learn Aptitude Shortcuts.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to learn Aptitude Shortcuts.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -160,8 +160,8 @@ const TeachShortcuts: React.FC<TeachShortcutsProps> = ({ language, isOnline, sho
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 no-print">
                 <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200">Solving Approaches</h3>
                 <div className="self-end sm:self-auto">
-                    <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2">
-                        <PrinterIcon className="w-4 h-4" /> Print
+                    <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2" title="Print format">
+                        <PrinterIcon className="w-4 h-4" /> 
                     </Button>
                 </div>
             </div>

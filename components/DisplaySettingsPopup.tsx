@@ -78,6 +78,7 @@ const DisplaySettingsPopup: React.FC<DisplaySettingsPopupProps> = ({
                 currentValue={fontFamily}
                 onSelect={(value) => onSettingsChange({ fontFamily: value })}
             />
+            
             <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                  <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-3 text-lg">Language</h4>
                  <input

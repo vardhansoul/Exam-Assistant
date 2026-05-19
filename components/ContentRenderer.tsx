@@ -1,10 +1,24 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { BarChart, BarChartData, PieChart, PieChartData } from './charts';
-import { ShapeDiagram, ShapeDiagramData, VennDiagram, VennDiagramData, PyramidDiagram, PyramidDiagramData, CycleDiagram, CycleDiagramData, ProcessDiagram, ProcessDiagramData, HierarchyDiagram, HierarchyDiagramData } from './diagrams';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { motion } from 'motion/react';
 import InformationCircleIcon from './icons/InformationCircleIcon';
 import LightBulbIcon from './icons/LightBulbIcon';
 import ExclamationTriangleIcon from './icons/ExclamationTriangleIcon';
+
+// --- Lazy Loaders for Heavy React Components ---
+const GeographyMap = lazy(() => import('./GeographyMap').then(m => ({ default: m.GeographyMap })));
+const BarChart = lazy(() => import('./charts').then(m => ({ default: m.BarChart })));
+const PieChart = lazy(() => import('./charts').then(m => ({ default: m.PieChart })));
+const ShapeDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.ShapeDiagram })));
+const VennDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.VennDiagram })));
+const PyramidDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.PyramidDiagram })));
+const CycleDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.CycleDiagram })));
+const ProcessDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.ProcessDiagram })));
+const HierarchyDiagram = lazy(() => import('./diagrams').then(m => ({ default: m.HierarchyDiagram })));
+
+// Re-export type Data for parsing
+import type { BarChartData, PieChartData } from './charts';
+import type { ShapeDiagramData, VennDiagramData, PyramidDiagramData, CycleDiagramData, ProcessDiagramData, HierarchyDiagramData } from './diagrams';
 
 // --- Lazy Loaders for Heavy Libraries ---
 
@@ -38,32 +52,6 @@ const loadKaTeX = () => {
     });
     return katexPromise;
 };
-
-// 2. Mermaid.js (Flowcharts, Mindmaps, Physics/Bio Process Diagrams)
-let mermaidPromise: Promise<void> | null = null;
-const loadMermaid = () => {
-    if (typeof window !== 'undefined' && (window as any).mermaid) return Promise.resolve();
-    if (mermaidPromise) return mermaidPromise;
-
-    mermaidPromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js';
-        script.onload = () => {
-            // Initialize mermaid
-            const isDark = document.documentElement.classList.contains('dark');
-            (window as any).mermaid.initialize({ 
-                startOnLoad: false, 
-                theme: isDark ? 'dark' : 'default',
-                securityLevel: 'loose',
-                fontFamily: 'Inter, sans-serif'
-            });
-            resolve();
-        };
-        script.onerror = () => reject();
-        document.head.appendChild(script);
-    });
-    return mermaidPromise;
-}
 
 // 3. SmilesDrawer (Chemical Structures)
 let smilesPromise: Promise<void> | null = null;
@@ -109,51 +97,22 @@ const MathSpan: React.FC<{ math: string; block: boolean }> = ({ math, block }) =
     return <span dangerouslySetInnerHTML={{ __html: html }} className={block ? "block my-4 text-center overflow-x-auto" : ""} />;
 };
 
-const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
-    const [svg, setSvg] = useState('');
-    const [error, setError] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        let mounted = true;
-        loadMermaid().then(() => {
-            if(!mounted) return;
-            try {
-                const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-                (window as any).mermaid.render(id, chart).then((res: any) => {
-                     if(mounted) setSvg(res.svg);
-                }).catch((e: any) => {
-                    console.error("Mermaid Render Error:", e);
-                    if(mounted) setError(true);
-                });
-            } catch(e) { 
-                console.error(e);
-                if(mounted) setError(true);
-            }
-        });
-        return () => { mounted = false; };
-    }, [chart]);
-
-    if (error) return <pre className="text-xs bg-red-50 text-red-500 p-2 rounded">{chart}</pre>;
-    if (!svg) return <div className="animate-pulse bg-slate-100 dark:bg-slate-800 h-32 rounded-lg my-4"></div>;
-    
-    return (
-        <div 
-            ref={containerRef}
-            className="mermaid-diagram overflow-x-auto my-6 flex justify-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700" 
-            dangerouslySetInnerHTML={{ __html: svg }} 
-        />
-    );
-}
-
 const SmilesBlock: React.FC<{ smiles: string }> = ({ smiles }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [loaded, setLoaded] = useState(false);
+    const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+    
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'));
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
     
     useEffect(() => {
         loadSmilesDrawer().then(() => {
             if (canvasRef.current && (window as any).SmilesDrawer) {
-                const isDark = document.documentElement.classList.contains('dark');
                 const options = {
                     width: 300,
                     height: 200,
@@ -172,6 +131,10 @@ const SmilesBlock: React.FC<{ smiles: string }> = ({ smiles }) => {
                 };
                 
                 try {
+                    if (canvasRef.current) {
+                        const ctx = canvasRef.current.getContext('2d');
+                        if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                    }
                     const drawer = new (window as any).SmilesDrawer.Drawer(options);
                     (window as any).SmilesDrawer.parse(smiles, (tree: any) => {
                         drawer.draw(tree, canvasRef.current, isDark ? 'dark' : 'light', false);
@@ -182,7 +145,7 @@ const SmilesBlock: React.FC<{ smiles: string }> = ({ smiles }) => {
                 }
             }
         });
-    }, [smiles]);
+    }, [smiles, isDark]);
 
     return (
         <div className="my-6 flex flex-col items-center">
@@ -194,6 +157,143 @@ const SmilesBlock: React.FC<{ smiles: string }> = ({ smiles }) => {
         </div>
     );
 }
+
+const DecisionBlock: React.FC<{ data: any }> = ({ data }) => {
+    const [selected, setSelected] = useState<number | null>(null);
+
+    return (
+        <div className="my-6 p-6 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+            <h4 className="font-bold text-indigo-800 dark:text-indigo-300 mb-4 flex items-center gap-2">
+                <LightBulbIcon className="w-5 h-5" /> Decision Scenario
+            </h4>
+            <p className="text-slate-700 dark:text-slate-300 mb-6">{data.scenario}</p>
+            <div className="space-y-3">
+                {data.options.map((opt: any, idx: number) => (
+                    <div key={idx}>
+                        <button 
+                            onClick={() => setSelected(idx)}
+                            disabled={selected !== null}
+                            className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                                selected === null 
+                                    ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-400' 
+                                    : selected === idx 
+                                        ? opt.isCorrect 
+                                            ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-800 dark:text-green-300' 
+                                            : 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-800 dark:text-red-300'
+                                        : opt.isCorrect
+                                            ? 'bg-green-50 dark:bg-green-900/10 border-green-300 text-green-700 dark:text-green-400 opacity-70'
+                                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-50'
+                            }`}
+                        >
+                            {opt.text}
+                        </button>
+                        {selected !== null && (selected === idx || opt.isCorrect) && (
+                            <div className={`mt-2 p-3 rounded-lg text-sm ${opt.isCorrect ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300'}`}>
+                                <span className="font-bold">{opt.isCorrect ? 'Correct!' : 'Incorrect.'}</span> {opt.explanation}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const SimulationBlock: React.FC<{ data: any }> = ({ data }) => {
+    const [values, setValues] = useState<Record<string, number>>(() => {
+        const initial: Record<string, number> = {};
+        data.variables?.forEach((v: any) => initial[v.symbol] = v.value);
+        return initial;
+    });
+
+    const handleSliderChange = (symbol: string, val: number) => {
+        setValues(prev => ({ ...prev, [symbol]: val }));
+    };
+
+    const evaluateFormula = (formula: string) => {
+        try {
+            // Create a function that takes all variables as arguments
+            const keys = Object.keys(values);
+            const args = keys.map(k => values[k]);
+            const fn = new Function(...keys, `return ${formula};`);
+            const result = fn(...args);
+            return isNaN(result) ? 'Error' : Number(result.toFixed(2));
+        } catch (e) {
+            return 'Error';
+        }
+    };
+
+    return (
+        <div className="my-6 p-6 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
+            <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-4">{data.title || 'Interactive Simulation'}</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                    <h5 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Variables</h5>
+                    {data.variables?.map((v: any) => (
+                        <div key={v.symbol}>
+                            <div className="flex justify-between mb-1">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{v.name}</label>
+                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{values[v.symbol]}</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min={v.min} 
+                                max={v.max} 
+                                step={v.step || 1}
+                                value={values[v.symbol]}
+                                onChange={(e) => handleSliderChange(v.symbol, parseFloat(e.target.value))}
+                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700 accent-indigo-600"
+                            />
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="space-y-4">
+                    <h5 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Live Results</h5>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                        {data.outputs?.map((out: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                                <span className="text-slate-600 dark:text-slate-400">{out.name}</span>
+                                <span className="font-bold text-lg text-slate-800 dark:text-slate-100">{evaluateFormula(out.formula)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const AnimationBlock: React.FC<{ data: any }> = ({ data }) => {
+    return (
+        <div className="my-6 p-6 bg-slate-900 rounded-xl overflow-hidden relative flex items-center justify-center min-h-[200px]">
+            {data.elements?.map((el: any, idx: number) => {
+                const Element = motion.div;
+                return (
+                    <Element
+                        key={idx}
+                        initial={el.initial}
+                        animate={el.animate}
+                        transition={{ ...el.transition, repeat: Infinity, repeatType: "reverse" }}
+                        className={`absolute flex items-center justify-center font-bold text-white shadow-lg ${
+                            el.type === 'circle' ? 'rounded-full' : 'rounded-lg'
+                        }`}
+                        style={{
+                            backgroundColor: el.color || '#4f46e5',
+                            width: el.width || 80,
+                            height: el.height || 80,
+                            ...el.style
+                        }}
+                    >
+                        {el.label}
+                    </Element>
+                );
+            })}
+            <div className="absolute bottom-2 right-2 text-xs text-slate-500 font-mono">Animated Concept</div>
+        </div>
+    );
+};
 
 // --- Parsers ---
 
@@ -207,7 +307,7 @@ const inlineParsers: Parser[] = [
   // Math & Chem parser: Supports $$...$$, \[...\], \(...\), $...$, and \ce{...} (inside math delimiters)
   { 
     name: 'katex', 
-    regex: /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$[^\n$]+?(?<!\\)\$)/, 
+    regex: /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$([^\s$]|([^\s$][^$]*?[^\s$]))(?<!\\)\$|\\(?:mathbb|mathcal|mathbf|mathrm|mathfrak|sum|prod|int|ce|sqrt)\{.*?\}|\\frac\{.*?\}\{.*?\})/, 
     renderer: (matches, key) => {
       const match = matches[0];
       let math = match;
@@ -229,7 +329,14 @@ const inlineParsers: Parser[] = [
       return <MathSpan key={key} math={math} block={isBlock} />;
     }
   },
+  { name: 'escapedDollar', regex: /\\\$/, renderer: (matches, key) => <React.Fragment key={key}>$</React.Fragment> },
+  { name: 'escapedAsterisk', regex: /\\\*/, renderer: (matches, key) => <React.Fragment key={key}>*</React.Fragment> },
+  { name: 'escapedUnderscore', regex: /\\_/, renderer: (matches, key) => <React.Fragment key={key}>_</React.Fragment> },
+  { name: 'escapedTilde', regex: /\\~/, renderer: (matches, key) => <React.Fragment key={key}>~</React.Fragment> },
+  { name: 'escapedSlash', regex: /\\\//, renderer: (matches, key) => <React.Fragment key={key}>/</React.Fragment> },
   { name: 'link', regex: /\[(.*?)\]\((.*?)\)/, renderer: (matches, key) => <a key={key} href={matches[2]} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{matches[1]}</a> },
+  { name: 'highlightPyq', regex: /==PYQ:(.*?)==/i, renderer: (matches, key) => <mark key={key} className="bg-purple-200 dark:bg-purple-900/50 text-purple-900 dark:text-purple-100 px-1.5 py-0.5 rounded font-bold">🎯 PYQ: {matches[1]}</mark> },
+  { name: 'highlight', regex: /==(.*?)==/, renderer: (matches, key) => <mark key={key} className="bg-yellow-200 dark:bg-yellow-800/40 text-yellow-900 dark:text-yellow-100 px-1.5 py-0.5 rounded font-semibold">{matches[1]}</mark> },
   { name: 'boldItalic', regex: /\*\*\*(.*?)\*\*\*/, renderer: (matches, key) => <strong key={key}><em>{matches[1]}</em></strong> },
   { name: 'bold', regex: /\*\*(.*?)\*\*/, renderer: (matches, key) => <strong key={key}>{matches[1]}</strong> },
   { name: 'italic', regex: /\*(.*?)\*/, renderer: (matches, key) => <em key={key}>{matches[1]}</em> },
@@ -240,63 +347,147 @@ const inlineParsers: Parser[] = [
   { name: 'inlineCode', regex: /`(.*?)`/, renderer: (matches, key) => <code key={key} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md px-1.5 py-0.5 font-mono text-sm">{matches[1]}</code> },
 ];
 
-const combinedRegex = new RegExp(inlineParsers.map(p => p.regex.source).join('|'));
+const combinedRegexCode = inlineParsers.map(p => `(${p.regex.source})`).join('|');
+const globalRegex = new RegExp(combinedRegexCode, 'g');
 
 const parseInlineText = (text: string): React.ReactNode => {
     if (!text) return text;
-    const cleanedText = text.replace(/\/\/(.*?)\$?\/\//g, '$1');
-    const parts = cleanedText.split(combinedRegex);
+    
+    // Fix for common hallucination where model outputs $/ instead of $ or /$
+    let cleanedText = text.replace(/\$\//g, '$').replace(/\/\$/g, '$');
+    
+    // Fix for /${[ or similar hallucinated bracket garbage
+    cleanedText = cleanedText.replace(/\/\$\{\[/g, '').replace(/\/\$\\]/g, '');
 
-    return parts.map((part, index) => {
-        if (!part) return null;
+    // Fix for AI outputting \Frac instead of \frac in LaTeX
+    cleanedText = cleanedText.replace(/\\Frac/g, '\\frac');
+    
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+    
+    // Reset global regex index
+    globalRegex.lastIndex = 0;
+    
+    let match;
+    while ((match = globalRegex.exec(cleanedText)) !== null) {
+        if (match.index > lastIndex) {
+            elements.push(cleanedText.substring(lastIndex, match.index));
+        }
+        
+        const matchedText = match[0];
+        let parserFound = false;
+        
         for (const parser of inlineParsers) {
-            const match = part.match(new RegExp(`^${parser.regex.source}$`));
-            if (match) {
-                return parser.renderer(match, index);
+            const parserMatch = matchedText.match(new RegExp(`^${parser.regex.source}$`));
+            if (parserMatch) {
+                elements.push(parser.renderer(parserMatch, elements.length));
+                parserFound = true;
+                break;
             }
         }
-        return part;
-    });
+        
+        if (!parserFound) {
+            elements.push(matchedText);
+        }
+        
+        lastIndex = globalRegex.lastIndex;
+    }
+    
+    if (lastIndex < cleanedText.length) {
+        elements.push(cleanedText.substring(lastIndex));
+    }
+    
+    return <>{elements.map((el, i) => React.isValidElement(el) ? React.cloneElement(el, { key: i } as Partial<unknown>) : <React.Fragment key={i}>{el}</React.Fragment>)}</>;
 };
 
 const TextRenderer: React.FC<{ text: string }> = ({ text }) => {
     const lines = text.split('\n');
-    return (
-        <>
-            {lines.map((line, index) => {
-                const trimmedLine = line.trim();
+    const elements: React.ReactNode[] = [];
+    let currentList: { type: 'ul' | 'ol', items: React.ReactNode[] } | null = null;
+    
+    const flushList = () => {
+        if (currentList) {
+            const ListTag = currentList.type;
+            elements.push(<ListTag key={`list-${elements.length}`} className={currentList.type === 'ul' ? 'list-disc ml-5 mb-4 space-y-1' : 'list-decimal ml-5 mb-4 space-y-1'}>{currentList.items}</ListTag>);
+            currentList = null;
+        }
+    };
 
-                const calloutMatch = trimmedLine.match(/^>\s*\[!(NOTE|TIP|WARNING)\]\s*(.*)/i);
-                if (calloutMatch) {
-                    const type = calloutMatch[1].toUpperCase();
-                    const content = calloutMatch[2];
-                    const styles = {
-                        NOTE: { bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-400 dark:border-blue-600', iconColor: 'text-blue-500 dark:text-blue-400', icon: <InformationCircleIcon className="w-5 h-5" /> },
-                        TIP: { bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-400 dark:border-amber-600', iconColor: 'text-amber-500 dark:text-amber-400', icon: <LightBulbIcon className="w-5 h-5" /> },
-                        WARNING: { bg: 'bg-red-50 dark:bg-red-900/30', border: 'border-red-400 dark:border-red-600', iconColor: 'text-red-500 dark:text-red-400', icon: <ExclamationTriangleIcon className="w-5 h-5" /> }
-                    };
-                    const style = styles[type as keyof typeof styles];
-                    return (
-                        <div key={index} className={`my-4 p-4 rounded-lg border-l-4 ${style.bg} ${style.border}`}>
-                            <div className="flex items-start gap-3">
-                                <div className={`flex-shrink-0 ${style.iconColor}`}>{style.icon}</div>
-                                <div className="text-sm text-slate-700 dark:text-slate-300">{parseInlineText(content)}</div>
-                            </div>
-                        </div>
-                    );
-                }
+    lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
 
-                if (trimmedLine.startsWith('### ')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{parseInlineText(trimmedLine.substring(4))}</h3>;
-                if (trimmedLine.startsWith('## ')) return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{parseInlineText(trimmedLine.substring(3))}</h2>;
-                if (trimmedLine.startsWith('# ')) return <h1 key={index} className="text-2xl font-extrabold mt-8 mb-4">{parseInlineText(trimmedLine.substring(2))}</h1>;
-                if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) return <li key={index} className="ml-5 list-disc">{parseInlineText(trimmedLine.substring(2))}</li>;
-                
-                if (trimmedLine === '') return <br key={index} />;
+        // Notebook styling for Questions and Answers
+        const qMatch = trimmedLine.match(/^(?:#+\s*)?(?:\*\*|\*|_*)?(?:Q|Question)(?:\s*\d*)?\s*:\s*(?:\*\*|\*|_*)?(.*)/i);
+        if (qMatch) {
+            flushList();
+            elements.push(<div key={index} className="my-3 font-bold text-red-800 dark:text-red-300 text-lg">{parseInlineText(line)}</div>);
+            return;
+        }
 
-                return <p key={index} className="my-1">{parseInlineText(line)}</p>;
-            })}
-        </>
-    );
+        const aMatch = trimmedLine.match(/^(?:#+\s*)?(?:\*\*|\*|_*)?(?:A|Answer|Ans)(?:\s*\d*)?\s*:\s*(?:\*\*|\*|_*)?(.*)/i);
+        if (aMatch) {
+            flushList();
+            elements.push(<div key={index} className="my-2 font-semibold text-blue-950 dark:text-blue-100 text-base">{parseInlineText(line)}</div>);
+            return;
+        }
+
+        const calloutMatch = trimmedLine.match(/^>\s*\[!(NOTE|TIP|WARNING)\]\s*(.*)/i);
+        if (calloutMatch) {
+            flushList();
+            const type = calloutMatch[1].toUpperCase();
+            const content = calloutMatch[2];
+            const styles = {
+                NOTE: { bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-400 dark:border-blue-600', iconColor: 'text-blue-500 dark:text-blue-400', icon: <InformationCircleIcon className="w-5 h-5" /> },
+                TIP: { bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-400 dark:border-amber-600', iconColor: 'text-amber-500 dark:text-amber-400', icon: <LightBulbIcon className="w-5 h-5" /> },
+                WARNING: { bg: 'bg-red-50 dark:bg-red-900/30', border: 'border-red-400 dark:border-red-600', iconColor: 'text-red-500 dark:text-red-400', icon: <ExclamationTriangleIcon className="w-5 h-5" /> }
+            };
+            const style = styles[type as keyof typeof styles];
+            elements.push(
+                <div key={index} className={`my-4 p-4 rounded-lg border-l-4 ${style.bg} ${style.border}`}>
+                    <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 ${style.iconColor}`}>{style.icon}</div>
+                        <div className="text-sm text-slate-700 dark:text-slate-300">{parseInlineText(content)}</div>
+                    </div>
+                </div>
+            );
+            return;
+        }
+
+        if (trimmedLine.startsWith('### ')) { flushList(); elements.push(<h3 key={index} className="text-lg font-semibold mt-4 mb-2">{parseInlineText(trimmedLine.substring(4))}</h3>); return; }
+        if (trimmedLine.startsWith('## ')) { flushList(); elements.push(<h2 key={index} className="text-xl font-bold mt-6 mb-3">{parseInlineText(trimmedLine.substring(3))}</h2>); return; }
+        if (trimmedLine.startsWith('# ')) { flushList(); elements.push(<h1 key={index} className="text-2xl font-extrabold mt-8 mb-4">{parseInlineText(trimmedLine.substring(2))}</h1>); return; }
+        
+        const ulMatch = trimmedLine.match(/^[*+-]\s+(.*)/);
+        if (ulMatch) {
+            if (!currentList || currentList.type !== 'ul') {
+                flushList();
+                currentList = { type: 'ul', items: [] };
+            }
+            currentList.items.push(<li key={index} className="pl-1">{parseInlineText(ulMatch[1])}</li>);
+            return;
+        }
+
+        const olMatch = trimmedLine.match(/^\d+\.\s+(.*)/);
+        if (olMatch) {
+            if (!currentList || currentList.type !== 'ol') {
+                flushList();
+                currentList = { type: 'ol', items: [] };
+            }
+            currentList.items.push(<li key={index} className="pl-1">{parseInlineText(olMatch[1])}</li>);
+            return;
+        }
+
+        flushList();
+        if (trimmedLine === '') {
+            elements.push(<br key={index} />);
+            return;
+        }
+
+        elements.push(<p key={index} className="my-1">{parseInlineText(line)}</p>);
+    });
+
+    flushList();
+    return <>{elements}</>;
 };
 
 const TableRenderer: React.FC<{ rows: string[] }> = ({ rows }) => {
@@ -328,8 +519,17 @@ const TableRenderer: React.FC<{ rows: string[] }> = ({ rows }) => {
 };
 
 const CodeBlockRenderer: React.FC<{ lines: string[] }> = ({ lines }) => {
-    const lang = lines[0].replace(/```/g, '').trim();
-    const code = lines.slice(1, -1).join('\n');
+    const raw = lines.join('\n');
+    let lang = '';
+    let code = raw;
+    
+    const match = raw.match(/^```([a-zA-Z0-9_\-+]+)?/);
+    if (match) {
+        lang = match[1] || '';
+    }
+    
+    code = code.replace(/^```[a-zA-Z0-9_\-+]*[ \t]*\n?/, '').replace(/\n?```[ \t]*$/, '');
+
     return (
         <div className="my-4 bg-slate-800 rounded-lg overflow-hidden text-sm shadow-md">
             {lang && <div className="text-xs text-slate-300 bg-slate-900 px-4 py-1 font-mono uppercase tracking-wide">{lang}</div>}
@@ -341,74 +541,117 @@ const CodeBlockRenderer: React.FC<{ lines: string[] }> = ({ lines }) => {
 const ContentRenderer: React.FC<{ content: string; className?: string }> = ({ content, className }) => {
     if (!content) return null;
 
-    const blocks: { type: 'text' | 'json' | 'table' | 'code' | 'mermaid' | 'smiles'; lines: string[] }[] = [];
-    let currentBlock = { type: 'text' as 'text' | 'json' | 'table' | 'code' | 'mermaid' | 'smiles', lines: [] as string[] };
-    const lines = content.split('\n');
+    const blocks = React.useMemo(() => {
+        // Pre-process to remove hallucinated $/ ... /$ blocks or standalone $/ lines
+        const cleanedContent = content.replace(/\$\/[\s\S]*?\/\$/g, '').replace(/^\s*\$\/.*$/gm, '');
 
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-        const isInBlock = ['json', 'code', 'mermaid', 'smiles'].includes(currentBlock.type);
+        const parsedBlocks: { type: 'text' | 'json' | 'table' | 'code' | 'smiles' | 'math' | 'map'; lines: string[] }[] = [];
+        let currentBlock = { type: 'text' as 'text' | 'json' | 'table' | 'code' | 'smiles' | 'math' | 'map', lines: [] as string[] };
+        const lines = cleanedContent.split('\n');
 
-        if (trimmedLine.startsWith('```') && !isInBlock) {
-            if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') blocks.push(currentBlock);
-            let type: 'json' | 'code' | 'mermaid' | 'smiles' = 'code';
-            if (trimmedLine.startsWith('```json')) type = 'json';
-            else if (trimmedLine.startsWith('```mermaid')) type = 'mermaid';
-            else if (trimmedLine.startsWith('```smiles')) type = 'smiles';
-            
-            currentBlock = { type, lines: [line] };
-        } else if (trimmedLine.startsWith('```') && isInBlock) {
-            currentBlock.lines.push(line);
-            blocks.push(currentBlock);
-            currentBlock = { type: 'text', lines: [] };
-        } else if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|') && !isInBlock) {
-            if (currentBlock.type !== 'table') {
-                if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') blocks.push(currentBlock);
-                currentBlock = { type: 'table', lines: [line] };
-            } else {
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            const isInBlock = ['json', 'code', 'smiles', 'math', 'map'].includes(currentBlock.type);
+
+            if (trimmedLine.startsWith('```') && !isInBlock) {
+                if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') parsedBlocks.push(currentBlock);
+                let type: 'json' | 'code' | 'smiles' | 'map' = 'code';
+                if (trimmedLine.startsWith('```json')) type = 'json';
+                else if (trimmedLine.startsWith('```smiles')) type = 'smiles';
+                else if (trimmedLine.startsWith('```map')) type = 'map';
+                
+                currentBlock = { type, lines: [line] };
+            } else if (trimmedLine.startsWith('```') && isInBlock && currentBlock.type !== 'math') {
                 currentBlock.lines.push(line);
-            }
-        } else if (isInBlock) {
-            currentBlock.lines.push(line);
-        } else {
-            if (currentBlock.type === 'table') {
-                blocks.push(currentBlock);
-                currentBlock = { type: 'text', lines: [line] };
-            } else {
+                parsedBlocks.push(currentBlock);
+                currentBlock = { type: 'text', lines: [] };
+            } else if (trimmedLine.startsWith('$$') && !isInBlock) {
+                if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') parsedBlocks.push(currentBlock);
+                if (trimmedLine === '$$') {
+                    currentBlock = { type: 'math', lines: [line] };
+                } else if (trimmedLine.endsWith('$$') && trimmedLine.length > 2) {
+                    parsedBlocks.push({ type: 'math', lines: [line] });
+                    currentBlock = { type: 'text', lines: [] };
+                } else {
+                    currentBlock = { type: 'math', lines: [line] };
+                }
+            } else if (trimmedLine.endsWith('$$') && currentBlock.type === 'math') {
                 currentBlock.lines.push(line);
+                parsedBlocks.push(currentBlock);
+                currentBlock = { type: 'text', lines: [] };
+            } else if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|') && !isInBlock) {
+                if (currentBlock.type !== 'table') {
+                    if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') parsedBlocks.push(currentBlock);
+                    currentBlock = { type: 'table', lines: [line] };
+                } else {
+                    currentBlock.lines.push(line);
+                }
+            } else if (isInBlock) {
+                currentBlock.lines.push(line);
+            } else {
+                if (currentBlock.type === 'table') {
+                    parsedBlocks.push(currentBlock);
+                    currentBlock = { type: 'text', lines: [line] };
+                } else {
+                    currentBlock.lines.push(line);
+                }
             }
         }
-    }
-    if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') blocks.push(currentBlock);
+        if (currentBlock.lines.length > 0 && currentBlock.lines.join('').trim() !== '') parsedBlocks.push(currentBlock);
+        
+        return parsedBlocks;
+    }, [content]);
 
     return (
         <div className={className}>
             {blocks.map((block, index) => {
                 const key = `block-${index}`;
-                
-                if (block.type === 'mermaid') {
-                    const chart = block.lines.slice(1, -1).join('\n');
-                    return <MermaidBlock key={key} chart={chart} />;
-                }
 
                 if (block.type === 'smiles') {
-                    const smiles = block.lines.slice(1, -1).join('').trim();
-                    return <SmilesBlock key={key} smiles={smiles} />;
+                    let smilesStr = block.lines.join('\n');
+                    smilesStr = smilesStr.replace(/^```smiles[ \t]*/i, '').replace(/\n?```[ \t]*$/i, '').trim();
+                    return <SmilesBlock key={key} smiles={smilesStr} />;
+                }
+
+                if (block.type === 'math') {
+                    const mathStr = block.lines.join('\n').replace(/^\$\$/, '').replace(/\$\$$/, '').replace(/\\Frac/g, '\\frac').trim();
+                    return <MathSpan key={key} math={mathStr} block={true} />;
+                }
+
+                if (block.type === 'map') {
+                    try {
+                        let jsonString = block.lines.join('\n');
+                        jsonString = jsonString.replace(/^```map[ \t]*\n?/i, '').replace(/\n?```[ \t]*$/i, '').trim();
+                        // Strip comments and trailing commas from JSON
+                        jsonString = jsonString.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').replace(/,(?=\s*[}\]])/g, '');
+                        const mapData = JSON.parse(jsonString);
+                        return <Suspense key={key} fallback={<div className="h-48 w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl my-6 flex items-center justify-center text-slate-400 text-sm">Loading Interactive Map...</div>}><GeographyMap data={mapData} /></Suspense>;
+                    } catch (e) {
+                         return <pre key={key} className="bg-red-100 dark:bg-red-900/30 text-xs p-2 rounded text-red-600">Invalid Map visualization Data</pre>;
+                    }
                 }
 
                 if (block.type === 'json') {
                     try {
-                        const jsonString = block.lines.join('\n').replace(/```json\n?/, '').replace(/\n?```/, '');
+                        let jsonString = block.lines.join('\n');
+                        jsonString = jsonString.replace(/^```json[ \t]*\n?/i, '').replace(/\n?```[ \t]*$/i, '').trim();
+                        // Strip comments and trailing commas from JSON
+                        jsonString = jsonString.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').replace(/,(?=\s*[}\]])/g, '');
                         const diagramData = JSON.parse(jsonString);
 
-                        if (diagramData.chartType === 'bar') return <BarChart key={key} data={diagramData as BarChartData} />;
-                        if (diagramData.chartType === 'pie') return <PieChart key={key} data={diagramData as PieChartData} />;
-                        if (diagramData.diagramType === 'shape') return <ShapeDiagram key={key} data={diagramData as ShapeDiagramData} />;
-                        if (diagramData.diagramType === 'venn') return <VennDiagram key={key} data={diagramData as VennDiagramData} />;
-                        if (diagramData.diagramType === 'pyramid') return <PyramidDiagram key={key} data={diagramData as PyramidDiagramData} />;
-                        if (diagramData.diagramType === 'cycle') return <CycleDiagram key={key} data={diagramData as CycleDiagramData} />;
-                        if (diagramData.diagramType === 'process') return <ProcessDiagram key={key} data={diagramData as ProcessDiagramData} />;
-                        if (diagramData.diagramType === 'hierarchy') return <HierarchyDiagram key={key} data={diagramData as HierarchyDiagramData} />;
+                        const Fallback = <div className="h-48 w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl my-6 flex items-center justify-center text-slate-400 text-sm">Loading Chart...</div>;
+
+                        if (diagramData.chartType === 'bar') return <Suspense fallback={Fallback} key={key}><BarChart data={diagramData as BarChartData} /></Suspense>;
+                        if (diagramData.chartType === 'pie') return <Suspense fallback={Fallback} key={key}><PieChart data={diagramData as PieChartData} /></Suspense>;
+                        if (diagramData.diagramType === 'shape') return <Suspense fallback={Fallback} key={key}><ShapeDiagram data={diagramData as ShapeDiagramData} /></Suspense>;
+                        if (diagramData.diagramType === 'venn') return <Suspense fallback={Fallback} key={key}><VennDiagram data={diagramData as VennDiagramData} /></Suspense>;
+                        if (diagramData.diagramType === 'pyramid') return <Suspense fallback={Fallback} key={key}><PyramidDiagram data={diagramData as PyramidDiagramData} /></Suspense>;
+                        if (diagramData.diagramType === 'cycle') return <Suspense fallback={Fallback} key={key}><CycleDiagram data={diagramData as CycleDiagramData} /></Suspense>;
+                        if (diagramData.diagramType === 'process') return <Suspense fallback={Fallback} key={key}><ProcessDiagram data={diagramData as ProcessDiagramData} /></Suspense>;
+                        if (diagramData.diagramType === 'hierarchy') return <Suspense fallback={Fallback} key={key}><HierarchyDiagram data={diagramData as HierarchyDiagramData} /></Suspense>;
+                        if (diagramData.type === 'decision') return <DecisionBlock key={key} data={diagramData} />;
+                        if (diagramData.type === 'simulation') return <SimulationBlock key={key} data={diagramData} />;
+                        if (diagramData.type === 'animation') return <AnimationBlock key={key} data={diagramData} />;
                         
                         return <pre key={key} className="bg-slate-100 dark:bg-slate-900 text-xs p-2 rounded overflow-auto max-h-40">{jsonString}</pre>;
                     } catch (e) {

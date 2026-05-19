@@ -2,9 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage, InterviewChat, User, HistoryType } from '../types';
 import { AppView } from '../types';
-import { createGeneralChat, sendMessageToChatStream, generatePromptSuggestions } from '../services/geminiService';
+import { sendCocMessageStream, generatePromptSuggestions } from '../services/geminiService';
 import { getSpecificErrorMessage } from '../utils/errors';
-import { logActivity } from '../utils/tracking';
+import { logActivity, saveComponentState, getComponentState } from '../utils/tracking';
 import Card from './Card';
 import Button from './Button';
 import ContentRenderer from './ContentRenderer';
@@ -17,25 +17,26 @@ interface AskAiAnythingProps {
     user: User | null;
     canAccessPremium: boolean;
     requestAuth: () => void;
+    setView: (view: AppView) => void;
 }
 
 // --- Helper Components for message types ---
 
 const AIMessage: React.FC<{ msg: ChatMessage }> = ({ msg }) => (
-    <div className="flex items-start gap-3 justify-start animate-fade-in-up">
+    <div className="flex items-start gap-3 justify-start animate-fade-in-up w-full">
         <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 font-bold text-xs">
             COC AI
         </div>
-        <div className="rounded-2xl rounded-bl-none p-3 max-w-md bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-sm break-words">
-            <ContentRenderer content={msg.content} className="whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none dark:prose-invert" />
+        <div className="rounded-2xl rounded-bl-none p-4 max-w-[90%] sm:max-w-[85%] bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-sm break-words overflow-x-auto">
+            <ContentRenderer content={msg.content} className="whitespace-pre-wrap leading-relaxed prose prose-base sm:prose-lg max-w-none dark:prose-invert" />
         </div>
     </div>
 );
 
 const UserMessage: React.FC<{ msg: ChatMessage }> = ({ msg }) => (
-    <div className="flex items-start gap-3 justify-end animate-fade-in-up">
-        <div className="rounded-2xl rounded-br-none p-3 max-w-md bg-indigo-600 text-white shadow-sm break-words">
-            <ContentRenderer content={msg.content} className="whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none prose-invert" />
+    <div className="flex items-start gap-3 justify-end animate-fade-in-up w-full">
+        <div className="rounded-2xl rounded-br-none p-4 max-w-[90%] sm:max-w-[85%] bg-indigo-600 text-white shadow-sm break-words overflow-x-auto">
+            <ContentRenderer content={msg.content} className="whitespace-pre-wrap leading-relaxed prose prose-base sm:prose-lg max-w-none prose-invert" />
         </div>
     </div>
 );
@@ -47,7 +48,7 @@ const SystemMessage: React.FC<{ msg: ChatMessage }> = ({ msg }) => (
 );
 
 
-const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selectionPath, user, canAccessPremium, requestAuth }) => {
+const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selectionPath, user, canAccessPremium, requestAuth, setView }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -55,20 +56,29 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
     const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
     
     // Manage chat locally to ensure fresh sessions and no persistence issues
-    const [chat, setChat] = useState<InterviewChat | null>(null);
+    const chatRef = useRef<{ chat: InterviewChat | null }>({ chat: null });
     
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Initial load: Start new chat
+    // Initial load: Start new chat or load from history
     useEffect(() => {
         if (isOnline && canAccessPremium) {
-            // Pass !user as isTrial indicator
-            const newChat = createGeneralChat(language, !user);
-            setChat(newChat);
+            const savedState = getComponentState<{ messages: ChatMessage[] }>('AskAiAnything', user?.uid || null);
+            const savedHistory = savedState?.messages || [];
+            
+            setMessages(savedHistory);
+        } else {
             setMessages([]);
         }
     }, [language, isOnline, canAccessPremium, user]);
+
+    // Save messages whenever they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            saveComponentState('AskAiAnything', { messages }, user?.uid || null);
+        }
+    }, [messages, user]);
 
     // Fetch suggestions
     useEffect(() => {
@@ -106,12 +116,6 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
 
     const handleSendMessage = async (prompt: string) => {
         if (!prompt.trim() || isLoading || !isOnline) return;
-        
-        let currentChat = chat;
-        if (!currentChat) {
-             currentChat = createGeneralChat(language, !user);
-             setChat(currentChat);
-        }
 
         const userMessage: ChatMessage = { role: 'user', content: prompt };
         
@@ -130,7 +134,7 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
         setIsLoading(true);
 
         try {
-            const stream = await sendMessageToChatStream(currentChat, prompt);
+            const stream = sendCocMessageStream(language, messages, prompt);
             let accumulatedText = '';
             
             for await (const chunk of stream) {
@@ -178,10 +182,6 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
     
     const renderEmptyState = () => (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <div className="p-4 bg-indigo-100 dark:bg-indigo-900/50 rounded-full mb-4">
-                <span className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">COC AI</span>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Ask COC AI Anything!</h2>
             <p className="mt-1 text-slate-500 dark:text-slate-400 max-w-xs">I'm your personal COC AI tutor. How can I help you with your exam preparation today?</p>
             
             {(isSuggestionsLoading || promptSuggestions.length > 0) && (
@@ -207,12 +207,12 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
 
     if (!canAccessPremium) {
         return (
-            <div className="max-w-3xl mx-auto">
-                <Card className="flex flex-col h-[calc(100vh_-_10rem)] max-h-[700px] p-0 overflow-hidden items-center justify-center text-center">
+            <div className="w-full h-full">
+                <Card className="flex flex-col h-[calc(100vh_-_10rem)] sm:h-[calc(100vh_-_6rem)] p-0 overflow-hidden items-center justify-center text-center">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to chat with the COC AI Tutor.</p>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to chat with the COC AI Tutor.</p>
                     <div className="mt-6">
-                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                        <Button onClick={requestAuth}>Log In</Button>
                     </div>
                 </Card>
             </div>
@@ -220,17 +220,22 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
     }
 
     return (
-        <div className="max-w-4xl mx-auto h-[calc(100vh_-_8rem)] max-h-[700px]">
-            <Card className="flex flex-col h-full p-0 overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700">
-                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 text-center">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Ask COC AI Anything</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Your Personal COC AI Tutor</p>
+        <div className="fixed inset-0 z-50 bg-slate-100 dark:bg-slate-900 flex flex-col">
+            <div className="flex-grow flex flex-col p-0 overflow-hidden">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 flex justify-between items-center bg-white dark:bg-slate-800 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" onClick={() => setView(AppView.HOME)} className="!p-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        </Button>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Ask COC AI Anything</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Your Personal COC AI Tutor</p>
+                        </div>
                     </div>
                 </div>
                 <div className="flex-grow overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-800/50">
                     {messages.length === 0 && !isLoading ? renderEmptyState() : (
-                        <div className="space-y-6">
+                        <div className="space-y-6 max-w-5xl mx-auto w-full">
                             {messages.map((msg, index) => {
                                 if (msg.role === 'model') return <AIMessage key={index} msg={msg} />;
                                 if (msg.role === 'user') return <UserMessage key={index} msg={msg} />;
@@ -242,28 +247,30 @@ const AskAiAnything: React.FC<AskAiAnythingProps> = ({ language, isOnline, selec
                     )}
                 </div>
                 <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
-                    <form onSubmit={handleFormSubmit} className="flex gap-2 items-end">
-                        <textarea
-                            ref={textareaRef}
-                            value={userInput}
-                            onChange={handleTextareaInput}
-                            placeholder={isOnline ? "Ask a question..." : "You are offline"}
-                            className="flex-grow p-3 bg-slate-100 dark:bg-slate-700 border border-transparent rounded-xl focus:ring-2 focus:ring-indigo-300 focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-400 disabled:bg-slate-100 transition-all resize-none max-h-40"
-                            rows={1}
-                            disabled={isLoading || !isOnline}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleFormSubmit(e as any);
-                                }
-                            }}
-                        />
-                        <Button type="submit" disabled={isLoading || !userInput.trim() || !isOnline} className="!p-3.5 !rounded-xl">
-                            Send
-                        </Button>
-                    </form>
+                    <div className="max-w-5xl mx-auto w-full">
+                        <form onSubmit={handleFormSubmit} className="flex gap-2 items-end">
+                            <textarea
+                                ref={textareaRef}
+                                value={userInput}
+                                onChange={handleTextareaInput}
+                                placeholder={isOnline ? "Ask a question..." : "You are offline"}
+                                className="flex-grow p-3 bg-slate-100 dark:bg-slate-700 border border-transparent rounded-xl focus:ring-2 focus:ring-indigo-300 focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-400 disabled:bg-slate-100 transition-all resize-none max-h-40"
+                                rows={1}
+                                disabled={isLoading || !isOnline}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleFormSubmit(e as any);
+                                    }
+                                }}
+                            />
+                            <Button type="submit" disabled={isLoading || !userInput.trim() || !isOnline} className="!p-3.5 !rounded-xl">
+                                Send
+                            </Button>
+                        </form>
+                    </div>
                 </div>
-            </Card>
+            </div>
             
             <style>{`
                 @keyframes fade-in-up {

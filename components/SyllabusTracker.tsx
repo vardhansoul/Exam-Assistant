@@ -174,65 +174,72 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
 
 
   const handleToggle = useCallback(async (id: string) => {
-    const newCheckedIds = new Set(checkedIds);
-    
-    const findTopic = (topics: SyllabusTopic[], targetId: string): SyllabusTopic | null => {
-        for (const topic of topics) {
-            if (topic.id === targetId) return topic;
-            if (topic.children) {
-                const found = findTopic(topic.children, targetId);
-                if (found) return found;
+    try {
+        const newCheckedIds = new Set(checkedIds);
+        
+        const findTopic = (topics: SyllabusTopic[], targetId: string): SyllabusTopic | null => {
+            for (const topic of topics) {
+                if (topic.id === targetId) return topic;
+                if (topic.children) {
+                    const found = findTopic(topic.children, targetId);
+                    if (found) return found;
+                }
             }
-        }
-        return null;
-    };
-    
-    const collectChildTopics = (startNode: SyllabusTopic): SyllabusTopic[] => {
-        let nodes = [startNode];
-        if (startNode.children) {
-            for (const child of startNode.children) {
-                nodes = nodes.concat(collectChildTopics(child));
+            return null;
+        };
+        
+        const collectChildTopics = (startNode: SyllabusTopic): SyllabusTopic[] => {
+            let nodes = [startNode];
+            if (startNode.children) {
+                for (const child of startNode.children) {
+                    nodes = nodes.concat(collectChildTopics(child));
+                }
             }
-        }
-        return nodes;
-    };
+            return nodes;
+        };
 
-    const targetTopic = findTopic(syllabus || [], id);
-    if (!targetTopic) return;
+        const targetTopic = findTopic(syllabus || [], id);
+        if (!targetTopic) return;
 
-    const topicsToUpdate = collectChildTopics(targetTopic);
-    const isChecking = !newCheckedIds.has(id);
+        const topicsToUpdate = collectChildTopics(targetTopic);
+        const isChecking = !newCheckedIds.has(id);
 
-    // Update UI state
-    topicsToUpdate.forEach(t => {
-        if (isChecking) newCheckedIds.add(t.id);
-        else newCheckedIds.delete(t.id);
-    });
-    setCheckedIds(newCheckedIds);
-    
-    // Update backend storage
-    const uid = user?.uid || null;
-    const updateTasks = topicsToUpdate.map(t => {
-        return isChecking ? markTopicAsStudied(t.title, uid) : unmarkTopicAsStudied(t.title, uid);
-    });
-    
-    // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
-    updateTasks.push(saveSyllabusProgress(syllabusKey, Array.from(newCheckedIds) as string[], syllabus || [], uid));
-    
-    await Promise.all(updateTasks);
-    
+        // Update UI state
+        topicsToUpdate.forEach(t => {
+            if (isChecking) newCheckedIds.add(t.id);
+            else newCheckedIds.delete(t.id);
+        });
+        setCheckedIds(newCheckedIds);
+        
+        // Update backend storage
+        const uid = user?.uid || null;
+        const updateTasks = topicsToUpdate.map(t => {
+            return isChecking ? markTopicAsStudied(t.title, uid) : unmarkTopicAsStudied(t.title, uid);
+        });
+        
+        // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
+        updateTasks.push(saveSyllabusProgress(syllabusKey, Array.from(newCheckedIds) as string[], syllabus || [], uid));
+        
+        await Promise.all(updateTasks);
+    } catch (e) {
+        console.error("Failed to toggle syllabus topic:", e);
+    }
   }, [checkedIds, syllabus, syllabusKey, user]);
   
   const handleToggleBookmark = useCallback(async (topicTitle: string) => {
-    const newBookmarkedTopics = new Set(bookmarkedTopics);
-    if (newBookmarkedTopics.has(topicTitle)) {
-        newBookmarkedTopics.delete(topicTitle);
-    } else {
-        newBookmarkedTopics.add(topicTitle);
+    try {
+        const newBookmarkedTopics = new Set(bookmarkedTopics);
+        if (newBookmarkedTopics.has(topicTitle)) {
+            newBookmarkedTopics.delete(topicTitle);
+        } else {
+            newBookmarkedTopics.add(topicTitle);
+        }
+        setBookmarkedTopics(newBookmarkedTopics);
+        // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
+        await saveBookmarkedTopics(Array.from(newBookmarkedTopics) as string[], user?.uid || null);
+    } catch (e) {
+        console.error("Failed to toggle bookmark:", e);
     }
-    setBookmarkedTopics(newBookmarkedTopics);
-    // FIX: Explicitly cast to string[] to resolve TypeScript type inference errors.
-    await saveBookmarkedTopics(Array.from(newBookmarkedTopics) as string[], user?.uid || null);
   }, [bookmarkedTopics, user]);
   
   const handlePrint = () => {
@@ -255,16 +262,17 @@ const SyllabusTracker: React.FC<SyllabusTrackerProps> = ({ selectedExam, languag
                 <p className="text-slate-500 dark:text-slate-400 mt-2 truncate">Track your preparation for <span className="font-semibold">{selectedExam}</span>.</p>
             </div>
             <div className="flex gap-2 mt-4 sm:mt-0 justify-center">
-                 <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2 no-print">
-                    <PrinterIcon className="w-4 h-4" /> Print
+                 <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2 no-print" title="Print format">
+                    <PrinterIcon className="w-4 h-4" /> 
                 </Button>
                  <Button 
                     onClick={() => fetchSyllabusAndProgress(true)} 
                     disabled={isLoading || !isOnline} 
                     variant="secondary" 
-                    className="!py-2 !px-3 no-print"
+                    className="!py-2 !px-3 no-print flex items-center justify-center gap-2"
+                    title="Refresh"
                  >
-                    <span className="ml-2">Refresh</span>
+                    <ArrowPathIcon className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
             </div>
           </div>

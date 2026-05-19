@@ -23,13 +23,13 @@ export const CycleDiagram: React.FC<{ data: CycleDiagramData }> = ({ data }) => 
   const arrowOffset = 10;
 
   return (
-    <div className="p-4 bg-white rounded-lg border border-slate-200 my-4 shadow-sm overflow-x-auto">
-      <h4 className="text-center font-bold text-slate-700 mb-4">{title}</h4>
+    <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 my-4 shadow-sm overflow-x-auto">
+      <h4 className="text-center font-bold text-slate-700 dark:text-slate-200 mb-4">{title}</h4>
       <svg viewBox={`0 0 ${cx * 2} ${cy * 2}`} className="w-full h-auto max-w-md mx-auto">
         <title>{title}</title>
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#a5b4fc" />
+            <polygon points="0 0, 10 3.5, 0 7" className="fill-indigo-300 dark:fill-indigo-500" />
           </marker>
         </defs>
         {steps.map((step, index) => {
@@ -52,11 +52,11 @@ export const CycleDiagram: React.FC<{ data: CycleDiagramData }> = ({ data }) => 
 
           return (
             <g key={index}>
-              <line x1={startX} y1={startY} x2={endX} y2={endY} stroke="#a5b4fc" strokeWidth="3" markerEnd="url(#arrowhead)" />
-              <circle cx={x} cy={y} r={nodeRadius} fill="#e0e7ff" stroke="#a5b4fc" strokeWidth="2" />
+              <line x1={startX} y1={startY} x2={endX} y2={endY} className="stroke-indigo-300 dark:stroke-indigo-500" strokeWidth="3" markerEnd="url(#arrowhead)" />
+              <circle cx={x} cy={y} r={nodeRadius} className="fill-indigo-50 dark:fill-slate-700 stroke-indigo-300 dark:stroke-indigo-500" strokeWidth="2" />
               <foreignObject x={x - nodeRadius} y={y - nodeRadius} width={nodeRadius*2} height={nodeRadius*2}>
                 <div className="w-full h-full flex items-center justify-center text-center p-1">
-                    <p className="text-xs font-semibold text-slate-700 select-none">{step.label}</p>
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">{step.label}</p>
                 </div>
               </foreignObject>
             </g>

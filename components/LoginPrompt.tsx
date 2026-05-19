@@ -5,12 +5,9 @@ import ErrorMessage from './ErrorMessage';
 import { 
   sendPasswordReset, 
   signInWithEmailPassword, 
-  signUpWithEmailPassword, 
   handleGoogleSignIn,
-  handleAdminGoogleSignIn,
-  getSignupAccessCode
+  handleAdminGoogleSignIn
 } from '../firebase';
-import { migrateGuestDataToUser } from '../utils/tracking';
 import { getSpecificErrorMessage } from '../utils/errors';
 import Input from './Input';
 import GoogleIcon from './icons/GoogleIcon';
@@ -20,25 +17,20 @@ interface SignInPageProps {
   initialError?: string | null;
   onAuthStart?: () => void;
   onAuthEnd?: () => void;
-  onStartTrialFlow?: () => void;
 }
 
-const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAuthEnd, onStartTrialFlow }) => {
-  const [mode, setMode] = useState<'signIn' | 'signUp' | 'reset'>('signIn');
+const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAuthEnd }) => {
+  const [mode, setMode] = useState<'signIn' | 'reset'>('signIn');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
   
   // Easter egg states
   const [titleClickCount, setTitleClickCount] = useState(0);
-  const [showSignUp, setShowSignUp] = useState(false);
   const [showAdminEntry, setShowAdminEntry] = useState(false);
 
   // Toggle for Email Login form
   const [showEmailLogin, setShowEmailLogin] = useState(false);
-
-  // Admin Forms
-  const [adminAccessCode, setAdminAccessCode] = useState('');
 
   // Standard Forms
   const [email, setEmail] = useState('');
@@ -65,8 +57,6 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
     if (newCount === 7) {
         setShowAdminEntry(true);
         setTitleClickCount(0);
-        // Also unlock sign up if they stumble here
-        setShowSignUp(true); 
     }
   };
   
@@ -90,14 +80,6 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
         if (onAuthEnd) onAuthEnd();
       }
     }
-  };
-
-  const handleEmailSignUp = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleAuthOperation((async () => {
-      const { user } = await signUpWithEmailPassword(email, password, displayName);
-      await migrateGuestDataToUser(user.uid);
-    })());
   };
 
   const handleEmailSignIn = (e: React.FormEvent) => {
@@ -141,27 +123,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
     }
   };
 
-  const handleVerifyAccessCode = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsLoading(true);
-      setError(null);
-      try {
-          const correctCode = await getSignupAccessCode();
-          if (adminAccessCode === correctCode) {
-              setShowSignUp(true);
-              setShowAdminEntry(false);
-              setAdminAccessCode('');
-              alert("Sign Up unlocked.");
-          } else {
-              setError("Invalid Access Code.");
-          }
-      } catch (err) {
-          setError(getSpecificErrorMessage(err));
-      } finally {
-          setIsLoading(false);
-      }
-  };
-  
+
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (resetMessage) {
@@ -185,62 +147,21 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
                         <ShieldCheckIcon className="w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Admin Access</h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Verify code to enable Sign Up</p>
                 </div>
-                <form onSubmit={handleVerifyAccessCode} className="space-y-4">
-                    <Input 
-                        label="Access Code" 
-                        type="password" 
-                        value={adminAccessCode} 
-                        onChange={e => setAdminAccessCode(e.target.value)} 
-                        autoFocus
-                        required 
-                        disabled={isLoading} 
-                    />
-                    <div className="flex gap-3 pt-2">
-                        <Button type="button" variant="secondary" onClick={() => setShowAdminEntry(false)} className="flex-1" disabled={isLoading}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={isLoading || !adminAccessCode} className="flex-1">
-                            {isLoading ? 'Verifying...' : 'Verify'}
-                        </Button>
-                    </div>
-                    
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div className="w-full border-t border-slate-300 dark:border-slate-600"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                        <span className="bg-white dark:bg-slate-800 px-2 text-slate-500 dark:text-slate-400">Administrators</span>
-                        </div>
-                    </div>
-                    
-                    <Button type="button" onClick={handleAdminLogin} variant="secondary" className="w-full flex items-center justify-center gap-2" disabled={isLoading}>
+                <div className="space-y-4">
+                    <Button type="button" onClick={handleAdminLogin} variant="primary" className="w-full flex items-center justify-center gap-2" disabled={isLoading}>
                         <GoogleIcon className="w-5 h-5" />
                         Login with Google
                     </Button>
-                </form>
+                    <Button type="button" variant="secondary" onClick={() => setShowAdminEntry(false)} className="w-full" disabled={isLoading}>
+                        Cancel
+                    </Button>
+                </div>
             </div>
         );
     }
 
     switch (mode) {
-      case 'signUp':
-        return (
-          <>
-            <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100">Join the Ranks of Achievers</h2>
-            <form onSubmit={handleEmailSignUp} className="mt-8 text-left space-y-4">
-              <Input label="Full Name" type="text" id="displayName" value={displayName} onChange={e => setDisplayName(e.target.value)} required disabled={isLoading} />
-              <Input label="Email Address" type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
-              <Input label="Password" type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />
-              <div className="pt-2 space-y-3">
-                <Button type="submit" disabled={isLoading || !email || !password || !displayName} className="w-full !py-3">
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              </div>
-            </form>
-          </>
-        );
       case 'reset':
         return (
           <>
@@ -326,17 +247,6 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
           
           {!showAdminEntry && (
               <div className="space-y-4 mb-6">
-                <Button onClick={onStartTrialFlow} variant="primary" className="w-full !py-3 text-base" disabled={isLoading}>
-                    Start 7-Day Free Trial
-                </Button>
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div className="w-full border-t border-slate-300 dark:border-slate-600"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                    <span className="bg-white dark:bg-slate-800 px-2 text-slate-500 dark:text-slate-400">Or</span>
-                    </div>
-                </div>
               </div>
           )}
 
@@ -346,14 +256,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ initialError, onAuthStart, onAu
         {!showAdminEntry && (
             <div className="mt-6 text-center text-sm">
                 {mode === 'signIn' && (
-                    showSignUp ? (
-                        <p className="text-slate-600 dark:text-slate-400">Don't have an account? <button onClick={() => setMode('signUp')} className="font-semibold text-indigo-600 hover:underline">Sign Up</button></p>
-                    ) : (
-                        <p className="h-5">&nbsp;</p> 
-                    )
-                )}
-                {mode === 'signUp' && (
-                    <p className="text-slate-600 dark:text-slate-400">Already have an account? <button onClick={() => setMode('signIn')} className="font-semibold text-indigo-600 hover:underline">Sign In</button></p>
+                    <p className="h-5">&nbsp;</p> 
                 )}
                 {mode === 'reset' && (
                     <p className="text-slate-600 dark:text-slate-400">Remember your password? <button onClick={() => setMode('signIn')} className="font-semibold text-indigo-600 hover:underline">Back to Sign In</button></p>

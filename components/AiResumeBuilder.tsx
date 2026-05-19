@@ -56,8 +56,7 @@ const AiResumeBuilder: React.FC<AiResumeBuilderProps> = ({ language, isOnline, u
                 Experience: ${resumeData.workExperience.map(w => `${w.jobTitle} at ${w.company}`).join(', ')}
                 Skills: ${resumeData.skills.join(', ')}
             `;
-            // Pass !user as isTrial
-            const summary = await generateResumeSummary(prompt, language, !user);
+            const summary = await generateResumeSummary(prompt, language);
             setResumeData(prev => ({ ...prev, summary }));
             logActivity(user?.uid || null, {
                 type: 'RESUME_BUILT' as HistoryType,
@@ -80,9 +79,9 @@ const AiResumeBuilder: React.FC<AiResumeBuilderProps> = ({ language, isOnline, u
             <div className="max-w-4xl mx-auto">
                 <Card className="text-center">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the COC Resume Builder.</p>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the COC Resume Builder.</p>
                     <div className="mt-6">
-                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                        <Button onClick={requestAuth}>Log In</Button>
                     </div>
                 </Card>
             </div>
@@ -113,10 +112,6 @@ const AiResumeBuilder: React.FC<AiResumeBuilderProps> = ({ language, isOnline, u
                     </div>
                     <textarea value={resumeData.summary} onChange={e => handleInputChange('summary', e.target.value)} rows={5} className="w-full p-2 border rounded"/>
                 </Card>
-                 {/* Experience, Education, Skills sections would go here - simplified for this example */}
-                 <Card>
-                     <p className="text-sm text-slate-500">More sections (Experience, Education, Skills) coming soon.</p>
-                 </Card>
             </div>
 
             {/* Preview Section */}
@@ -124,8 +119,8 @@ const AiResumeBuilder: React.FC<AiResumeBuilderProps> = ({ language, isOnline, u
                 <Card className="print:border-none print:shadow-none print:p-0">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4 no-print">
                         <h2 className="font-bold text-lg">Live Preview</h2>
-                        <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
-                            <PrinterIcon className="w-4 h-4" /> Print / Save PDF
+                        <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center" title="Print / Save PDF">
+                            <PrinterIcon className="w-4 h-4" /> 
                         </Button>
                     </div>
                     <div id="resume-preview" className="bg-white p-8 border rounded-lg min-h-[60vh] text-sm print:border-none print:p-0 print:text-black">
@@ -137,18 +132,7 @@ const AiResumeBuilder: React.FC<AiResumeBuilderProps> = ({ language, isOnline, u
                         <div className="border-b-2 border-slate-300 mb-3 pb-1">
                             <h3 className="font-bold text-lg uppercase tracking-wide text-slate-800">Professional Summary</h3>
                         </div>
-                        <p className="text-slate-700 leading-relaxed mb-6">{resumeData.summary || 'Your professional summary will appear here.'}</p>
-                        
-                        {/* Placeholder structure for print visualization */}
-                        <div className="border-b-2 border-slate-300 mb-3 pb-1">
-                            <h3 className="font-bold text-lg uppercase tracking-wide text-slate-800">Experience</h3>
-                        </div>
-                        <p className="text-slate-500 italic mb-6">Add work experience to see it here.</p>
-
-                        <div className="border-b-2 border-slate-300 mb-3 pb-1">
-                            <h3 className="font-bold text-lg uppercase tracking-wide text-slate-800">Education</h3>
-                        </div>
-                        <p className="text-slate-500 italic mb-6">Add education to see it here.</p>
+                        <p className="text-slate-700 leading-relaxed mb-6 whitespace-pre-wrap">{resumeData.summary || 'Your professional summary will appear here.'}</p>
                     </div>
                 </Card>
             </div>

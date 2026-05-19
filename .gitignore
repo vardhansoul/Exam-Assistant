@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Firebase
+google-services.json
+android/app/google-services.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

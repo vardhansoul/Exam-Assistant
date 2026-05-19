@@ -73,8 +73,7 @@ const TeachBackMode: React.FC<TeachBackModeProps> = ({ topics, language, isOnlin
             context: { topic: topic }
         });
 
-        // Pass !user as isTrial
-        chatRef.current = createTeachBackSession(topic, language, !user);
+        chatRef.current = createTeachBackSession(topic, language);
         
         try {
             if (isMounted.current) setMessages([{ role: 'model', content: '' }]);
@@ -146,9 +145,9 @@ const TeachBackMode: React.FC<TeachBackModeProps> = ({ topics, language, isOnlin
             <div className="max-w-2xl mx-auto">
                 <Card className="text-center">
                     <h2 className="text-2xl font-bold text-slate-800">Premium Feature</h2>
-                    <p className="mt-2 text-slate-500">Your trial has ended. Please sign up or log in to use Teach-back Mode.</p>
+                    <p className="mt-2 text-slate-500">Please log in to use Teach-back Mode.</p>
                     <div className="mt-6">
-                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                        <Button onClick={requestAuth}>Log In</Button>
                     </div>
                 </Card>
             </div>
@@ -211,8 +210,8 @@ const TeachBackMode: React.FC<TeachBackModeProps> = ({ topics, language, isOnlin
     }
     
     return (
-        <div className="max-w-3xl mx-auto">
-            <Card className="flex flex-col h-[calc(100vh_-_10rem)] max-h-[700px] p-0 overflow-hidden !border-t-0">
+        <div className="w-full h-[calc(100vh_-_10rem)] sm:h-[calc(100vh_-_6rem)]">
+            <Card className="flex flex-col h-full p-0 overflow-hidden !border-t-0">
                 <div className="p-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0 gap-4">
                     <div className="min-w-0 flex-1">
                         <h2 className="text-lg font-bold text-slate-800 truncate">Teaching: {topic}</h2>
@@ -224,12 +223,12 @@ const TeachBackMode: React.FC<TeachBackModeProps> = ({ topics, language, isOnlin
                         {messages.map((msg, index) => (
                             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">COC AI</div>}
-                                <div className={`rounded-2xl p-3 max-w-md shadow-sm text-sm ${
+                                <div className={`rounded-2xl p-4 max-w-[90%] sm:max-w-3xl shadow-sm text-sm ${
                                     msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' :
                                     msg.role === 'system' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-bl-none' :
                                     'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-slate-600'
                                 }`}>
-                                   <div className="whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert"><ContentRenderer content={msg.content} /></div>
+                                   <div className="whitespace-pre-wrap prose prose-base sm:prose-lg max-w-none dark:prose-invert"><ContentRenderer content={msg.content} /></div>
                                 </div>
                             </div>
                         ))}

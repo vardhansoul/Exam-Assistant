@@ -20,54 +20,46 @@
     
     <!-- Dark Mode Initializer Script (Critical Path) -->
     <script>
+      window.process = window.process || { env: {} };
+      window.process.env = window.process.env || {};
       if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
       } else {
           document.documentElement.classList.remove('dark');
       }
-    </script>
 
-    <!-- Tailwind CSS with Custom Config -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: { sans: ['Inter', 'sans-serif'] },
-            colors: {
-              blue: {
-                50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa',
-                500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a', 950: '#172554'
-              },
-              slate: {
-                50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8',
-                500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617'
-              }
+      // Global error handler for debugging
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('does not provide an export named')) {
+          if (!sessionStorage.getItem('reloaded_for_export_error')) {
+            sessionStorage.setItem('reloaded_for_export_error', 'true');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  registration.unregister();
+                }
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
             }
           }
         }
-      }
+      });
+      // Suppress unhandled promise rejection popups for background syncs
+      window.addEventListener('unhandledrejection', function(e) {
+         if (e.reason && typeof e.reason === 'string' && e.reason.includes('Firestore Error')) {
+             e.preventDefault(); // Prevent orange/red boxes for permission denied syncing issues
+         } else if (e.reason && e.reason.message && e.reason.message.includes('Firestore Error')) {
+             e.preventDefault();
+         }
+      });
     </script>
 
-    <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.4.0/",
-    "@capacitor/app": "https://cdn.jsdelivr.net/npm/@capacitor/app@6.0.0/+esm",
-    "@capacitor/core": "https://cdn.jsdelivr.net/npm/@capacitor/core@6.0.0/+esm",
-    "react-dom": "https://esm.sh/react-dom@^19.2.4"
-  }
-}
-</script>
-    
+    <!-- Tailwind handled via Vite build process -->
     <script type="module" src="/index.tsx"></script>
-    
     <style>
+      /* Keep minimal structural styles to prevent flash of unstyled content */
       html, body, #root {
         height: 100%;
         margin: 0;
@@ -90,12 +82,26 @@
         color: #cbd5e1;
       }
 
-      ::-webkit-scrollbar { display: none; }
-      * { -ms-overflow-style: none; scrollbar-width: none; }
-
+      /* Hide empty scrollbar by default */
+      @media (max-width: 768px) {
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+      }
+      
+      @media (min-width: 769px) {
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(107, 114, 128, 0.8); }
+        
+        html.dark ::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.5); }
+        html.dark ::-webkit-scrollbar-thumb:hover { background-color: rgba(100, 116, 139, 0.8); }
+        
+        * { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.5) transparent; }
+        html.dark * { scrollbar-color: rgba(71, 85, 105, 0.5) transparent; }
+      }
       .gpu-accelerated { transform: translateZ(0); backface-visibility: hidden; }
     </style>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

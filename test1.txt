@@ -1,0 +1,166 @@
+components/TeachShortcuts.tsx:                        className={`flex-1 min-w-[100px] rounded-lg py-2.5 text-sm font-medium leading-5 whitespace-nowrap px-4 transition-all duration-200 ${
+components/TeachShortcuts.tsx:                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+components/TeachShortcuts.tsx:                    <p className="text-sm text-gray-500">Club of Competition Study Material</p>
+components/TeachShortcuts.tsx:                                    <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 print:text-gray-600">Explanation</h4>
+components/TeachShortcuts.tsx:                                    <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 print:text-gray-600">Worked Example</h4>
+components/diagrams/VennDiagram.tsx:                      <span className="font-bold text-indigo-800 dark:text-indigo-300 text-sm text-center">{s.label}</span>
+components/diagrams/VennDiagram.tsx:              <div className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
+components/diagrams/VennDiagram.tsx:        <text x={150} y={125} textAnchor="middle" className="font-bold text-white text-sm select-none">{sizeABC}</text>
+components/diagrams/ShapeDiagram.tsx:        <text x={cx} y={cy} textAnchor="middle" dy=".3em" fill={textFill} className="font-bold text-sm select-none">
+components/TopicExplorer.tsx:                            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full no-print">
+components/TopicExplorer.tsx:                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base">Select a core subject to explore granular sub-topics and start studying.</p>
+components/TopicExplorer.tsx:                                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">We couldn't find anything matching "{searchTerm}".</p>
+components/charts/PieChart.tsx:        <div className="text-sm">
+components/Select.tsx:      {label && <label htmlFor={props.id || props.name} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>}
+components/SyllabusTracker.tsx:                            <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
+components/TopicSearchTool.tsx:      className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold text-sm bg-slate-100 text-slate-700 hover:bg-indigo-100 hover:text-indigo-800 transition-all duration-200 transform hover:scale-105"
+components/CurrentAffairsAnalyst.tsx:                    className={`px-6 py-3 text-sm font-semibold transition-colors ${mode === 'daily' ? 'text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+components/CurrentAffairsAnalyst.tsx:                    className={`px-6 py-3 text-sm font-semibold transition-colors ${mode === 'custom' ? 'text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+components/CurrentAffairsAnalyst.tsx:                                    <ul className="space-y-2 text-sm">
+components/CurrentAffairsAnalyst.tsx:                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Focus Topic (optional)</label>
+components/CurrentAffairsAnalyst.tsx:                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Level</label>
+components/CurrentAffairsAnalyst.tsx:                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+components/CurrentAffairsAnalyst.tsx:                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">State (If State Govt)</label>
+components/CurrentAffairsAnalyst.tsx:                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm disabled:opacity-50"
+components/CurrentAffairsAnalyst.tsx:                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Time Period</label>
+components/CurrentAffairsAnalyst.tsx:                                            className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${frequency === freq ? 'bg-white dark:bg-slate-600 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-300/50 dark:hover:bg-slate-700/50'}`}
+components/CurrentAffairsAnalyst.tsx:                                className={`px-4 py-2 text-sm font-semibold ${activeTab === 'summary' ? 'text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
+components/CurrentAffairsAnalyst.tsx:                                className={`px-4 py-2 text-sm font-semibold ${activeTab === 'chat' ? 'text-indigo-600 border-b-2 border-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}
+components/CurrentAffairsAnalyst.tsx:                                        <p className="text-sm text-gray-500">{frequency} {topic ? `- Focus: ${topic}` : ''}</p>
+components/CurrentAffairsAnalyst.tsx:                                            <ul className="space-y-1 text-sm">
+components/CurrentAffairsAnalyst.tsx:                                                    {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">COC AI</div>}
+components/CurrentAffairsAnalyst.tsx:                                                    <div className={`rounded-2xl p-3 max-w-md shadow-sm text-sm ${
+components/CurrentAffairsAnalyst.tsx:                                                    <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">COC AI</div>
+components/CareerCompass.tsx:                  <p className="text-sm text-slate-500">{description}</p>
+components/CareerCompass.tsx:                                        <ul className="space-y-2 text-sm">
+components/StatusTracker.tsx:                <p className="text-sm text-gray-600">Checking status for:</p>
+components/StatusTracker.tsx:                        <ul className="space-y-2 text-sm">
+components/MockInterview.tsx:                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">COC AI</div>}
+components/MockInterview.tsx:                                <div className={`rounded-2xl p-4 max-w-[90%] sm:max-w-3xl shadow-sm text-sm ${
+components/ApplicationTracker.tsx:        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-6 rounded-r-lg text-sm text-yellow-800 dark:text-yellow-200">
+components/ApplicationTracker.tsx:                           <label htmlFor="notes" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notes</label>
+components/ApplicationTracker.tsx:                           <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-600 focus:border-indigo-500 dark:focus:border-indigo-600 sm:text-sm"></textarea>
+components/ApplicationTracker.tsx:                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 break-all"><span className="font-semibold">ID/Roll:</span> {record.registrationId}</p>
+components/ApplicationTracker.tsx:                            {record.password && <p className="text-sm text-slate-600 dark:text-slate-300 break-all"><span className="font-semibold">Password:</span> {record.password}</p>}
+components/ApplicationTracker.tsx:                            {record.notes && <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 whitespace-pre-wrap"><span className="font-semibold">Notes:</span><br/>{record.notes}</p>}
+components/AskAiAnything.tsx:    <div className="flex items-center justify-center text-sm text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 p-3 rounded-lg my-4 animate-fade-in-up break-words">
+components/AskAiAnything.tsx:                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">Or try one of these prompts:</p>
+components/AskAiAnything.tsx:                                    className="p-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm text-left hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+components/Quiz.tsx:                let classes = 'w-8 h-8 rounded-md text-sm font-semibold flex items-center justify-center transition-all duration-200 ';
+components/Quiz.tsx:                    let classes = 'p-3 rounded-lg border text-sm ';
+components/Quiz.tsx:                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+components/Quiz.tsx:        <p className="text-sm text-slate-500 dark:text-slate-400">Topic: {topic}</p>
+components/Quiz.tsx:        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Question {currentQuestionIndex + 1} of {quiz.questions.length}</p>
+components/Quiz.tsx:                      {areDifferent && <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1 prose prose-slate dark:prose-invert max-w-none"><ContentRenderer content={englishOption} /></span>}
+components/Quiz.tsx:                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><SmallSpinner /><span>COC AI is thinking...</span></div>
+components/AuthModal.tsx:            return ( <> <h2 className="text-3xl font-bold text-center mb-2">Reset Password</h2> <p className="text-slate-500 text-center mb-8">Enter your email to get a reset link.</p> <form onSubmit={handlePasswordResetSubmit} className="space-y-5"> {resetMessage && <div className="bg-green-100 text-green-700 p-4 rounded-lg text-sm mb-4">{resetMessage}</div>} <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} /> <Button type="submit" variant="primary" disabled={isLoading} className="w-full !py-3.5 text-lg mt-4">{isLoading ? 'Sending...' : 'Send Reset Link'}</Button> </form> </> );
+components/AuthModal.tsx:                            <div className="text-right"><button type="button" onClick={() => setMode('reset')} className="text-sm font-semibold text-indigo-600 hover:underline">Forgot Password?</button></div>
+components/LearningTechniques.tsx:            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+components/LearningTechniques.tsx:              <span className="text-sm text-slate-500 dark:text-slate-400 py-1">Suggestions:</span>
+components/ExamDetailsViewer.tsx:            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{selectionPath}</p>
+components/ExamDetailsViewer.tsx:                    <div key={detail.criteria} className="flex flex-col sm:flex-row text-sm">
+components/ContentRenderer.tsx:                            <div className={`mt-2 p-3 rounded-lg text-sm ${opt.isCorrect ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300'}`}>
+components/ContentRenderer.tsx:                    <h5 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Variables</h5>
+components/ContentRenderer.tsx:                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{v.name}</label>
+components/ContentRenderer.tsx:                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{values[v.symbol]}</span>
+components/ContentRenderer.tsx:                    <h5 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Live Results</h5>
+components/ContentRenderer.tsx:  { name: 'inlineCode', regex: /`(.*?)`/, renderer: (matches, key) => <code key={key} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-md px-1.5 py-0.5 font-mono text-sm">{matches[1]}</code> },
+components/ContentRenderer.tsx:                        <div className="text-sm text-slate-700 dark:text-slate-300">{parseInlineText(content)}</div>
+components/ContentRenderer.tsx:                <td key={j} className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{parseInlineText(cell)}</td>
+components/ContentRenderer.tsx:        <div className="my-4 bg-slate-800 rounded-lg overflow-hidden text-sm shadow-md">
+components/ContentRenderer.tsx:                        return <Suspense key={key} fallback={<div className="h-48 w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl my-6 flex items-center justify-center text-slate-400 text-sm">Loading Interactive Map...</div>}><GeographyMap data={mapData} /></Suspense>;
+components/ContentRenderer.tsx:                        const Fallback = <div className="h-48 w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl my-6 flex items-center justify-center text-slate-400 text-sm">Loading Chart...</div>;
+components/LoadingSpinner.tsx:            <div className="text-left font-mono text-sm w-full space-y-3 min-h-[200px]">
+components/ErrorMessage.tsx:            <p className="text-sm text-red-700 dark:text-red-300">{message}</p>
+components/SelectionPopup.tsx:                {option.subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{option.subtitle}</p>}
+components/TeachBackMode.tsx:                    <div className="mt-6 border-t pt-6 text-center text-sm text-slate-600 space-y-2">
+components/TeachBackMode.tsx:                                {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">COC AI</div>}
+components/TeachBackMode.tsx:                                <div className={`rounded-2xl p-4 max-w-[90%] sm:max-w-3xl shadow-sm text-sm ${
+components/AdminDashboard.tsx:                            <p className="text-sm font-semibold">{user?.displayName}</p>
+components/AdminDashboard.tsx:                        <Button onClick={() => setAppMode('user')} variant="outline" className="!py-2 !px-4 text-sm">
+components/AdminDashboard.tsx:                        <Button onClick={onSignOut} variant="secondary" className="!py-2 !px-4 text-sm">
+components/AdminDashboard.tsx:                            <p className="text-blue-100 text-sm font-medium">Total Users</p>
+components/AdminDashboard.tsx:                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Recent Activities</p>
+components/AdminDashboard.tsx:                                className={`pb-4 px-2 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+components/AdminDashboard.tsx:                                    <table className="w-full text-left text-sm">
+components/AdminDashboard.tsx:                                <table className="w-full text-left text-sm">
+components/AdminDashboard.tsx:                                    <p className="text-sm text-slate-600 dark:text-slate-400">No settings available at this time.</p>
+components/AdminDashboard.tsx:                                    <p className="text-sm text-slate-500">{selectedUser.email}</p>
+components/AdminDashboard.tsx:                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-1">Profile Details</h4>
+components/AdminDashboard.tsx:                                <div className="space-y-3 text-sm">
+components/AdminDashboard.tsx:                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-1">System Info</h4>
+components/AdminDashboard.tsx:                                <div className="space-y-2 text-sm">
+components/OfflineBanner.tsx:                    className={`fixed top-0 left-0 w-full z-[100] px-4 py-3 flex items-center justify-center space-x-2 text-sm font-medium shadow-md ${
+components/LearningTracker.tsx:                <h4 className="text-sm font-semibold text-amber-800">Current Study Streak</h4>
+components/LearningTracker.tsx:                <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 border-b border-slate-100 dark:border-slate-700 pb-2">Account Status</h4>
+components/LearningTracker.tsx:                        {weakAreas.length === 0 ? <p className="text-center text-slate-500 bg-green-50 p-4 rounded-lg text-sm">No consistent weak areas found. Great job!</p> : (
+components/LearningTracker.tsx:                                            <p className="font-semibold text-slate-800 text-sm">{area.topic}</p>
+components/LearningTracker.tsx:                                            <p className="text-sm font-bold text-orange-600">Avg: {area.averageScore}%</p>
+components/LearningTracker.tsx:            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4 rounded-r-lg text-sm text-yellow-800">
+components/LearningTracker.tsx:                        <p className="text-slate-600 text-sm">{rankPrediction.analysis}</p>
+components/LearningTracker.tsx:                        <ul className="list-disc list-inside space-y-1 text-slate-600 text-sm">
+components/LearningTracker.tsx:                            className={`w-full py-1.5 px-3 text-sm font-semibold rounded-md transition-all ${activeTab === tab.id ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:bg-slate-300/50'}`}
+components/LearningTracker.tsx:        <h4 className="text-sm font-semibold text-slate-600">{title}</h4>
+components/Tools.tsx:                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
+components/SelfSummaryChallenge.tsx:            <label htmlFor="summary-input" className="block text-sm font-medium text-slate-700 mb-1.5">
+components/MapInteractiveLearning.tsx:        {!isLoading && items.length > 0 && <span className="text-sm font-medium bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">{currentIndex + 1} / {items.length}</span>}
+components/MapInteractiveLearning.tsx:                  <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">Description</h4>
+components/MapInteractiveLearning.tsx:                  <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">Key Fact</h4>
+components/MapInteractiveLearning.tsx:                <p className="text-sm text-gray-500">Click on the map to submit your answer.</p>
+components/DoubtSolver.tsx:                                <p className="text-sm text-slate-500">or</p>
+components/Input.tsx:            <label htmlFor={props.id || props.name} className="block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+components/Input.tsx:                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-slate-50 dark:disabled:bg-slate-800" 
+components/ConceptLinkMap.tsx:          <p className="font-semibold text-sm sm:text-base">{node.name}</p>
+components/HomeworkSolver.tsx:                                <p className="text-sm text-slate-500">or</p>
+components/Dashboard.tsx:            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
+components/Dashboard.tsx:                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{item.description}</p>
+components/Dashboard.tsx:                        <p className="text-slate-500 dark:text-slate-400 text-sm">We couldn't find anything matching "{searchTerm}".</p>
+components/Dashboard.tsx:                        <button onClick={() => setSearchTerm('')} className="mt-5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 text-sm font-semibold transition-colors">Clear search</button>
+components/Dashboard.tsx:                        className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
+components/Dashboard.tsx:                        <p className="text-sm font-medium">Loading activity...</p>
+components/Dashboard.tsx:                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Start using the tools to see your history here!</p>
+components/NotificationBanner.tsx:        <p className="font-medium text-sm">{message}</p>
+components/Header.tsx:                    <button onClick={onChangeExam} className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-2 hidden sm:inline-flex items-center gap-2 group" title="Change your exam focus">
+components/Header.tsx:                <span className="hidden sm:inline text-sm font-medium text-slate-700 dark:text-slate-300">{user?.displayName?.split(' ')[0]}</span>
+components/Header.tsx:                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{user?.displayName || 'User'}</p>
+components/Header.tsx:                  <button onClick={() => { setView(AppView.LEARNING_TRACKER); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2 transition-colors">
+components/Header.tsx:                    <button onClick={() => { setAppMode('admin'); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2 transition-colors">
+components/Header.tsx:                  <button onClick={() => { onUserSignOut(); setIsProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors mt-1">
+components/Sidebar.tsx:        className={`relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200 ${
+components/PreviousYearQuestions.tsx:                    <ul className="space-y-2 text-sm">
+components/JobNotificationsViewer.tsx:                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{job.organization} {job.department ? `(${job.department})` : ''}</p>
+components/JobNotificationsViewer.tsx:        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+components/JobNotificationsViewer.tsx:                <span className="text-amber-900 dark:text-amber-200 text-sm leading-snug">{job.eligibility}</span>
+components/JobNotificationsViewer.tsx:        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4">{admitCard.organization}</p>
+components/JobNotificationsViewer.tsx:        <div className="grid grid-cols-2 gap-3 text-sm">
+components/JobNotificationsViewer.tsx:                className="mt-4 block w-full text-center py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors"
+components/JobNotificationsViewer.tsx:        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4">{result.organization}</p>
+components/JobNotificationsViewer.tsx:                className="mt-4 block w-full text-center py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition-colors"
+components/JobNotificationsViewer.tsx:            <p className="text-sm text-slate-500 dark:text-slate-400">Job notifications, admit cards, and results in one place.</p>
+components/JobNotificationsViewer.tsx:          <Button onClick={() => fetchData(true)} variant="secondary" className="!p-2.5 !rounded-full sm:self-start self-end flex items-center justify-center gap-2 text-sm" disabled={isLoading} title="Refresh">
+components/JobNotificationsViewer.tsx:              className={`px-4 py-2 text-sm font-bold capitalize transition-all border-b-2 whitespace-nowrap ${
+components/JobNotificationsViewer.tsx:                        className="w-full p-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500"
+components/JobNotificationsViewer.tsx:                        className="w-full p-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500"
+components/JobNotificationsViewer.tsx:                        className="w-full p-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500"
+components/GeographyMap.tsx:                <div className="bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
+components/FlashcardsGenerator.tsx:            <label htmlFor="num-cards" className="block text-sm font-medium text-slate-700">Number of Flashcards: <span className="font-bold text-indigo-700">{numCards}</span></label>
+components/Button.tsx:    sm: 'px-3 py-1.5 text-sm',
+components/Button.tsx:    md: 'px-4 py-2 text-sm',
+components/ScientificCalculator.tsx:                    <div className="text-slate-400 text-sm h-7 truncate" title={expression}>{expression || ' '}</div>
+components/StudyMaterialModal.tsx:      <button onClick={() => setShowAnswer(!showAnswer)} className="text-sm text-indigo-600 dark:text-indigo-400 font-bold mt-2 hover:underline no-print">
+components/StudyMaterialModal.tsx:                                    <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">{deepDiveMaterial.realWorldExample}</p>
+components/StudyMaterialModal.tsx:                                                    className="px-3 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-full text-sm hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+components/PopupSelector.tsx:      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>
+components/MindMapGenerator.tsx:          <p className="font-semibold text-sm sm:text-base">{node.name}</p>
+components/StudyPlanner.tsx:                  <div className="flex justify-center items-center gap-2 mb-4 text-sm text-slate-500">
+components/StudyPlanner.tsx:                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 italic print:text-gray-700">{phase.strategy}</p>
+components/LoginPrompt.tsx:                  <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-3 rounded-md text-sm">
+components/LoginPrompt.tsx:                        <div className="relative flex justify-center text-sm">
+components/LoginPrompt.tsx:                            <button type="button" onClick={() => setMode('reset')} className="text-sm font-semibold text-indigo-600 hover:underline">Forgot Password?</button>
+components/LoginPrompt.tsx:            <div className="mt-6 text-center text-sm">
+components/AdaptiveLearningPath.tsx:                            <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">Step {step.step}: {step.action}</p>
+components/AdaptiveLearningPath.tsx:                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{step.rationale}</p>
+components/AiResumeBuilder.tsx:                    <div id="resume-preview" className="bg-white p-8 border rounded-lg min-h-[60vh] text-sm print:border-none print:p-0 print:text-black">
+components/AiResumeBuilder.tsx:                        <p className="text-center text-sm text-slate-600 mb-6">
+components/ActivityHistory.tsx:                      <div className="text-sm text-slate-500 flex-shrink-0">
+components/QuizGenerator.tsx:                <label htmlFor="num-questions" className="block text-sm font-medium text-slate-700 dark:text-slate-300">

@@ -10,6 +10,7 @@ import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
 import ContentRenderer from './ContentRenderer';
 import ErrorMessage from './ErrorMessage';
+import { checkAndIncrementDailyLimit } from '../firebase';
 
 interface HomeworkSolverProps {
   language: string;
@@ -79,6 +80,15 @@ const HomeworkSolver: React.FC<HomeworkSolverProps> = ({ language, isOnline, use
         setError(null);
         setResponse(null);
 
+        if (user?.uid) {
+            const limitCheck = await checkAndIncrementDailyLimit(user.uid, 'imageQuery');
+            if (!limitCheck.allowed) {
+                setError("You have reached your daily limit of 5 image queries. Please try again tomorrow.");
+                setIsLoading(false);
+                return;
+            }
+        }
+
         logActivity(user?.uid || null, {
             type: 'HOMEWORK_SOLVED' as HistoryType,
             description: 'Used the Homework Solver',
@@ -108,9 +118,9 @@ const HomeworkSolver: React.FC<HomeworkSolverProps> = ({ language, isOnline, use
             <div className="max-w-4xl mx-auto">
                 <Card className="text-center">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Homework Solver.</p>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Homework Solver.</p>
                     <div className="mt-6">
-                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                        <Button onClick={requestAuth}>Log In</Button>
                     </div>
                 </Card>
             </div>

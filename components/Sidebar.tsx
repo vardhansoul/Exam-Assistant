@@ -4,7 +4,10 @@ import { AppView } from '../types';
 import HomeIcon from './icons/HomeIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
+import GlobeAltIcon from './icons/GlobeAltIcon';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
+import NewspaperIcon from './icons/NewspaperIcon2';
+import BookOpenIcon from './icons/BookOpenIcon';
 
 interface NavigationMenuProps {
   currentView: AppView;
@@ -25,12 +28,15 @@ interface NavItemProps {
   badge?: number;
   isBack?: boolean;
   onBack?: () => void;
+  onClick?: () => void;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ view, label, icon, currentView, setView, onClose, badge, isBack, onBack }) => {
+const NavItem: React.FC<NavItemProps> = ({ view, label, icon, currentView, setView, onClose, badge, isBack, onBack, onClick }) => {
   const isActive = !isBack && view === currentView;
   const handleClick = () => {
-    if (isBack && onBack) {
+    if (onClick) {
+        onClick();
+    } else if (isBack && onBack) {
         onBack();
     } else if (view) {
         setView(view);
@@ -41,18 +47,18 @@ const NavItem: React.FC<NavItemProps> = ({ view, label, icon, currentView, setVi
     <li>
       <button
         onClick={handleClick}
-        className={`relative flex items-center w-full p-3 rounded-lg text-base font-medium transition-colors ${
+        className={`relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200 ${
           isActive
-            ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+            ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
             : isBack 
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 mb-2' 
-                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+                ? 'text-slate-600 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 mb-4' 
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
         }`}
       >
-        <span className="mr-4 h-6 w-6 flex-shrink-0">{icon}</span>
+        <span className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors ${isActive ? 'text-white dark:text-slate-900' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>{icon}</span>
         <span className="flex-grow text-left">{label}</span>
         {badge && badge > 0 && (
-            <span className="ml-auto px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+            <span className={`ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full shadow-sm ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'}`}>
                 {badge}
             </span>
         )}
@@ -65,7 +71,9 @@ const Sidebar: React.FC<NavigationMenuProps> = ({ currentView, setView, isOpen, 
     const navItems = [
         { view: AppView.HOME, label: 'Dashboard', icon: <HomeIcon /> },
         { view: AppView.ASK_AI, label: 'Ask COC', icon: <QuestionMarkCircleIcon /> },
-        { view: AppView.JOB_NOTIFICATIONS, label: 'Job Notifications', icon: <BriefcaseIcon /> },
+        { view: AppView.CURRENT_AFFAIRS, label: 'Current Affairs', icon: <GlobeAltIcon className="w-6 h-6" /> },
+        { view: AppView.JOB_NOTIFICATIONS, label: 'Alerts & Updates', icon: <BriefcaseIcon /> },
+        { label: 'Study Plan', icon: <BookOpenIcon />, onClick: () => window.open('https://clubofcompetition.in/studyplan', '_blank') },
     ];
 
     return (
@@ -109,6 +117,13 @@ const Sidebar: React.FC<NavigationMenuProps> = ({ currentView, setView, isOpen, 
             ))}
           </ul>
         </nav>
+        <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>Sync Status:</span>
+            <span className="flex items-center text-green-600 dark:text-green-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+                Active
+            </span>
+        </div>
       </aside>
     </>
   );

@@ -33,16 +33,16 @@ const QuestionCard: React.FC<{ question: string; answer: string; index: number }
     const [isAnswerVisible, setIsAnswerVisible] = useState(false);
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300 break-inside-avoid">
-            <p className="font-semibold text-slate-500 mb-2">Question {index + 1}</p>
-            <h3 className="text-lg font-bold text-slate-800">{question}</h3>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-300 break-inside-avoid">
+            <p className="font-semibold text-slate-500 dark:text-slate-400 mb-2">Question {index + 1}</p>
+            <h3 className="text-xl font-bold text-red-800 dark:text-red-300"><ContentRenderer content={question} /></h3>
             <div className="mt-4 no-print">
                 <Button variant="secondary" onClick={() => setIsAnswerVisible(!isAnswerVisible)}>
                     {isAnswerVisible ? 'Hide Answer' : 'Show Answer'}
                 </Button>
             </div>
             {isAnswerVisible && (
-                <div className="mt-4 pt-4 border-t border-slate-200 prose prose-sm prose-slate max-w-none">
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 prose max-w-none text-blue-950 dark:text-blue-100 text-lg">
                     <ContentRenderer content={answer} />
                 </div>
             )}
@@ -115,8 +115,7 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
     });
 
     try {
-      // Pass !user as isTrial
-      const data = await generateGuessPaper(topic, language, selectionPath, !user);
+      const data = await generateGuessPaper(topic, language, selectionPath);
       setGuessPaper(data);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
@@ -141,9 +140,9 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Guess Paper Generator.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Guess Paper Generator.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -183,8 +182,8 @@ const GuessPaperGenerator: React.FC<GuessPaperGeneratorProps> = ({ topics, langu
             </div>
             {guessPaper && (
                 <div className="flex gap-2 mt-4 sm:mt-0">
-                     <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2">
-                        <PrinterIcon className="w-4 h-4" /> Print
+                     <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2" title="Print format">
+                        <PrinterIcon className="w-4 h-4" /> 
                     </Button>
                     <Button variant="secondary" onClick={() => setGuessPaper(null)} className="!px-3 !py-1.5">
                         New Paper

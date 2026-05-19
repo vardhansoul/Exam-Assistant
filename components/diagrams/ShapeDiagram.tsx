@@ -77,22 +77,34 @@ const RenderShape: React.FC<{ shape: Shape; cx: number; cy: number; size: number
   );
 };
 
-export const ShapeDiagram: React.FC<{ data: ShapeDiagramData }> = ({ data }) => {
-  if (!data || !data.shapes || data.shapes.length === 0) {
+export const ShapeDiagram: React.FC<{ data: any }> = ({ data }) => {
+  let normalizedData = data;
+  if (data?.shapes && Array.isArray(data.shapes)) {
+      normalizedData = {
+          title: data.title,
+          shapes: data.shapes.map((s: any) => ({
+              ...s,
+              fill: s.fill || s.color || '#a5b4fc',
+              stroke: s.stroke || '#6366f1'
+          }))
+      };
+  }
+
+  if (!normalizedData || !normalizedData.shapes || normalizedData.shapes.length === 0) {
     return <div className="text-red-500">Invalid shape data</div>;
   }
 
-  const numShapes = data.shapes.length;
+  const numShapes = normalizedData.shapes.length;
   const shapeSize = 80;
   const padding = 20;
   const totalWidth = numShapes * (shapeSize + padding);
 
   return (
-    <div className="p-4 bg-white rounded-lg border border-slate-200 my-4 shadow-sm overflow-x-auto">
-      <h4 className="text-center font-bold text-slate-700 mb-4">{data.title}</h4>
+    <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 my-4 shadow-sm overflow-x-auto">
+      <h4 className="text-center font-bold text-slate-700 dark:text-slate-200 mb-4">{normalizedData.title}</h4>
       <svg viewBox={`0 0 ${totalWidth} ${shapeSize + padding * 2}`} className="w-full h-auto min-w-[200px]">
-        <title>{data.title}</title>
-        {data.shapes.map((shape, index) => {
+        <title>{normalizedData.title}</title>
+        {normalizedData.shapes.map((shape: any, index: number) => {
           const cx = index * (shapeSize + padding) + shapeSize / 2 + padding / 2;
           const cy = shapeSize / 2 + padding;
           return <RenderShape key={index} shape={shape} cx={cx} cy={cy} size={shapeSize} />;

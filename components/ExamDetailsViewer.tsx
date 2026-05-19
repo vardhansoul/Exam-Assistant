@@ -37,9 +37,9 @@ const ExamDetailsViewer: React.FC<ExamDetailsViewerProps> = ({ selectionPath, de
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to view detailed exam information.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to view detailed exam information.</p>
                 <div className="mt-6 flex justify-center gap-4">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -86,7 +86,7 @@ const ExamDetailsViewer: React.FC<ExamDetailsViewerProps> = ({ selectionPath, de
                   {group.details.map(detail => (
                     <div key={detail.criteria} className="flex flex-col sm:flex-row text-sm">
                       <p className="font-semibold text-slate-600 dark:text-slate-300 sm:w-1/3 flex-shrink-0">{detail.criteria}:</p>
-                      <div className="text-slate-800 dark:text-slate-200 sm:w-2/3 break-words prose prose-sm max-w-none dark:prose-invert">
+                      <div className="text-slate-800 dark:text-slate-200 sm:w-2/3 break-words prose prose-base max-w-none dark:prose-invert">
                         <ContentRenderer content={detail.details} />
                       </div>
                     </div>

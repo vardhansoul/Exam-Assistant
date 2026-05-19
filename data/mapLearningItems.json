@@ -1,0 +1,252 @@
+[
+  {
+    "id": 1,
+    "type": "geography",
+    "difficulty": "easy",
+    "title": "Thar Desert",
+    "learning": {
+      "description": "The Great Indian Desert, an arid region in the northwestern part of the Indian subcontinent.",
+      "fact": "Covering over 200,000 sq km, it forms a natural boundary between India and Pakistan.",
+      "hint": "Located mostly in the largest Indian state by area."
+    },
+    "practice": {
+      "task": "Identify the state where the Thar Desert is predominantly located."
+    },
+    "quiz": {
+      "question": "Click on the state primarily associated with the Thar Desert.",
+      "answer_type": "polygon",
+      "answer_name": "Rajasthan"
+    },
+    "feedback": {
+      "correct": "Correct! Rajasthan holds the majority of the Thar Desert.",
+      "wrong": "It's primarily in Rajasthan. Try clicking the large state in northwestern India."
+    },
+    "tags": ["geography", "deserts", "rajasthan"]
+  },
+  {
+    "id": 2,
+    "type": "history",
+    "difficulty": "medium",
+    "title": "Champaran Satyagraha",
+    "learning": {
+      "description": "The first civil disobedience movement led by Mahatma Gandhi in India (1917).",
+      "fact": "It protested the forced cultivation of indigo by British planters.",
+      "hint": "Located in a state known for its ancient universities like Nalanda."
+    },
+    "practice": {
+      "task": "Find the general location of Champaran in India."
+    },
+    "quiz": {
+      "question": "Click near Champaran, the site of Gandhi's first Satyagraha.",
+      "answer_type": "point",
+      "lat": 26.64,
+      "lng": 84.91,
+      "tolerance_km": 100
+    },
+    "feedback": {
+      "correct": "Spot on! Champaran is located in Bihar.",
+      "wrong": "Champaran is in northern Bihar, near the Nepal border."
+    },
+    "tags": ["history", "modern_india", "gandhi", "bihar"]
+  },
+  {
+    "id": 3,
+    "type": "general_knowledge",
+    "difficulty": "easy",
+    "title": "ISRO Headquarters",
+    "learning": {
+      "description": "The primary space agency of the Government of India, formed in 1969.",
+      "fact": "It manages India's space program, including missions like Chandrayaan and Mangalyaan.",
+      "hint": "Known as the Silicon Valley of India."
+    },
+    "practice": {
+      "task": "Find the city where ISRO is headquartered."
+    },
+    "quiz": {
+      "question": "Click on Bengaluru, the headquarters of ISRO.",
+      "answer_type": "point",
+      "lat": 12.97,
+      "lng": 77.59,
+      "tolerance_km": 50
+    },
+    "feedback": {
+      "correct": "Excellent! ISRO is headquartered in Bengaluru, Karnataka.",
+      "wrong": "ISRO's HQ is in Bengaluru in the southern state of Karnataka."
+    },
+    "tags": ["science", "isro", "space", "karnataka"]
+  },
+  {
+    "id": 4,
+    "type": "geography",
+    "difficulty": "medium",
+    "title": "Majuli Island",
+    "learning": {
+      "description": "The world's largest river island, situated in the Brahmaputra River.",
+      "fact": "It became the first island to be made a district in India in 2016.",
+      "hint": "Located in the state famous for Kaziranga National Park."
+    },
+    "practice": {
+      "task": "Identify the state that is home to Majuli Island."
+    },
+    "quiz": {
+      "question": "Click on the state containing the Majuli river island.",
+      "answer_type": "polygon",
+      "answer_name": "Assam"
+    },
+    "feedback": {
+      "correct": "Correct! Majuli is situated in Assam.",
+      "wrong": "Majuli is in Assam, located in Northeast India."
+    },
+    "tags": ["geography", "islands", "rivers", "assam"]
+  },
+  {
+    "id": 5,
+    "type": "history",
+    "difficulty": "hard",
+    "title": "Dandi March Destination",
+    "learning": {
+      "description": "The seaside village where Gandhi broke the salt law in 1930.",
+      "fact": "The 24-day march covered 240 miles from Sabarmati Ashram to Dandi.",
+      "hint": "Located on the Arabian Sea coast in a western Indian state."
+    },
+    "practice": {
+      "task": "Find the coastal location of Dandi."
+    },
+    "quiz": {
+      "question": "Click on Dandi, where the Salt March concluded.",
+      "answer_type": "point",
+      "lat": 20.88,
+      "lng": 72.80,
+      "tolerance_km": 60
+    },
+    "feedback": {
+      "correct": "Great! Dandi is securely located on the coast of Gujarat.",
+      "wrong": "Dandi is located near Navsari on the coast of Gujarat."
+    },
+    "tags": ["history", "freedom_struggle", "gandhi", "gujarat"]
+  },
+  {
+    "id": 6,
+    "type": "general_knowledge",
+    "difficulty": "easy",
+    "title": "Sun Temple, Konark",
+    "learning": {
+      "description": "A 13th-century CE Sun Temple built by King Narasimhadeva I.",
+      "fact": "Designed in the shape of a colossal chariot, it is a UNESCO World Heritage site.",
+      "hint": "Located on the coastline of a state prone to cyclones."
+    },
+    "practice": {
+      "task": "Find the state where the Konark Sun Temple stands."
+    },
+    "quiz": {
+      "question": "Click on the state home to the Konark Sun Temple.",
+      "answer_type": "polygon",
+      "answer_name": "Odisha"
+    },
+    "feedback": {
+      "correct": "Spot on! The Sun Temple is in Odisha.",
+      "wrong": "It is located in Odisha (formerly Orissa) on the eastern coast."
+    },
+    "tags": ["art_and_culture", "temples", "unesco", "odisha"]
+  },
+  {
+    "id": 7,
+    "type": "geography",
+    "difficulty": "hard",
+    "title": "Lake Chilika",
+    "learning": {
+      "description": "Asia's largest brackish water lagoon.",
+      "fact": "It's the largest wintering ground for migratory birds on the Indian sub-continent.",
+      "hint": "It lies south of the Mahanadi Delta."
+    },
+    "practice": {
+      "task": "Find the location of Lake Chilika on the map."
+    },
+    "quiz": {
+      "question": "Click near Lake Chilika.",
+      "answer_type": "point",
+      "lat": 19.70,
+      "lng": 85.31,
+      "tolerance_km": 80
+    },
+    "feedback": {
+      "correct": "Perfect! Chilika Lake is on the east coast, in Odisha.",
+      "wrong": "Chilika is located on the eastern coastline in the state of Odisha."
+    },
+    "tags": ["geography", "lakes", "environment", "odisha"]
+  },
+  {
+    "id": 8,
+    "type": "history",
+    "difficulty": "medium",
+    "title": "Jallianwala Bagh",
+    "learning": {
+      "description": "A public garden in Amritsar where a peaceful crowd was massacred by British troops in 1919.",
+      "fact": "The incident deeply shocked the nation and was a turning point in the independence movement.",
+      "hint": "Located near the Golden Temple in a northwestern state."
+    },
+    "practice": {
+      "task": "Locate the city where the Jallianwala Bagh massacre occurred."
+    },
+    "quiz": {
+      "question": "Click on Amritsar, the site of the Jallianwala Bagh massacre.",
+      "answer_type": "point",
+      "lat": 31.62,
+      "lng": 74.87,
+      "tolerance_km": 50
+    },
+    "feedback": {
+      "correct": "Correct! Jallianwala Bagh is in Amritsar, Punjab.",
+      "wrong": "Amritsar is located in northern Punjab, near the Pakistani border."
+    },
+    "tags": ["history", "modern_india", "punjab"]
+  },
+  {
+    "id": 9,
+    "type": "general_knowledge",
+    "difficulty": "hard",
+    "title": "Sardar Sarovar Dam",
+    "learning": {
+      "description": "One of the largest concrete gravity dams, built on the Narmada river.",
+      "fact": "It provides water and electricity to four Indian states.",
+      "hint": "Located in the state closely associated with the Narmada Bachao Andolan."
+    },
+    "practice": {
+      "task": "Identify the state where the Sardar Sarovar Dam is primarily located."
+    },
+    "quiz": {
+      "question": "Click on the state housing the Sardar Sarovar Dam.",
+      "answer_type": "polygon",
+      "answer_name": "Gujarat"
+    },
+    "feedback": {
+      "correct": "Well done! The dam is in Gujarat.",
+      "wrong": "The Sardar Sarovar Dam is located in Gujarat, along the Narmada River."
+    },
+    "tags": ["geography", "dams", "infrastructure", "gujarat"]
+  },
+  {
+    "id": 10,
+    "type": "history",
+    "difficulty": "medium",
+    "title": "Battle of Plassey",
+    "learning": {
+      "description": "A decisive victory of the British East India Company over the Nawab of Bengal (1757).",
+      "fact": "It marked the beginning of consolidated British rule in India.",
+      "hint": "Fought in Palashi, located in an eastern state named after its historical region."
+    },
+    "practice": {
+      "task": "Identify the modern state where the Battle of Plassey took place."
+    },
+    "quiz": {
+      "question": "Click on the state where Palashi (Plassey) is located.",
+      "answer_type": "polygon",
+      "answer_name": "West Bengal"
+    },
+    "feedback": {
+      "correct": "Correct! Palashi is in modern-day West Bengal.",
+      "wrong": "The battle took place in West Bengal, on the banks of the Hooghly River."
+    },
+    "tags": ["history", "battles", "british_india", "west_bengal"]
+  }
+]

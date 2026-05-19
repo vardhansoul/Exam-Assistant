@@ -73,8 +73,7 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ selectionPath, language, is
         });
 
         try {
-            // Pass !user as isTrial
-            const roadmap = await generateStudyRoadmap(selectionPath, language, topics, !user);
+            const roadmap = await generateStudyRoadmap(selectionPath, language, topics);
             setStudyRoadmap(roadmap);
         } catch(err) {
             setError(getSpecificErrorMessage(err));
@@ -91,9 +90,9 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ selectionPath, language, is
             <div className="max-w-3xl mx-auto">
                 <Card className="text-center">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Study Roadmap Generator.</p>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Study Roadmap Generator.</p>
                     <div className="mt-6">
-                        <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                        <Button onClick={requestAuth}>Log In</Button>
                     </div>
                 </Card>
             </div>
@@ -127,8 +126,8 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ selectionPath, language, is
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 no-print">
                   <h3 className="text-xl sm:text-2xl font-bold text-indigo-700 dark:text-indigo-400">{studyRoadmap.title}</h3>
                   <div className="self-end sm:self-auto">
-                      <Button onClick={handlePrint} variant="outline" size="sm" className="flex items-center gap-2">
-                            <PrinterIcon className="w-4 h-4" /> Print
+                      <Button onClick={handlePrint} variant="outline" size="sm" className="flex items-center gap-2" title="Print Roadmap">
+                            <PrinterIcon className="w-4 h-4" /> 
                       </Button>
                   </div>
               </div>

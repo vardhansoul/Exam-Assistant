@@ -12,7 +12,6 @@ interface AdmitCardTrackerProps {
   selection: Selection;
   language: string;
   isOnline: boolean;
-  isTrial?: boolean;
 }
 
 const AdmitCardTracker: React.FC<AdmitCardTrackerProps> = (props) => {

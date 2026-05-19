@@ -1,5 +1,5 @@
 
-import type { Chat } from '@google/genai';
+import type { Chat, GroundingChunk } from '@google/genai';
 
 export type User = {
   uid: string;
@@ -9,8 +9,6 @@ export type User = {
   isAdmin?: boolean; // New field for dynamic admin status
   role?: string; // New field for role management
   createdAt?: string | any; // Account creation date (string or Firestore Timestamp)
-  customExpiryDate?: any; // Admin override for expiry
-  validityDaysRemaining?: number; // Calculated on frontend
 };
 
 export enum AppView {
@@ -21,7 +19,6 @@ export enum AppView {
   QUIZ = 'QUIZ',
   INTERVIEW = 'INTERVIEW',
   LEARN_TOPICS = 'LEARN_TOPICS',
-  DAILY_BRIEFING = 'DAILY_BRIEFING',
   MIND_MAP = 'MIND_MAP',
   GUESS_PAPER = 'GUESS_PAPER',
   STUDY_ROADMAP = 'STUDY_ROADMAP',
@@ -44,6 +41,8 @@ export enum AppView {
   ADAPTIVE_LEARNING_PATH = 'ADAPTIVE_LEARNING_PATH',
   STORY_TUTOR = 'STORY_TUTOR',
   HOMEWORK_SOLVER = 'HOMEWORK_SOLVER',
+  LEARNING_TECHNIQUES = 'LEARNING_TECHNIQUES',
+  MAP_INTERACTIVE_LEARNING = 'MAP_INTERACTIVE_LEARNING',
 }
 
 export type LastSelection = {
@@ -121,12 +120,7 @@ export interface ExamByQualification {
   description: string;
 }
 
-export interface GroundingSource {
-    web?: {
-        uri?: string;
-        title?: string;
-    }
-}
+export type GroundingSource = GroundingChunk;
 export interface ExamStatusUpdate {
   status: string;
   details: string;
@@ -177,6 +171,28 @@ export interface JobNotification {
   startDate?: string;
   lastDate: string;
   link?: string;
+  level?: 'Central' | 'State';
+  state?: string;
+  department?: string;
+}
+
+export interface AdmitCardNotification {
+  examName: string;
+  organization: string;
+  releaseDate: string;
+  examDate?: string;
+  link?: string;
+  level?: 'Central' | 'State';
+  state?: string;
+}
+
+export interface ResultNotification {
+  examName: string;
+  organization: string;
+  resultDate: string;
+  link?: string;
+  level?: 'Central' | 'State';
+  state?: string;
 }
 
 export interface AdaptiveLearningStep {
@@ -267,7 +283,10 @@ export interface HistoryItem {
   view: AppView;
   context: {
     topic?: string;
+    subject?: string;
     examPath?: string;
+    level?: string;
+    state?: string;
   };
 }
 
@@ -433,18 +452,6 @@ export interface FullUserProfile extends User {
     isBlocked?: boolean;
     apiUsage?: number;
     currentFocus?: string;
-    customExpiryDate?: any; // Timestamp
     profile?: UserProfile; // Added profile data
-}
-
-export interface TrialUser {
-    id: string; // phone number
-    name: string;
-    email: string;
-    phoneNumber: string;
-    fingerprint: string;
-    startedAt: any;
-    userAgent: string;
-    apiUsage?: number;
 }
         

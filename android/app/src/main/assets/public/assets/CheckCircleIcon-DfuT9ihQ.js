@@ -1,0 +1,1 @@
+import{j as o}from"./index-x_IE3o7i.js";const n=({title:r,...s})=>o.jsxs("svg",{xmlns:"http://www.w3.org/2000/svg",fill:"none",viewBox:"0 0 24 24",strokeWidth:1.5,stroke:"currentColor",...s,children:[r&&o.jsx("title",{children:r}),o.jsx("path",{strokeLinecap:"round",strokeLinejoin:"round",d:"M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"})]});export{n as C};

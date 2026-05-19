@@ -230,7 +230,6 @@ const ExamSelectionWizard: React.FC<WizardProps> = ({ isOpen, onClose, onSelecti
                 <>
                     <button onClick={goBack} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center gap-1 transition-colors" aria-label="Go back">
                         <ArrowLeftIcon className="w-5 h-5" />
-                        <span className="hidden sm:inline text-sm font-medium">Back</span>
                     </button>
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
                 </>
@@ -241,7 +240,6 @@ const ExamSelectionWizard: React.FC<WizardProps> = ({ isOpen, onClose, onSelecti
             {history.length > 1 && (
                 <button onClick={handleStartOver} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center gap-1 mr-1 transition-colors" title="Start Over">
                     <ArrowPathIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline text-xs font-medium">Start Over</span>
                 </button>
             )}
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">

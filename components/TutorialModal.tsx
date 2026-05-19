@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { Tutorial } from '../types';
-import LoadingSpinner from './LoadingSpinner';
+import LoadingSpinner, { TypingLoadingText } from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 import ContentRenderer from './ContentRenderer';
 import Button from './Button';
@@ -28,19 +28,23 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose, tutorial
       <div className="w-full h-full flex flex-col">
         <header className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0 bg-white dark:bg-slate-800 no-print">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">{tutorial?.title || 'Tutorial'}</h3>
-          <button onClick={onClose} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handlePrint} variant="outline" size="sm" disabled={!tutorial || isLoading} className="flex items-center gap-2" title="Print to PDF">
+                <PrinterIcon className="w-4 h-4" /> 
+            </Button>
+            <button onClick={onClose} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         <div className="overflow-y-auto p-4 sm:p-6 flex-grow print-content">
           <div className="max-w-5xl mx-auto h-full">
             {isLoading && (
                 <div className="flex flex-col justify-center items-center h-full text-center no-print">
-                    <LoadingSpinner />
-                    <p className="mt-4 text-slate-600 dark:text-slate-400 text-lg">COC AI is building your step-by-step tutorial...</p>
+                    <TypingLoadingText />
                 </div>
             )}
             {error && <ErrorMessage message={error} onRetry={onRetry} />}
@@ -111,13 +115,6 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose, tutorial
             )}
           </div>
         </div>
-        <footer className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0 no-print">
-            <Button onClick={handlePrint} variant="purple" disabled={!tutorial || isLoading} className="flex items-center gap-2 !px-6">
-                <PrinterIcon className="w-5 h-5" />
-                Print to PDF
-            </Button>
-            <Button variant="secondary" onClick={onClose} className="!px-6">Close</Button>
-        </footer>
       </div>
        <style>{`
             @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }

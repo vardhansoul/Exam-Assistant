@@ -1,7 +1,8 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import * as React from 'react';
+import { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
-  children?: ReactNode;
+  children: ReactNode;
 }
 
 interface State {
@@ -9,14 +10,16 @@ interface State {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null
-  };
+class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null
+    };
+  }
 
   public static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
@@ -26,23 +29,37 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      let errorMessage = this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.';
+      
+      // Try to parse JSON error messages (like FirestoreErrorInfo)
+      try {
+        if (errorMessage.startsWith('{') && errorMessage.includes('"error"')) {
+          const parsed = JSON.parse(errorMessage);
+          if (parsed.error && parsed.error.includes('Missing or insufficient permissions')) {
+             errorMessage = "You don't have permission to access this data. Please ensure you are logged in with the correct account.";
+          } else if (parsed.error) {
+             errorMessage = parsed.error;
+          }
+        }
+      } catch (e) {
+        // Not a JSON string, use as is
+      }
+
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-900 p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Oops, something went wrong!</h2>
-            <p className="text-gray-600 mb-6">
-              We're sorry, but an unexpected error occurred. Please try refreshing the page or contact support if the problem persists.
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">Something went wrong</h1>
+            <p className="text-slate-600 mb-6">
+              {errorMessage}
             </p>
-            {this.state.error && (
-              <div className="bg-gray-100 p-4 rounded-lg text-left overflow-auto mb-6 max-h-40">
-                <p className="text-sm font-mono text-gray-800 break-words">
-                  {this.state.error.toString()}
-                </p>
-              </div>
-            )}
             <button
               onClick={() => window.location.reload()}
-              className="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-indigo-700 transition-colors"
+              className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               Refresh Page
             </button>

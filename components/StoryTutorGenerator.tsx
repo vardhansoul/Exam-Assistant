@@ -33,6 +33,7 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const [storyIndex, setStoryIndex] = useState(1);
 
   // Initialize from storage
   const [topic, setTopic] = useState<string>(() => {
@@ -64,7 +65,7 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
     }
   }, [topics.length, isSyllabusLoading, isOnline, onRefresh]);
 
-  const handleGenerateStory = async () => {
+  const handleGenerateStory = async (indexToFetch: number = 1) => {
     if (!canAccessPremium) {
         requestAuth();
         return;
@@ -84,12 +85,20 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
     });
 
     try {
-      const result = await generateStoryForTopic(topic, language, !user);
+      const result = await generateStoryForTopic(topic, language, indexToFetch);
       setStoryData(result);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
     }
     setIsLoading(false);
+  };
+
+  const handleGenerateAnother = () => {
+      if (storyIndex < 10) {
+          const nextIndex = storyIndex + 1;
+          setStoryIndex(nextIndex);
+          handleGenerateStory(nextIndex);
+      }
   };
 
   const handleTopicSelect = () => {
@@ -100,6 +109,7 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
         setTopic(selectedTopic);
         setStoryData(null);
         setError(null);
+        setStoryIndex(1);
       },
     });
   };
@@ -111,9 +121,9 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
         <div className="max-w-3xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Story Tutor.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Story Tutor.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>
@@ -162,7 +172,7 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
                 disabled={topics.length === 0 || isLoading}
               />
             </div>
-            <Button onClick={handleGenerateStory} disabled={isLoading || !isOnline || !topic} className="w-full sm:w-auto flex-shrink-0 !py-3">
+            <Button onClick={() => handleGenerateStory(1)} disabled={isLoading || !isOnline || !topic} className="w-full sm:w-auto flex-shrink-0 !py-3">
               {isLoading ? 'Creating Story...' : 'Generate Story'}
             </Button>
           </div>
@@ -179,8 +189,8 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
         {storyData && (
           <div className="mt-8 space-y-8 animate-fade-in">
              <div className="flex justify-end no-print">
-                <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2">
-                    <PrinterIcon className="w-4 h-4" /> Print Lesson
+                <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2" title="Print Lesson">
+                    <PrinterIcon className="w-4 h-4" /> 
                 </Button>
              </div>
 
@@ -246,6 +256,12 @@ const StoryTutorGenerator: React.FC<StoryTutorGeneratorProps> = ({ topics, langu
                     </div>
                 </div>
              )}
+
+             <div className="flex justify-center mt-8 no-print">
+                <Button onClick={handleGenerateAnother} disabled={isLoading || !isOnline || storyIndex >= 10} variant="secondary">
+                    {storyIndex >= 10 ? 'Maximum stories reached' : `Generate another story (${storyIndex}/10)`}
+                </Button>
+             </div>
           </div>
         )}
       </Card>

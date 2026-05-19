@@ -12,7 +12,6 @@ interface ResultTrackerProps {
   selection: Selection;
   language: string;
   isOnline: boolean;
-  isTrial?: boolean;
 }
 
 const ResultTracker: React.FC<ResultTrackerProps> = (props) => {

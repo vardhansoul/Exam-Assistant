@@ -53,11 +53,11 @@ const FlashcardViewer: React.FC<{ flashcards: Flashcard[], onFinish: () => void 
                     className={`relative w-full h-80 rounded-2xl shadow-lg cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
                     onClick={() => setIsFlipped(!isFlipped)}
                 >
-                    <div className="absolute w-full h-full bg-white border-2 border-indigo-200 rounded-2xl flex items-center justify-center p-6 text-center backface-hidden">
-                        <ContentRenderer content={currentCard.front} className="prose prose-lg max-w-none"/>
+                    <div className="absolute w-full h-full bg-white dark:bg-slate-800 border-2 border-red-200 dark:border-red-900 rounded-2xl flex items-center justify-center p-6 text-center backface-hidden overflow-y-auto">
+                        <div className="prose prose-lg max-w-none text-red-800 dark:text-red-300 font-bold"><ContentRenderer content={currentCard.front}/></div>
                     </div>
-                    <div className="absolute w-full h-full bg-indigo-500 text-white rounded-2xl flex items-center justify-center p-6 text-center backface-hidden rotate-y-180">
-                        <ContentRenderer content={currentCard.back} className="prose prose-lg max-w-none prose-invert"/>
+                    <div className="absolute w-full h-full bg-[#f8fafc] dark:bg-slate-900 border-2 border-blue-200 dark:border-blue-900 rounded-2xl flex items-center justify-center p-6 text-center backface-hidden rotate-y-180 overflow-y-auto">
+                        <div className="prose max-w-none text-blue-950 dark:text-blue-200 font-medium text-lg leading-relaxed"><ContentRenderer content={currentCard.back}/></div>
                     </div>
                 </div>
             </div>
@@ -74,7 +74,6 @@ const FlashcardViewer: React.FC<{ flashcards: Flashcard[], onFinish: () => void 
                 .transform-style-3d { transform-style: preserve-3d; }
                 .rotate-y-180 { transform: rotateY(180deg); }
                 .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-                .prose-invert strong, .prose-invert h1, .prose-invert h2, .prose-invert h3, .prose-invert h4 { color: inherit; }
             `}</style>
         </div>
     );
@@ -147,9 +146,9 @@ const FlashcardsGenerator: React.FC<FlashcardsGeneratorProps> = ({ topics, langu
         <div className="max-w-2xl mx-auto">
             <Card className="text-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Premium Feature</h2>
-                <p className="mt-2 text-slate-500 dark:text-slate-400">Your trial has ended. Please sign up or log in to use the Flashcards Generator.</p>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Please log in to use the Flashcards Generator.</p>
                 <div className="mt-6">
-                    <Button onClick={requestAuth}>Sign Up / Log In</Button>
+                    <Button onClick={requestAuth}>Log In</Button>
                 </div>
             </Card>
         </div>

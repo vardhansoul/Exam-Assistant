@@ -17,16 +17,16 @@ interface StoryTutorModalProps {
   topic: string | null;
   language: string;
   isOnline: boolean;
-  isTrial?: boolean;
 }
 
-const StoryTutorModal: React.FC<StoryTutorModalProps> = ({ isOpen, onClose, topic, language, isOnline, isTrial }) => {
+const StoryTutorModal: React.FC<StoryTutorModalProps> = ({ isOpen, onClose, topic, language, isOnline }) => {
   const [data, setData] = useState<StoryTutorResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const [storyIndex, setStoryIndex] = useState(1);
 
-  const fetchStory = useCallback(async () => {
+  const fetchStory = useCallback(async (indexToFetch: number = 1) => {
     if (!topic) return;
     if (!isOnline) {
       setError("You are offline. Please connect to generate a story.");
@@ -38,20 +38,29 @@ const StoryTutorModal: React.FC<StoryTutorModalProps> = ({ isOpen, onClose, topi
     setData(null);
     setShowSolution(false);
     try {
-      const result = await generateStoryForTopic(topic, language, isTrial);
+      const result = await generateStoryForTopic(topic, language, indexToFetch);
       setData(result);
     } catch (err) {
       setError(getSpecificErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [topic, language, isOnline, isTrial]);
+  }, [topic, language, isOnline]);
 
   useEffect(() => {
     if (isOpen && topic) {
-      fetchStory();
+      setStoryIndex(1);
+      fetchStory(1);
     }
   }, [isOpen, topic, fetchStory]);
+
+  const handleGenerateAnother = () => {
+      if (storyIndex < 10) {
+          const nextIndex = storyIndex + 1;
+          setStoryIndex(nextIndex);
+          fetchStory(nextIndex);
+      }
+  };
 
   const handlePrint = () => {
       window.print();
@@ -65,8 +74,8 @@ const StoryTutorModal: React.FC<StoryTutorModalProps> = ({ isOpen, onClose, topi
         <header className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0 bg-white dark:bg-slate-800 no-print">
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 truncate">Learn with a Story: {topic}</h3>
           <div className="flex gap-2">
-             <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2">
-                <PrinterIcon className="w-4 h-4" /> Print
+             <Button onClick={handlePrint} variant="outline" className="!px-3 !py-1.5 flex items-center gap-2" title="Print format">
+                <PrinterIcon className="w-4 h-4" /> 
             </Button>
             <button onClick={onClose} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -149,19 +158,18 @@ const StoryTutorModal: React.FC<StoryTutorModalProps> = ({ isOpen, onClose, topi
                             </div>
                         </div>
                     )}
+                    
+                    <div className="flex justify-center pt-8 border-t border-slate-200 dark:border-slate-700 no-print">
+                        <Button onClick={handleGenerateAnother} disabled={isLoading || !isOnline || storyIndex >= 10} variant="secondary">
+                            {storyIndex >= 10 ? 'Maximum stories reached' : `Generate another story (${storyIndex}/10)`}
+                        </Button>
+                    </div>
                 </div>
             ) : (
                 <p className="text-slate-500 dark:text-slate-400 text-center py-20 text-lg">Could not generate a story. Please try again.</p>
             )}
           </div>
         </div>
-        
-        <footer className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex-shrink-0 flex justify-between items-center no-print">
-            <Button onClick={fetchStory} disabled={isLoading || !isOnline} variant="secondary">
-                Generate another story
-            </Button>
-            <Button onClick={onClose}>Close</Button>
-        </footer>
       </div>
        <style>{`
             @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
